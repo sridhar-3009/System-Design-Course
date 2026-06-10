@@ -16,8 +16,7 @@
 
   function applyTheme(theme) {
     document.documentElement.setAttribute('data-theme', theme);
-    var btn = document.getElementById('themeToggle');
-    if (btn) btn.textContent = theme === 'dark' ? '☀️' : '🌙';
+    /* Icons swapped via CSS [data-theme="dark"] .icon-moon/sun rules */
   }
 
   function initTheme() {
@@ -152,5 +151,76 @@
     document.addEventListener('DOMContentLoaded', boot);
   } else {
     boot();
+  }
+})();
+
+/* ---------- Accordion Q&A (expansion pack) ---------- */
+(function () {
+  'use strict';
+  function initQA() {
+    document.querySelectorAll('.qa-question').forEach(function (q) {
+      q.addEventListener('click', function () {
+        var item = q.parentElement;
+        var wasOpen = item.classList.contains('open');
+        document.querySelectorAll('.qa-item.open').forEach(function (i) { i.classList.remove('open'); });
+        if (!wasOpen) item.classList.add('open');
+      });
+    });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initQA);
+  } else {
+    initQA();
+  }
+})();
+
+/* ============================================================
+   3D card tilt effect — pointer drives perspective rotation
+   ============================================================ */
+(function () {
+  'use strict';
+  function initTilt() {
+    document.querySelectorAll('.topic-card').forEach(function (card) {
+      var raf;
+      card.addEventListener('mousemove', function (e) {
+        cancelAnimationFrame(raf);
+        raf = requestAnimationFrame(function () {
+          var r = card.getBoundingClientRect();
+          var x = (e.clientX - r.left) / r.width - 0.5;
+          var y = (e.clientY - r.top) / r.height - 0.5;
+          card.style.setProperty('--ry', (x * 18).toFixed(1) + 'deg');
+          card.style.setProperty('--rx', (-y * 13).toFixed(1) + 'deg');
+        });
+      });
+      card.addEventListener('mouseleave', function () {
+        cancelAnimationFrame(raf);
+        card.style.setProperty('--rx', '0deg');
+        card.style.setProperty('--ry', '0deg');
+      });
+    });
+  }
+
+  /* Theme toggle: swap moon/sun SVG icons */
+  function patchThemeIcons() {
+    var btn = document.getElementById('themeToggle');
+    if (!btn) return;
+    function syncIcons(theme) {
+      var moon = btn.querySelector('.icon-moon');
+      var sun  = btn.querySelector('.icon-sun');
+      if (moon) moon.style.display = theme === 'dark' ? 'none' : 'block';
+      if (sun)  sun.style.display  = theme === 'dark' ? 'block' : 'none';
+    }
+    syncIcons(document.documentElement.getAttribute('data-theme') || 'light');
+    btn.addEventListener('click', function () {
+      setTimeout(function () {
+        syncIcons(document.documentElement.getAttribute('data-theme') || 'light');
+      }, 0);
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () { initTilt(); patchThemeIcons(); });
+  } else {
+    initTilt(); patchThemeIcons();
   }
 })();

@@ -14,12 +14,12 @@
 
 <nav class="navbar">
   <div class="nav-inner">
-    <a href="../index.html" class="logo"><span class="bolt">⚡</span><span class="logo-text">System Design Illustrated</span></a>
+    <a href="../index.html" class="logo"><span class="bolt"></span><span class="logo-text">System Design Illustrated</span></a>
     <div class="nav-links">
       <a href="../index.html#topics">Topics</a>
       <a href="../index.html#about">About</a>
       <a href="12-interview-guide.html">Interview Guide</a>
-      <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">🌙</button>
+      <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode"></button>
     </div>
   </div>
 </nav>
@@ -28,13 +28,25 @@
   <div class="topic-header-inner">
     <div class="breadcrumb"><a href="../index.html">Home</a> / Topics / 05</div>
     <div class="topic-num-big">TOPIC 05</div>
-    <h1>Load Balancers &amp; Reverse Proxies ⚖️</h1>
+    <h1>Load Balancers &amp; Reverse Proxies </h1>
     <p class="subtitle">Horizontal scaling gives you a fleet of servers. Something has to decide which one answers each request — and quietly remove the ones that are on fire.</p>
-    <div class="topic-meta"><span class="tag">🌿 Intermediate</span><span class="tag">⏱ 30 min read</span><span class="tag">📐 9 concepts</span></div>
+    <div class="topic-meta"><span class="tag">🌿 Intermediate</span><span class="tag"> 30 min read</span><span class="tag"> 9 concepts</span></div>
   </div>
 </header>
 
 <main class="topic-body">
+
+  <div class="at-a-glance">
+    <h3> At a Glance</h3>
+    <ul>
+      <li><strong>Load balancers</strong> distribute traffic across servers to prevent overload.</li>
+      <li><strong>L4</strong> (transport layer) routes by IP+port — fast, no content inspection.</li>
+      <li><strong>L7</strong> (application layer) routes by URL/headers — smart, enables A/B testing and canary releases.</li>
+      <li><strong>Round robin</strong> is simplest; <strong>least-connections</strong> is smarter for heterogeneous request lengths.</li>
+      <li><strong>Active-active</strong> doubles capacity AND resilience; active-passive wastes standby capacity.</li>
+      <li><strong>Reverse proxies</strong> add SSL termination, compression, caching, and origin anonymity.</li>
+    </ul>
+  </div>
 
   <section class="section-block reveal">
     <h2>What a Load Balancer Does</h2>
@@ -59,7 +71,7 @@
         <circle cx="100" cy="150" r="6" class="pkt pkt-1" style="fill:#10B981;animation-delay:1.6s"/>
         <!-- LB -->
         <rect x="285" y="110" width="120" height="80" rx="14" style="fill:#2563EB"/>
-        <text x="345" y="143" text-anchor="middle" style="fill:#fff;font-family:Poppins;font-weight:700;font-size:14px">⚖️ LB</text>
+        <text x="345" y="143" text-anchor="middle" style="fill:#fff;font-family:Poppins;font-weight:700;font-size:14px"> LB</text>
         <text x="345" y="166" text-anchor="middle" style="fill:#DBE7FE;font-size:11px;font-family:Inter">round robin</text>
         <!-- fan out lines -->
         <line x1="410" y1="130" x2="560" y2="60" class="svg-line svg-dash" style="stroke:#93B4F8"/>
@@ -131,7 +143,7 @@
     <p>The LB probes each backend every few seconds — a TCP connect (L4) or an HTTP <code>GET /healthz</code> expecting a 200 (L7). Fail N consecutive probes → ejected from rotation; pass M probes → welcomed back. Good health endpoints check real dependencies (DB reachable?) but stay cheap.</p>
 
     <div class="callout warn">
-      <span class="co-icon">⚠️</span>
+      <span class="co-icon"></span>
       <div><strong>Sticky sessions: convenient, then painful</strong>
       <p>Session affinity (via cookie or IP hash) routes a user to the same server every time — handy if servers keep session state in local memory. But it skews load, and when that server dies its users get logged out. The cleaner fix: make servers stateless and park session state in Redis, so <em>any</em> server can answer <em>any</em> user.</p></div>
     </div>
@@ -151,9 +163,335 @@
     <p>Mostly intent. A load balancer's <em>purpose</em> is distributing across many servers; a reverse proxy's purpose is fronting servers with extra capabilities, useful even with one backend. In practice the same software (Nginx, HAProxy, Envoy, Traefik) plays both roles, often in the same config file. AWS splits the roles into products: NLB (pure L4 balancing) vs ALB (L7 with routing rules).</p>
 
     <div class="callout archie">
-      <span class="co-icon">🤖</span>
+      <span class="co-icon"></span>
       <div><strong>Archie says</strong>
       <p>Cloudflare is secretly "a reverse proxy for the whole internet" — CDN, WAF, TLS and DDoS protection are all reverse-proxy features at planetary scale. When an interviewer asks "where does TLS terminate?", the answer is almost always "at the L7 LB / reverse proxy."</p></div>
+    </div>
+  </section>
+
+  <section class="section-block reveal">
+    <h2>Load Balancing Algorithms — A Visual Comparison</h2>
+    <p>The steps above describe each algorithm; here's how the same stream of requests actually lands on a fleet of four servers under each policy — and where each one shines or stumbles.</p>
+
+    <h3>1. Round Robin</h3>
+    <div class="diagram-box">
+      <svg viewBox="0 0 740 210" role="img" aria-label="Round robin load balancer cycling requests across four servers in order">
+        <rect x="30" y="80" width="110" height="56" rx="12" style="fill:#2563EB"/>
+        <text x="85" y="105" text-anchor="middle" style="fill:#fff;font-family:Poppins;font-weight:700;font-size:13px"> LB</text>
+        <text x="85" y="125" text-anchor="middle" style="fill:#DBE7FE;font-size:10px;font-family:Inter">1→2→3→4→1…</text>
+        <line x1="145" y1="95" x2="550" y2="30" class="svg-line svg-dash" style="stroke:#93B4F8"/>
+        <line x1="145" y1="103" x2="550" y2="78" class="svg-line svg-dash" style="stroke:#93B4F8"/>
+        <line x1="145" y1="113" x2="550" y2="126" class="svg-line svg-dash" style="stroke:#93B4F8"/>
+        <line x1="145" y1="121" x2="550" y2="174" class="svg-line svg-dash" style="stroke:#93B4F8"/>
+        <circle cx="180" cy="89" r="6" class="pkt pkt-1" style="fill:#2563EB"/>
+        <circle cx="180" cy="101" r="6" class="pkt pkt-1" style="fill:#10B981;animation-delay:.6s"/>
+        <circle cx="180" cy="112" r="6" class="pkt pkt-1" style="fill:#F59E0B;animation-delay:1.2s"/>
+        <circle cx="180" cy="120" r="6" class="pkt pkt-1" style="fill:#EF4444;animation-delay:1.8s"/>
+        <g class="bob"><rect x="555" y="11" width="150" height="38" rx="9" class="svg-box-p"/><text x="630" y="35" text-anchor="middle" class="svg-label">🖥️ Server 1</text></g>
+        <g class="bob" style="animation-delay:.3s"><rect x="555" y="59" width="150" height="38" rx="9" class="svg-box-p"/><text x="630" y="83" text-anchor="middle" class="svg-label">🖥️ Server 2</text></g>
+        <g class="bob" style="animation-delay:.6s"><rect x="555" y="107" width="150" height="38" rx="9" class="svg-box"/><text x="630" y="131" text-anchor="middle" class="svg-label">🖥️ Server 3 🐢</text></g>
+        <g class="bob" style="animation-delay:.9s"><rect x="555" y="155" width="150" height="38" rx="9" class="svg-box-p"/><text x="630" y="179" text-anchor="middle" class="svg-label">🖥️ Server 4</text></g>
+      </svg>
+      <p class="diagram-caption">1→2→3→4→1→2→3→4. Fair but dumb — it ignores that server 3 is busy grinding through a 10-second request.</p>
+    </div>
+
+    <h3>2. Weighted Round Robin</h3>
+    <div class="diagram-box">
+      <svg viewBox="0 0 740 210" role="img" aria-label="Weighted round robin sending more requests to higher-weight servers">
+        <rect x="30" y="80" width="110" height="56" rx="12" style="fill:#2563EB"/>
+        <text x="85" y="105" text-anchor="middle" style="fill:#fff;font-family:Poppins;font-weight:700;font-size:13px"> LB</text>
+        <text x="85" y="125" text-anchor="middle" style="fill:#DBE7FE;font-size:10px;font-family:Inter">1,1,1,2,2,3,4</text>
+        <line x1="145" y1="95" x2="550" y2="30" class="svg-line svg-dash" style="stroke:#93B4F8;stroke-width:3"/>
+        <line x1="145" y1="103" x2="550" y2="78" class="svg-line svg-dash" style="stroke:#93B4F8;stroke-width:2"/>
+        <line x1="145" y1="113" x2="550" y2="126" class="svg-line svg-dash" style="stroke:#93B4F8"/>
+        <line x1="145" y1="121" x2="550" y2="174" class="svg-line svg-dash" style="stroke:#93B4F8"/>
+        <circle cx="180" cy="89" r="6" class="pkt pkt-1" style="fill:#2563EB"/>
+        <circle cx="240" cy="80" r="6" class="pkt pkt-1" style="fill:#2563EB;animation-delay:.4s"/>
+        <circle cx="300" cy="70" r="6" class="pkt pkt-1" style="fill:#2563EB;animation-delay:.8s"/>
+        <circle cx="180" cy="101" r="6" class="pkt pkt-1" style="fill:#10B981;animation-delay:1.2s"/>
+        <circle cx="240" cy="97" r="6" class="pkt pkt-1" style="fill:#10B981;animation-delay:1.6s"/>
+        <circle cx="180" cy="112" r="6" class="pkt pkt-1" style="fill:#F59E0B;animation-delay:2s"/>
+        <circle cx="180" cy="120" r="6" class="pkt pkt-1" style="fill:#EF4444;animation-delay:2.4s"/>
+        <g class="bob"><rect x="555" y="11" width="150" height="38" rx="9" class="svg-box-p"/><text x="630" y="35" text-anchor="middle" class="svg-label">🖥️ S1 · weight 3</text></g>
+        <g class="bob" style="animation-delay:.3s"><rect x="555" y="59" width="150" height="38" rx="9" class="svg-box-p"/><text x="630" y="83" text-anchor="middle" class="svg-label">🖥️ S2 · weight 2</text></g>
+        <g class="bob" style="animation-delay:.6s"><rect x="555" y="107" width="150" height="38" rx="9" class="svg-box-p"/><text x="630" y="131" text-anchor="middle" class="svg-label">🖥️ S3 · weight 1</text></g>
+        <g class="bob" style="animation-delay:.9s"><rect x="555" y="155" width="150" height="38" rx="9" class="svg-box-p"/><text x="630" y="179" text-anchor="middle" class="svg-label">🖥️ S4 · weight 1</text></g>
+      </svg>
+      <p class="diagram-caption">Weights [3,2,1,1] produce the dispatch pattern 1,1,1,2,2,3,4. Good for heterogeneous hardware — the beefy box earns proportionally more turns.</p>
+    </div>
+
+    <h3>3. Least Connections</h3>
+    <div class="diagram-box">
+      <svg viewBox="0 0 740 210" role="img" aria-label="Least connections routing the next request to the server with the fewest open connections">
+        <rect x="30" y="80" width="110" height="56" rx="12" style="fill:#2563EB"/>
+        <text x="85" y="105" text-anchor="middle" style="fill:#fff;font-family:Poppins;font-weight:700;font-size:13px"> LB</text>
+        <text x="85" y="125" text-anchor="middle" style="fill:#DBE7FE;font-size:10px;font-family:Inter">min(conns)</text>
+        <line x1="145" y1="95" x2="550" y2="30" class="svg-line svg-dash" style="stroke:#E2E8F0"/>
+        <line x1="145" y1="103" x2="550" y2="78" class="svg-line svg-dash" style="stroke:#E2E8F0"/>
+        <line x1="145" y1="113" x2="550" y2="126" class="svg-line svg-dash" style="stroke:#10B981;stroke-width:3"/>
+        <line x1="145" y1="121" x2="550" y2="174" class="svg-line svg-dash" style="stroke:#E2E8F0"/>
+        <circle cx="180" cy="113" r="6" class="pkt pkt-1" style="fill:#10B981"/>
+        <circle cx="280" cy="116" r="6" class="pkt pkt-1" style="fill:#10B981;animation-delay:.8s"/>
+        <circle cx="380" cy="120" r="6" class="pkt pkt-1" style="fill:#10B981;animation-delay:1.6s"/>
+        <g class="bob"><rect x="555" y="11" width="150" height="38" rx="9" class="svg-box-p"/><text x="630" y="35" text-anchor="middle" class="svg-label">🖥️ S1 · 8 conns</text></g>
+        <g class="bob" style="animation-delay:.3s"><rect x="555" y="59" width="150" height="38" rx="9" class="svg-box-p"/><text x="630" y="83" text-anchor="middle" class="svg-label">🖥️ S2 · 5 conns</text></g>
+        <g class="bob" style="animation-delay:.6s"><rect x="555" y="107" width="150" height="38" rx="9" style="fill:#D1FAE5;stroke:#10B981;stroke-width:2"/><text x="630" y="131" text-anchor="middle" class="svg-label">🖥️ S3 · 2 conns ✓</text></g>
+        <g class="bob" style="animation-delay:.9s"><rect x="555" y="155" width="150" height="38" rx="9" class="svg-box-p"/><text x="630" y="179" text-anchor="middle" class="svg-label">🖥️ S4 · 6 conns</text></g>
+      </svg>
+      <p class="diagram-caption">Route to the server with the fewest open connections. Best for long-lived requests — WebSockets, streaming, slow report generation.</p>
+    </div>
+
+    <h3>4. IP Hash</h3>
+    <div class="diagram-box">
+      <svg viewBox="0 0 740 210" role="img" aria-label="IP hash mapping each client deterministically to one server">
+        <text x="40" y="60" text-anchor="middle" style="font-size:20px">👩‍💻</text>
+        <text x="40" y="120" text-anchor="middle" style="font-size:20px">🧑‍💻</text>
+        <text x="40" y="180" text-anchor="middle" style="font-size:20px">👨‍💻</text>
+        <rect x="120" y="80" width="160" height="56" rx="12" style="fill:#2563EB"/>
+        <text x="200" y="105" text-anchor="middle" style="fill:#fff;font-family:Poppins;font-weight:700;font-size:12px">hash(client_IP) % N</text>
+        <text x="200" y="125" text-anchor="middle" style="fill:#DBE7FE;font-size:10px;font-family:Inter">deterministic</text>
+        <line x1="60" y1="55" x2="115" y2="90" class="svg-line svg-dash" style="stroke:#93B4F8"/>
+        <line x1="60" y1="115" x2="115" y2="108" class="svg-line svg-dash" style="stroke:#93B4F8"/>
+        <line x1="60" y1="175" x2="115" y2="126" class="svg-line svg-dash" style="stroke:#93B4F8"/>
+        <line x1="285" y1="92" x2="550" y2="30" class="svg-line svg-dash" style="stroke:#2563EB;stroke-width:2.5"/>
+        <line x1="285" y1="108" x2="550" y2="126" class="svg-line svg-dash" style="stroke:#F59E0B;stroke-width:2.5"/>
+        <line x1="285" y1="122" x2="550" y2="174" class="svg-line svg-dash" style="stroke:#10B981;stroke-width:2.5"/>
+        <circle cx="320" cy="84" r="6" class="pkt pkt-1" style="fill:#2563EB"/>
+        <circle cx="320" cy="110" r="6" class="pkt pkt-1" style="fill:#F59E0B;animation-delay:.8s"/>
+        <circle cx="320" cy="129" r="6" class="pkt pkt-1" style="fill:#10B981;animation-delay:1.6s"/>
+        <g class="bob"><rect x="555" y="11" width="150" height="38" rx="9" class="svg-box-p"/><text x="630" y="35" text-anchor="middle" class="svg-label">🖥️ Server 1</text></g>
+        <g class="bob" style="animation-delay:.3s"><rect x="555" y="59" width="150" height="38" rx="9" class="svg-box-p"/><text x="630" y="83" text-anchor="middle" class="svg-label">🖥️ Server 2</text></g>
+        <g class="bob" style="animation-delay:.6s"><rect x="555" y="107" width="150" height="38" rx="9" class="svg-box-p"/><text x="630" y="131" text-anchor="middle" class="svg-label">🖥️ Server 3</text></g>
+        <g class="bob" style="animation-delay:.9s"><rect x="555" y="155" width="150" height="38" rx="9" class="svg-box-p"/><text x="630" y="179" text-anchor="middle" class="svg-label">🖥️ Server 4</text></g>
+      </svg>
+      <p class="diagram-caption"><code>hash(client_IP) % N</code> = shard. The same client always lands on the same server — required for sticky sessions, but the mapping breaks if a server is removed (N changes).</p>
+    </div>
+
+    <h3>5. Random with Two Choices (R2C)</h3>
+    <div class="diagram-box">
+      <svg viewBox="0 0 740 210" role="img" aria-label="Power of two choices: pick two random servers and route to the one with fewer connections">
+        <rect x="30" y="80" width="110" height="56" rx="12" style="fill:#2563EB"/>
+        <text x="85" y="105" text-anchor="middle" style="fill:#fff;font-family:Poppins;font-weight:700;font-size:13px"> LB</text>
+        <text x="85" y="125" text-anchor="middle" style="fill:#DBE7FE;font-size:10px;font-family:Inter">pick 2, take min</text>
+        <line x1="145" y1="98" x2="550" y2="78" class="svg-line svg-dash" style="stroke:#F59E0B;stroke-width:2.5"/>
+        <line x1="145" y1="116" x2="550" y2="174" class="svg-line svg-dash" style="stroke:#10B981;stroke-width:3"/>
+        <text x="330" y="70" class="svg-soft">candidate A · 7 conns ✗</text>
+        <text x="330" y="170" class="svg-soft">candidate B · 3 conns ✓</text>
+        <circle cx="200" cy="124" r="6" class="pkt pkt-1" style="fill:#10B981"/>
+        <circle cx="320" cy="141" r="6" class="pkt pkt-1" style="fill:#10B981;animation-delay:1s"/>
+        <g class="bob"><rect x="555" y="11" width="150" height="38" rx="9" class="svg-box-p"/><text x="630" y="35" text-anchor="middle" class="svg-label">🖥️ Server 1</text></g>
+        <g class="bob" style="animation-delay:.3s"><rect x="555" y="59" width="150" height="38" rx="9" style="fill:#FEF3C7;stroke:#F59E0B;stroke-width:2"/><text x="630" y="83" text-anchor="middle" class="svg-label">🖥️ S2 · 7 conns</text></g>
+        <g class="bob" style="animation-delay:.6s"><rect x="555" y="107" width="150" height="38" rx="9" class="svg-box-p"/><text x="630" y="131" text-anchor="middle" class="svg-label">🖥️ Server 3</text></g>
+        <g class="bob" style="animation-delay:.9s"><rect x="555" y="155" width="150" height="38" rx="9" style="fill:#D1FAE5;stroke:#10B981;stroke-width:2"/><text x="630" y="179" text-anchor="middle" class="svg-label">🖥️ S4 · 3 conns ✓</text></g>
+      </svg>
+      <p class="diagram-caption">Pick 2 random servers, route to the one with fewer connections. Almost as good as least-connections at 10× less coordination overhead. Used by Nginx and HAProxy.</p>
+    </div>
+  </section>
+
+  <section class="section-block reveal">
+    <h2>Global Server Load Balancing (GSLB)</h2>
+    <p>A single-region LB handles failover <em>within</em> one datacenter. <strong>GSLB</strong> routes traffic <em>across</em> regions — US-East, EU-West, AP-Southeast — so users hit the closest healthy region and a regional outage doesn't take you offline.</p>
+    <ul class="key-points">
+      <li><strong>Methods:</strong> DNS-based (Route 53 latency routing), Anycast, or dedicated GSLB hardware (F5, Citrix).</li>
+      <li><strong>Health-aware:</strong> if US-East is down, the GSLB stops returning its IP — traffic shifts to EU-West within one DNS TTL.</li>
+      <li><strong>GeoDNS:</strong> EU users get EU IPs — reduces latency <em>and</em> satisfies GDPR data residency rules.</li>
+    </ul>
+    <div class="diagram-box">
+      <svg viewBox="0 0 740 230" role="img" aria-label="GSLB routing users to the nearest healthy region, with a failed region removed from rotation">
+        <rect x="290" y="20" width="160" height="56" rx="12" style="fill:#2563EB"/>
+        <text x="370" y="44" text-anchor="middle" style="fill:#fff;font-family:Poppins;font-weight:700;font-size:13px"> GSLB</text>
+        <text x="370" y="64" text-anchor="middle" style="fill:#DBE7FE;font-size:10px;font-family:Inter">latency + health routing</text>
+        <line x1="310" y1="80" x2="130" y2="155" class="svg-line svg-dash" style="stroke:#EF4444"/>
+        <line x1="370" y1="80" x2="370" y2="155" class="svg-line svg-dash" style="stroke:#10B981;stroke-width:2.5"/>
+        <line x1="430" y1="80" x2="610" y2="155" class="svg-line svg-dash" style="stroke:#10B981;stroke-width:2.5"/>
+        <circle cx="370" cy="100" r="6" class="pkt pkt-1" style="fill:#10B981"/>
+        <circle cx="470" cy="100" r="6" class="pkt pkt-1" style="fill:#10B981;animation-delay:1s"/>
+        <g><rect x="55" y="160" width="150" height="52" rx="10" style="fill:#FEE2E2;stroke:#EF4444;stroke-width:2"/><text x="130" y="183" text-anchor="middle" class="svg-label">🇺🇸 US-East</text><text x="130" y="202" text-anchor="middle" style="fill:#EF4444;font-size:11px;font-family:Inter">DOWN — removed ✗</text></g>
+        <g class="bob"><rect x="295" y="160" width="150" height="52" rx="10" class="svg-box-p"/><text x="370" y="183" text-anchor="middle" class="svg-label">🇪🇺 EU-West</text><text x="370" y="202" text-anchor="middle" class="svg-soft">healthy ✓</text></g>
+        <g class="bob" style="animation-delay:.5s"><rect x="535" y="160" width="150" height="52" rx="10" class="svg-box-p"/><text x="610" y="183" text-anchor="middle" class="svg-label">🌏 AP-Southeast</text><text x="610" y="202" text-anchor="middle" class="svg-soft">healthy ✓</text></g>
+      </svg>
+      <p class="diagram-caption">GSLB stops advertising the failed region — within one TTL, US-East traffic drains to EU-West.</p>
+    </div>
+    <div class="callout info">
+      <span class="co-icon"></span>
+      <div><strong>Real-world: Netflix</strong>
+      <p>Netflix's GSLB (Zuul + Route 53) combined with their Open Connect CDN means most users worldwide get sub-100ms time-to-first-byte. Latency-based DNS picks the region; Zuul routes within it.</p></div>
+    </div>
+  </section>
+
+  <section class="section-block reveal">
+    <h2>Connection Draining and Graceful Shutdown</h2>
+    <p>The problem: remove a server from rotation and you kill its active connections mid-request — users see errors for no reason. <strong>Connection draining</strong> fixes this: the LB stops sending <em>new</em> requests to the server but waits for in-flight requests to complete before removing it.</p>
+    <div class="steps">
+      <div class="step-item"><div class="step-num">1</div><div><strong>Mark "draining"</strong><p>The LB flags the server: no new requests, existing connections stay alive.</p></div></div>
+      <div class="step-item"><div class="step-num">2</div><div><strong>SIGTERM to the app</strong><p>The app stops accepting new connections and finishes what it has in hand.</p></div></div>
+      <div class="step-item"><div class="step-num">3</div><div><strong>Wait out the drain window</strong><p>AWS calls this "deregistration delay" — default 300s. Tune it to match your p99 request duration.</p></div></div>
+      <div class="step-item"><div class="step-num">4</div><div><strong>SIGKILL + remove</strong><p>Once in-flight work is done (or the window expires), the process is killed and the server leaves the pool.</p></div></div>
+    </div>
+    <div class="callout tip">
+      <span class="co-icon"></span>
+      <div><strong>This is why zero-downtime deploys work</strong>
+      <p>Rolling updates drain one instance while the others keep serving. No drain = every deploy drops a slice of live requests on the floor.</p></div>
+    </div>
+  </section>
+
+  <section class="section-block reveal">
+    <h2>Health Checks — Knowing Who's Alive</h2>
+    <div class="two-col">
+      <div class="mini-card">
+        <span class="mc-icon"></span>
+        <h4>Passive health checks</h4>
+        <p>The LB simply observes real traffic. If a server returns 5xx three times in a row → mark unhealthy. Zero extra load, but detection is only as fast as your traffic.</p>
+      </div>
+      <div class="mini-card">
+        <span class="mc-icon">📡</span>
+        <h4>Active health checks</h4>
+        <p>The LB probes a dedicated endpoint (e.g., <code>GET /health</code> every 10s). Faster, deterministic detection — even for servers receiving little traffic.</p>
+      </div>
+    </div>
+    <h3>Shallow vs deep checks</h3>
+    <ul class="key-points">
+      <li><strong>Shallow check:</strong> just an HTTP 200 from the app. Fast and cheap, but doesn't catch "app up but DB down."</li>
+      <li><strong>Deep check:</strong> the app pings its DB, cache, and upstream services. Accurate — but dangerous: if the DB is merely <em>slow</em>, every app server's deep check fails at once → the LB removes <em>all</em> app servers → a partial slowdown becomes a system-wide outage.</li>
+      <li><strong>What to verify:</strong> can the app accept connections? Can it reach the DB? Can it reach its dependencies?</li>
+    </ul>
+    <div class="callout success">
+      <span class="co-icon"></span>
+      <div><strong>Best practice</strong>
+      <p>Use a <strong>shallow check for the LB</strong> (keep servers in rotation as long as they can possibly serve) and <strong>deep monitoring for alerting</strong> (wake a human when the DB path degrades). The LB's job is routing, not diagnosis.</p></div>
+    </div>
+  </section>
+
+  <section class="section-block reveal">
+    <h2>Layer 4 vs Layer 7 — When to Use Each</h2>
+    <p>The full decision matrix, feature by feature:</p>
+    <div class="table-wrap">
+      <table class="compare-table">
+        <thead><tr><th>Feature</th><th>L4</th><th>L7</th></tr></thead>
+        <tbody>
+          <tr><td>Operates at</td><td>Transport (TCP/UDP/IP+port)</td><td>Application (HTTP/HTTPS/WebSocket)</td></tr>
+          <tr><td>Content inspection</td><td>None</td><td>Full headers, URL, body</td></tr>
+          <tr><td>Performance</td><td>Faster (less processing)</td><td>Slightly slower (parses requests)</td></tr>
+          <tr><td>SSL termination</td><td>Can passthrough or terminate</td><td>Terminates SSL (common choice)</td></tr>
+          <tr><td>Routing logic</td><td>IP:Port rules only</td><td>URL paths, hostnames, headers, cookies</td></tr>
+          <tr><td>Use case</td><td>Raw TCP apps, databases, SMTP</td><td>Web apps, APIs, microservices</td></tr>
+          <tr><td>Examples</td><td>AWS NLB, HAProxy TCP mode</td><td>AWS ALB, Nginx, Traefik, Envoy</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="section-block reveal">
+    <h2>Real-World LB Stacks</h2>
+    <div class="company-badges">
+      <span class="company-badge"> Netflix</span>
+      <span class="company-badge">🏠 Airbnb</span>
+      <span class="company-badge">☁️ Cloudflare</span>
+      <span class="company-badge">🐙 GitHub</span>
+      <span class="company-badge">🎮 Discord</span>
+    </div>
+    <div class="cards-grid">
+      <div class="mini-card"><span class="mc-icon"></span><h4>Netflix (Zuul)</h4><p>Custom L7 LB built on top of Nginx. Handles 100k+ RPS per instance. Routes by user ID to enable per-user A/B testing, and strips internal headers before forwarding to origin.</p></div>
+      <div class="mini-card"><span class="mc-icon">☁️</span><h4>Cloudflare</h4><p>Anycast-based global LB: every PoP accepts traffic on the same IPs, and BGP routes each client to the nearest one. Layer 7 with a WAF built in.</p></div>
+      <div class="mini-card"><span class="mc-icon">🐙</span><h4>GitHub</h4><p>HAProxy for L4 → Nginx for L7. Total throughput: tens of millions of git operations per day flowing through that two-tier stack.</p></div>
+      <div class="mini-card"><span class="mc-icon">🎮</span><h4>Discord</h4><p>Nginx → in-house Elixir services. WebSocket connections are routed by server (guild) ID at L7, so a guild's traffic lands on the node holding its state.</p></div>
+    </div>
+  </section>
+
+  <section class="section-block reveal">
+    <h2>Reverse Proxy Deep Dive</h2>
+    <p>A reverse proxy sits in front of origin servers — clients talk to the proxy, never to the origin directly. Beyond plain load balancing, it earns its keep six ways:</p>
+    <div class="steps">
+      <div class="step-item"><div class="step-num">1</div><div><strong>SSL termination</strong><p>Decrypt HTTPS at the proxy, forward as HTTP internally. Origin CPU is freed from crypto work.</p></div></div>
+      <div class="step-item"><div class="step-num">2</div><div><strong>Compression</strong><p>gzip/brotli response bodies at the proxy. Cuts bandwidth 60–80% for text content.</p></div></div>
+      <div class="step-item"><div class="step-num">3</div><div><strong>Caching</strong><p>Cache static assets, full pages, or API responses at the proxy layer — requests never reach the app.</p></div></div>
+      <div class="step-item"><div class="step-num">4</div><div><strong>Request buffering</strong><p>The proxy buffers slow client uploads before forwarding to the fast backend. App servers are protected from slow clients tying up worker threads.</p></div></div>
+      <div class="step-item"><div class="step-num">5</div><div><strong>Security</strong><p>Origin IPs are hidden. The proxy can block bad IPs, rate limit, and enforce auth before traffic touches your app.</p></div></div>
+      <div class="step-item"><div class="step-num">6</div><div><strong>A/B testing</strong><p>Route a percentage of traffic to different backends based on headers or cookies — canary releases without app changes.</p></div></div>
+    </div>
+    <h3>Nginx vs HAProxy vs Envoy</h3>
+    <div class="cards-grid">
+      <div class="mini-card"><span class="mc-icon">🟩</span><h4>Nginx</h4><p>Web server + reverse proxy + LB in one. Great for HTTP, static files, and SSL termination. The Swiss Army knife default.</p></div>
+      <div class="mini-card"><span class="mc-icon">🔷</span><h4>HAProxy</h4><p>Pure LB/proxy. Handles TCP and HTTP, powerful ACLs, and better raw L4 performance than Nginx.</p></div>
+      <div class="mini-card"><span class="mc-icon">🟣</span><h4>Envoy</h4><p>Modern proxy built for microservices and service mesh (Istio). First-class gRPC, HTTP/2, and distributed tracing support.</p></div>
+    </div>
+  </section>
+
+  <section class="section-block reveal">
+    <h2>Interview Q&amp;A</h2>
+    <p>Three load-balancer questions interviewers actually ask — click to reveal strong answers.</p>
+    <div class="qa-list">
+      <div class="qa-item">
+        <button class="qa-question">What happens when a load balancer itself fails?</button>
+        <div class="qa-answer">
+          <p>This is the LB single point of failure problem. Solutions: (1) <strong>Active-passive LB pair with a floating VIP</strong> (virtual IP) — if the primary fails, the secondary takes over the VIP within seconds. (2) <strong>Anycast</strong>: multiple LB servers advertise the same IP, and BGP withdraws routes for failed ones automatically. (3) <strong>DNS round-robin</strong> to multiple LBs — cheap, but DNS caching means slow failover. Cloud-managed LBs (AWS ALB, GCP LB) have built-in redundancy — the provider handles it for you.</p>
+        </div>
+      </div>
+      <div class="qa-item">
+        <button class="qa-question">How do you handle WebSocket connections with a load balancer?</button>
+        <div class="qa-answer">
+          <p>WebSockets are stateful, persistent connections, so the LB must: (1) Not break the TCP connection during the WebSocket upgrade. (2) Route the same connection to the same backend — sticky by <em>connection</em>, not just by cookie. (3) Handle very long-lived connections: default LB idle timeouts (60s, 120s) will silently kill WebSockets. Set the timeout to match the connection duration — hours or days for chat apps. Discord runs Nginx with upstream keepalive and <code>proxy_read_timeout 86400</code> (24 hours).</p>
+        </div>
+      </div>
+      <div class="qa-item">
+        <button class="qa-question">Design a load balancer that handles 10 million requests per second.</button>
+        <div class="qa-answer">
+          <p>(1) <strong>L4</strong> for raw throughput — skip HTTP parsing entirely. (2) <strong>Kernel bypass networking</strong>: DPDK or eBPF to skip the OS network stack. (3) <strong>Consistent hashing</strong> for stateful routing. (4) <strong>Multiple LB instances</strong> behind Anycast or DNS round-robin. (5) Health checks via a <strong>separate control plane</strong>. Reference point: Cloudflare serves 46+ million requests/sec across their network using Anycast plus eBPF-based load balancing (their Unimog project).</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section-block reveal">
+    <h2>Anti-Patterns to Avoid</h2>
+    <div class="antipatterns">
+      <div class="antipattern-item">
+        <span class="antipattern-icon">🚫</span>
+        <div class="antipattern-text">
+          <h4>Round robin for heterogeneous requests</h4>
+          <p>"Add friend" takes 5ms; "generate report" takes 10 seconds. Round robin will pile reports onto random servers while others sit idle. Use least-connections instead.</p>
+        </div>
+      </div>
+      <div class="antipattern-item">
+        <span class="antipattern-icon">🚫</span>
+        <div class="antipattern-text">
+          <h4>Health checks that are too aggressive</h4>
+          <p>Probe every 1s and remove on the first failure → constant flapping. Set a failure threshold (3 consecutive failures) and a recovery threshold (2 consecutive successes) to keep the pool stable.</p>
+        </div>
+      </div>
+      <div class="antipattern-item">
+        <span class="antipattern-icon">🚫</span>
+        <div class="antipattern-text">
+          <h4>Forgetting the LB itself is a SPOF</h4>
+          <p>Teams add redundant app servers but front them with a single load balancer. Always make the LB redundant — it's the most critical component in the path.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section-block reveal">
+    <h2>Further Reading</h2>
+    <div class="reading-links">
+      <a class="reading-link-card" href="https://www.haproxy.com/documentation/hapee/latest/onepage/" target="_blank" rel="noopener">
+        <span class="reading-link-icon">📖</span>
+        <div><span class="reading-link-title">HAProxy: The Definitive Guide</span><span class="reading-link-source">haproxy.com</span></div>
+      </a>
+      <a class="reading-link-card" href="https://blog.cloudflare.com/how-we-built-pingora-the-proxy-that-connects-cloudflare-to-the-internet/" target="_blank" rel="noopener">
+        <span class="reading-link-icon"></span>
+        <div><span class="reading-link-title">Cloudflare: How We Built Pingora</span><span class="reading-link-source">blog.cloudflare.com</span></div>
+      </a>
+      <a class="reading-link-card" href="https://aws.amazon.com/elasticloadbalancing/features/" target="_blank" rel="noopener">
+        <span class="reading-link-icon"></span>
+        <div><span class="reading-link-title">AWS: Elastic Load Balancing Features</span><span class="reading-link-source">aws.amazon.com</span></div>
+      </a>
+      <a class="reading-link-card" href="https://docs.nginx.com/nginx/admin-guide/load-balancer/http-load-balancer/" target="_blank" rel="noopener">
+        <span class="reading-link-icon"></span>
+        <div><span class="reading-link-title">Nginx: Load Balancing Guide</span><span class="reading-link-source">docs.nginx.com</span></div>
+      </a>
+      <a class="reading-link-card" href="https://netflixtechblog.com/zuul-2-the-netflix-journey-to-asynchronous-non-blocking-systems-45247377f576" target="_blank" rel="noopener">
+        <span class="reading-link-icon">📘</span>
+        <div><span class="reading-link-title">Netflix Zuul 2: The Journey to Asynchronous</span><span class="reading-link-source">netflixtechblog.com</span></div>
+      </a>
     </div>
   </section>
 
@@ -167,7 +505,7 @@
         <button class="quiz-option">DNS round robin between the two pools</button>
         <button class="quiz-option">Sticky sessions with IP hash</button>
       </div>
-      <div class="quiz-feedback">✅ Correct! Path-based routing requires inspecting the HTTP request, which only an L7 balancer does. L4 sees just IPs and ports — it has no idea what a URL is.</div>
+      <div class="quiz-feedback"> Correct! Path-based routing requires inspecting the HTTP request, which only an L7 balancer does. L4 sees just IPs and ports — it has no idea what a URL is.</div>
     </div>
   </section>
 
@@ -178,7 +516,7 @@
 </main>
 
 <footer class="footer">
-  <div class="footer-bottom">⚡ System Design Illustrated · Topic 05 of 12 · Built with 💜 and vanilla web tech</div>
+  <div class="footer-bottom"> System Design Illustrated · Topic 05 of 12 · Built with 💜 and vanilla web tech</div>
 </footer>
 
 <script src="../js/main.js"></script>

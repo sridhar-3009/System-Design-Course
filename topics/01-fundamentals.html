@@ -14,12 +14,12 @@
 
 <nav class="navbar">
   <div class="nav-inner">
-    <a href="../index.html" class="logo"><span class="bolt">⚡</span><span class="logo-text">System Design Illustrated</span></a>
+    <a href="../index.html" class="logo"><span class="bolt"></span><span class="logo-text">System Design Illustrated</span></a>
     <div class="nav-links">
       <a href="../index.html#topics">Topics</a>
       <a href="../index.html#about">About</a>
       <a href="12-interview-guide.html">Interview Guide</a>
-      <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">🌙</button>
+      <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode"></button>
     </div>
   </div>
 </nav>
@@ -28,13 +28,26 @@
   <div class="topic-header-inner">
     <div class="breadcrumb"><a href="../index.html">Home</a> / Topics / 01</div>
     <div class="topic-num-big">TOPIC 01</div>
-    <h1>Fundamentals of Scale 📈</h1>
+    <h1>Fundamentals of Scale </h1>
     <p class="subtitle">Before you can design big systems, you need a vocabulary for "big." This topic gives you the core measurements — scaling, latency, throughput, and availability — plus the napkin math interviewers love.</p>
-    <div class="topic-meta"><span class="tag">🌱 Beginner</span><span class="tag">⏱ 25 min read</span><span class="tag">📐 8 concepts</span></div>
+    <div class="topic-meta"><span class="tag"> Beginner</span><span class="tag"> 25 min read</span><span class="tag"> 8 concepts</span></div>
   </div>
 </header>
 
 <main class="topic-body">
+
+  <!-- ============ AT A GLANCE ============ -->
+  <div class="at-a-glance">
+    <h3> At a Glance</h3>
+    <ul>
+      <li><strong>Scaling</strong> = handling growth. Vertical (bigger box) vs horizontal (more boxes).</li>
+      <li><strong>Latency</strong> = time per request; <strong>throughput</strong> = requests per second. Different problems, different fixes.</li>
+      <li><strong>Availability</strong> is counted in nines: each extra nine ≈ 10× harder.</li>
+      <li><strong>Stateless services</strong> scale horizontally for free; stateful ones need sticky sessions or an external store.</li>
+      <li><strong>Amdahl's Law</strong>: the serial fraction of your system caps your speedup, no matter how many servers you add.</li>
+      <li><strong>Napkin math</strong>: 1 day ≈ 100K seconds, 2^10 ≈ 1K, 2^30 ≈ 1B. State assumptions out loud.</li>
+    </ul>
+  </div>
 
   <!-- ============ SCALABILITY ============ -->
   <section class="section-block reveal">
@@ -92,10 +105,122 @@
     </div>
 
     <div class="callout archie">
-      <span class="co-icon">🤖</span>
+      <span class="co-icon"></span>
       <div><strong>Archie says</strong>
       <p>Real systems do both! Stack Overflow famously ran on a handful of very tall servers for years, while Google went wide with hundreds of thousands of cheap ones. Scale up until it hurts, then scale out where it counts.</p></div>
     </div>
+  </section>
+
+  <!-- ============ STATELESS VS STATEFUL ============ -->
+  <section class="section-block reveal">
+    <h2>Stateless vs Stateful Scaling</h2>
+    <p>Horizontal scaling has a prerequisite that trips up almost every team: <strong>where does the session live?</strong> The answer determines whether "just add more servers" actually works.</p>
+    <div class="two-col">
+      <div class="mini-card">
+        <span class="mc-icon"></span>
+        <h4>Stateless</h4>
+        <p>No server stores session data between requests. Any request can go to <em>any</em> server — the load balancer routes freely, dead servers are replaced without drama. Examples: REST APIs, static file servers.</p>
+      </div>
+      <div class="mini-card">
+        <span class="mc-icon">🧳</span>
+        <h4>Stateful</h4>
+        <p>The server keeps your session in its own memory. Now the same user must hit the <em>same</em> server every time (<strong>sticky sessions</strong>), or you need an external session store like Redis. Lose the server, lose the session.</p>
+      </div>
+    </div>
+
+    <div class="diagram-box">
+      <svg viewBox="0 0 740 320" role="img" aria-label="Stateless: load balancer routes any request to any of three servers. Stateful: each user is pinned to one server with sticky session arrows">
+        <!-- Stateless half -->
+        <text x="185" y="26" text-anchor="middle" class="svg-label">Stateless: route anywhere </text>
+        <rect x="130" y="50" width="110" height="44" rx="10" class="svg-box-p"/>
+        <text x="185" y="77" text-anchor="middle" class="svg-label"> LB</text>
+        <g class="seq seq-1"><line x1="160" y1="98" x2="85" y2="190" class="svg-line svg-dash" style="stroke:#7C3AED"/></g>
+        <g class="seq seq-2"><line x1="185" y1="98" x2="185" y2="190" class="svg-line svg-dash" style="stroke:#7C3AED"/></g>
+        <g class="seq seq-3"><line x1="210" y1="98" x2="285" y2="190" class="svg-line svg-dash" style="stroke:#7C3AED"/></g>
+        <rect x="40" y="195" width="90" height="56" rx="10" class="svg-box"/>
+        <text x="85" y="229" text-anchor="middle" class="svg-label">🖥️ S1</text>
+        <rect x="140" y="195" width="90" height="56" rx="10" class="svg-box"/>
+        <text x="185" y="229" text-anchor="middle" class="svg-label">🖥️ S2</text>
+        <rect x="240" y="195" width="90" height="56" rx="10" class="svg-box"/>
+        <text x="285" y="229" text-anchor="middle" class="svg-label">🖥️ S3</text>
+        <text x="185" y="285" text-anchor="middle" class="svg-soft">session lives in Redis / JWT — servers are interchangeable</text>
+        <!-- divider -->
+        <line x1="370" y1="30" x2="370" y2="290" class="svg-line" style="stroke:var(--border)"/>
+        <!-- Stateful half -->
+        <text x="555" y="26" text-anchor="middle" class="svg-label">Stateful: sticky sessions 📌</text>
+        <rect x="500" y="50" width="110" height="44" rx="10" class="svg-box-p"/>
+        <text x="555" y="77" text-anchor="middle" class="svg-label"> LB</text>
+        <line x1="530" y1="98" x2="455" y2="190" class="svg-line" style="stroke:#EF4444;stroke-width:3"/>
+        <line x1="555" y1="98" x2="555" y2="190" class="svg-line" style="stroke:#EF4444;stroke-width:3"/>
+        <rect x="410" y="195" width="90" height="56" rx="10" class="svg-box"/>
+        <text x="455" y="222" text-anchor="middle" class="svg-label">🖥️ S1</text>
+        <text x="455" y="241" text-anchor="middle" class="svg-soft">👤 Ana's session</text>
+        <rect x="510" y="195" width="90" height="56" rx="10" class="svg-box"/>
+        <text x="555" y="222" text-anchor="middle" class="svg-label">🖥️ S2</text>
+        <text x="555" y="241" text-anchor="middle" class="svg-soft">👤 Ben's session</text>
+        <rect x="610" y="195" width="90" height="56" rx="10" class="svg-box"/>
+        <text x="655" y="222" text-anchor="middle" class="svg-label">🖥️ S3</text>
+        <text x="655" y="241" text-anchor="middle" class="svg-soft">💀 dies → sessions lost</text>
+        <text x="555" y="285" text-anchor="middle" class="svg-soft">same user must always reach the same server</text>
+      </svg>
+      <p class="diagram-caption">Stateless servers are cattle; stateful servers are pets. Cattle scale.</p>
+    </div>
+
+    <h3>Making a stateful app stateless</h3>
+    <ul class="key-points">
+      <li>Move session data out of server memory into <strong>Redis or memcached</strong> — any server can fetch any user's session in &lt;1 ms.</li>
+      <li>Or skip server sessions entirely with <strong>JWTs</strong>: the signed token carries the user's identity, so the server stores nothing.</li>
+      <li>Push files to object storage (S3), not local disk; push caches to a shared tier.</li>
+      <li>Once stateless, autoscaling, rolling deploys and instant failover all come for free.</li>
+    </ul>
+
+    <div class="callout success">
+      <span class="co-icon"></span>
+      <div><strong>Netflix went all-in on stateless</strong>
+      <p>Netflix made its entire streaming backend stateless — any of their ~10,000 servers can handle your request. That's what lets Chaos Monkey kill random production servers all day without a single customer noticing.</p></div>
+    </div>
+  </section>
+
+  <!-- ============ AMDAHL'S LAW ============ -->
+  <section class="section-block reveal">
+    <h2>Amdahl's Law: The Ceiling on "Just Add Servers"</h2>
+    <p>If part of your workload can't be parallelized, that part caps your maximum speedup — forever. Gene Amdahl formalized it:</p>
+    <pre class="code-block" data-lang="math"><code><span class="c-c"># P = fraction of work that is parallelizable, N = processors/servers</span>
+<span class="c-k">Speedup</span> = <span class="c-n">1</span> / ((<span class="c-n">1</span> − P) + P / N)
+
+<span class="c-c"># Example: 90% parallelizable (P = 0.9)</span>
+N = <span class="c-n">10</span>   → speedup = 1 / (0.1 + 0.09) ≈ <span class="c-n">5.3×</span>
+N = <span class="c-n">100</span>  → speedup = 1 / (0.1 + 0.009) ≈ <span class="c-n">9.2×</span>
+N = <span class="c-n">∞</span>    → speedup = 1 / 0.1          = <span class="c-n">10×  (hard ceiling!)</span></code></pre>
+
+    <div class="diagram-box">
+      <svg viewBox="0 0 740 260" role="img" aria-label="Bar chart showing speedup flattening: with 90 percent parallelizable code, speedup approaches 10x and never exceeds it regardless of server count">
+        <text x="370" y="22" text-anchor="middle" class="svg-label">Speedup vs servers (P = 90%) — the curve flattens</text>
+        <!-- axis -->
+        <line x1="80" y1="220" x2="700" y2="220" class="svg-line" style="stroke:var(--border);stroke-width:2"/>
+        <line x1="80" y1="220" x2="80" y2="40" class="svg-line" style="stroke:var(--border);stroke-width:2"/>
+        <!-- ceiling line -->
+        <line x1="80" y1="50" x2="700" y2="50" class="svg-line svg-dash" style="stroke:#EF4444"/>
+        <text x="690" y="42" text-anchor="end" class="svg-soft" style="fill:#EF4444">max 10× — serial 10% is the wall</text>
+        <!-- bars: speedup 1.8 (2), 3.1 (4), 4.7 (8), 6.4 (16), 8.8 (64), 9.2 (100), 9.8 (1000) ; scale 17px per x -->
+        <g class="seq seq-1"><rect x="110" y="189" width="50" height="31" rx="4" style="fill:#7C3AED;opacity:.85"/><text x="135" y="240" text-anchor="middle" class="svg-soft">2</text><text x="135" y="182" text-anchor="middle" class="svg-soft">1.8×</text></g>
+        <g class="seq seq-2"><rect x="190" y="167" width="50" height="53" rx="4" style="fill:#7C3AED;opacity:.85"/><text x="215" y="240" text-anchor="middle" class="svg-soft">4</text><text x="215" y="160" text-anchor="middle" class="svg-soft">3.1×</text></g>
+        <g class="seq seq-3"><rect x="270" y="140" width="50" height="80" rx="4" style="fill:#7C3AED;opacity:.85"/><text x="295" y="240" text-anchor="middle" class="svg-soft">8</text><text x="295" y="133" text-anchor="middle" class="svg-soft">4.7×</text></g>
+        <g class="seq seq-4"><rect x="350" y="111" width="50" height="109" rx="4" style="fill:#7C3AED;opacity:.85"/><text x="375" y="240" text-anchor="middle" class="svg-soft">16</text><text x="375" y="104" text-anchor="middle" class="svg-soft">6.4×</text></g>
+        <g class="seq seq-5"><rect x="430" y="70" width="50" height="150" rx="4" style="fill:#7C3AED;opacity:.85"/><text x="455" y="240" text-anchor="middle" class="svg-soft">64</text><text x="455" y="63" text-anchor="middle" class="svg-soft">8.8×</text></g>
+        <g class="seq seq-6"><rect x="510" y="64" width="50" height="156" rx="4" style="fill:#A78BFA;opacity:.9"/><text x="535" y="240" text-anchor="middle" class="svg-soft">100</text><text x="535" y="57" text-anchor="middle" class="svg-soft">9.2×</text></g>
+        <g class="seq seq-7"><rect x="590" y="54" width="50" height="166" rx="4" style="fill:#A78BFA;opacity:.9"/><text x="615" y="240" text-anchor="middle" class="svg-soft">1000</text><text x="615" y="47" text-anchor="middle" class="svg-soft">9.8×</text></g>
+        <text x="390" y="255" text-anchor="middle" class="svg-soft">number of servers →</text>
+      </svg>
+      <p class="diagram-caption">Going from 100 servers to 1,000 buys you 0.6× more speedup. The serial 10% — locks, single-threaded coordinators, the database — is the bottleneck.</p>
+    </div>
+
+    <ul class="key-points">
+      <li>If 90% of your code is parallelizable, max speedup is <strong>10× — no matter how many cores or servers</strong>.</li>
+      <li>The serial portion hides in plain sight: locks, single-leader databases, coordination services, "the one queue everything flows through."</li>
+      <li>This is the mathematical reason "just add more servers" hits diminishing returns — scale-out only attacks the parallel fraction.</li>
+      <li>The highest-leverage optimization is often shrinking the serial part (sharding the DB, removing locks), not adding node #101.</li>
+    </ul>
   </section>
 
   <!-- ============ PERFORMANCE VS SCALABILITY ============ -->
@@ -130,13 +255,13 @@
         <circle cx="180" cy="85" r="7" class="pkt pkt-1" style="fill:#7C3AED"/>
         <circle cx="180" cy="85" r="7" class="pkt pkt-1" style="fill:#F59E0B;animation-delay:.8s"/>
         <circle cx="180" cy="85" r="7" class="pkt pkt-1" style="fill:#10B981;animation-delay:1.6s"/>
-        <text x="370" y="40" text-anchor="middle" class="svg-soft">⏱ latency = time for ONE dot to cross</text>
+        <text x="370" y="40" text-anchor="middle" class="svg-soft"> latency = time for ONE dot to cross</text>
         <text x="370" y="150" text-anchor="middle" class="svg-soft">📦 throughput = dots arriving per second</text>
       </svg>
     </div>
 
     <div class="callout info">
-      <span class="co-icon">💡</span>
+      <span class="co-icon"></span>
       <div><strong>Watch the percentiles, not the average</strong>
       <p>Engineers quote latency as p50 / p95 / p99 — the time within which 50%, 95%, or 99% of requests finish. Averages hide pain: a 20&nbsp;ms average with a 3-second p99 means 1 in 100 users is having a miserable time. Amazon famously found that every 100&nbsp;ms of extra latency cost ~1% in sales.</p></div>
     </div>
@@ -162,7 +287,7 @@
     <p>Five nines means your <em>total</em> allowed outage for an entire year fits inside a coffee break — including deploys, hardware failures, and that one DNS change everyone regrets. This is why phone carriers and payment networks invest enormously in redundancy, while an internal dashboard happily lives at two nines.</p>
 
     <div class="callout warn">
-      <span class="co-icon">⚠️</span>
+      <span class="co-icon"></span>
       <div><strong>Nines multiply (downward)</strong>
       <p>If a request must pass through two services that are each 99.9% available, the path is only 99.9% × 99.9% ≈ <strong>99.8%</strong> available. Chains of dependencies quietly eat your nines — Topic 03 covers how to fight back with redundancy in parallel.</p></div>
     </div>
@@ -175,22 +300,22 @@
 
     <div class="table-wrap">
       <table class="compare-table">
-        <thead><tr><th>Operation</th><th>Approx. time</th><th>Scaled up (1 ns → 1 sec)</th></tr></thead>
+        <thead><tr><th>Operation</th><th>Approx. time</th><th>Relative magnitude (log scale)</th><th>Scaled up (1 ns → 1 sec)</th></tr></thead>
         <tbody>
-          <tr><td>L1 cache reference</td><td>~1 ns</td><td>1 second</td></tr>
-          <tr><td>L2 cache reference</td><td>~4 ns</td><td>4 seconds</td></tr>
-          <tr><td>Main memory (RAM) read</td><td>~100 ns</td><td>~2 minutes</td></tr>
-          <tr><td>SSD random read</td><td>~100 µs</td><td>~28 hours</td></tr>
-          <tr><td>Read 1 MB sequentially from SSD</td><td>~1 ms</td><td>~12 days</td></tr>
-          <tr><td>HDD seek</td><td>~10 ms</td><td>~4 months</td></tr>
-          <tr><td>Round trip within a datacenter</td><td>~0.5 ms</td><td>~6 days</td></tr>
-          <tr><td>Round trip US ↔ Europe</td><td>~150 ms</td><td>~5 years</td></tr>
+          <tr><td>L1 cache reference</td><td>~1 ns</td><td><span class="latency-bar" style="display:inline-block;height:10px;border-radius:5px;background:#10B981;width:2%"></span></td><td>1 second</td></tr>
+          <tr><td>L2 cache reference</td><td>~4 ns</td><td><span class="latency-bar" style="display:inline-block;height:10px;border-radius:5px;background:#10B981;width:7%"></span></td><td>4 seconds</td></tr>
+          <tr><td>Main memory (RAM) read</td><td>~100 ns</td><td><span class="latency-bar" style="display:inline-block;height:10px;border-radius:5px;background:#84CC16;width:24%"></span></td><td>~2 minutes</td></tr>
+          <tr><td>SSD random read</td><td>~100 µs</td><td><span class="latency-bar" style="display:inline-block;height:10px;border-radius:5px;background:#F59E0B;width:61%"></span></td><td>~28 hours</td></tr>
+          <tr><td>Read 1 MB sequentially from SSD</td><td>~1 ms</td><td><span class="latency-bar" style="display:inline-block;height:10px;border-radius:5px;background:#F59E0B;width:73%"></span></td><td>~12 days</td></tr>
+          <tr><td>HDD seek</td><td>~10 ms</td><td><span class="latency-bar" style="display:inline-block;height:10px;border-radius:5px;background:#F97316;width:85%"></span></td><td>~4 months</td></tr>
+          <tr><td>Round trip within a datacenter</td><td>~0.5 ms</td><td><span class="latency-bar" style="display:inline-block;height:10px;border-radius:5px;background:#F59E0B;width:69%"></span></td><td>~6 days</td></tr>
+          <tr><td>Round trip US ↔ Europe</td><td>~150 ms</td><td><span class="latency-bar" style="display:inline-block;height:10px;border-radius:5px;background:#EF4444;width:100%"></span></td><td>~5 years</td></tr>
         </tbody>
       </table>
     </div>
 
     <div class="callout tip">
-      <span class="co-icon">🎯</span>
+      <span class="co-icon"></span>
       <div><strong>The one-sentence takeaway</strong>
       <p>Memory is fast, disk is slow, and the network across the world is glacial. Every caching layer, replica, and CDN in this course is just an attempt to move data up that table.</p></div>
     </div>
@@ -215,9 +340,73 @@
 <span class="c-n">2^30</span> ≈ 1 billion (GB)    <span class="c-n">2^40</span> ≈ 1 trillion (TB)</code></pre>
 
     <div class="callout success">
-      <span class="co-icon">✅</span>
+      <span class="co-icon"></span>
       <div><strong>State your assumptions out loud</strong>
       <p>"Assuming 10M DAU and a 5× peak factor…" is a sentence that wins interviews. The estimate matters less than showing you know which knobs exist.</p></div>
+    </div>
+  </section>
+
+  <!-- ============ POWERS OF TWO ============ -->
+  <section class="section-block reveal">
+    <h2>Powers of Two — Your Mental Abacus</h2>
+    <p>All capacity math in system design runs on powers of two. Memorize these four anchors and you can estimate anything in your head:</p>
+
+    <div class="table-wrap">
+      <table class="compare-table">
+        <thead><tr><th>Power</th><th>Exact value</th><th>Approximation</th><th>Name</th></tr></thead>
+        <tbody>
+          <tr><td>2<sup>10</sup></td><td>1,024</td><td>~1 thousand</td><td>1 KB (kilo)</td></tr>
+          <tr><td>2<sup>20</sup></td><td>1,048,576</td><td>~1 million</td><td>1 MB (mega)</td></tr>
+          <tr><td>2<sup>30</sup></td><td>1,073,741,824</td><td>~1 billion</td><td>1 GB (giga)</td></tr>
+          <tr><td>2<sup>40</sup></td><td>1,099,511,627,776</td><td>~1 trillion</td><td>1 TB (tera)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Storage conversions</h3>
+    <pre class="code-block" data-lang="units"><code><span class="c-n">1 byte</span> = <span class="c-n">8</span> bits
+<span class="c-n">1 KB</span> = <span class="c-n">1,024</span> bytes      <span class="c-n">1 MB</span> = <span class="c-n">1,024</span> KB
+<span class="c-n">1 GB</span> = <span class="c-n">1,024</span> MB         <span class="c-n">1 TB</span> = <span class="c-n">1,024</span> GB</code></pre>
+
+    <h3>Sizes of common things</h3>
+    <div class="cards-grid">
+      <div class="mini-card"><span class="mc-icon">🔤</span><h4>ASCII char</h4><p>1 byte. A tweet of 280 ASCII chars ≈ 280 bytes.</p></div>
+      <div class="mini-card"><span class="mc-icon">🌏</span><h4>UTF-8 char</h4><p>1–4 bytes. Emoji and CJK characters take the most.</p></div>
+      <div class="mini-card"><span class="mc-icon">🔢</span><h4>Integer</h4><p>4 bytes. A <code>long</code> is 8 bytes.</p></div>
+      <div class="mini-card"><span class="mc-icon">🆔</span><h4>UUID</h4><p>16 bytes raw (36 chars as text — store it raw!).</p></div>
+    </div>
+
+    <h3>Quick storage estimates</h3>
+    <ul class="key-points">
+      <li>10M users × 100 bytes each = <strong>1 GB</strong> — fits in RAM on a laptop.</li>
+      <li>1B users × 100 bytes each = <strong>100 GB</strong> — fits on one server's SSD.</li>
+      <li>The lesson: user <em>metadata</em> is almost never your storage problem. Media, logs, and events are.</li>
+    </ul>
+  </section>
+
+  <!-- ============ WORKED ESTIMATION: TWITTER ============ -->
+  <section class="section-block reveal">
+    <h2>Worked Estimation: A Twitter-Scale App</h2>
+    <p>Let's put all the napkin math together on a real interview classic. State assumptions first, then crunch:</p>
+
+    <div class="steps">
+      <div class="step-item"><div class="step-num">1</div><div><strong>Assumptions</strong><p>300M daily active users. Each user posts 2 tweets/day and reads 100 tweets/day. ~86,400 seconds per day.</p></div></div>
+      <div class="step-item"><div class="step-num">2</div><div><strong>Write QPS</strong><p>300M × 2 ÷ 86,400 ≈ <strong>7,000 writes/sec</strong> average. Apply a 5× peak factor → <strong>~35,000 writes/sec</strong> at peak.</p></div></div>
+      <div class="step-item"><div class="step-num">3</div><div><strong>Read QPS</strong><p>300M × 100 ÷ 86,400 ≈ <strong>350,000 reads/sec</strong> average; peak ≈ <strong>1.75M reads/sec</strong>. Notice the ratio: reads:writes = <strong>50:1</strong>.</p></div></div>
+      <div class="step-item"><div class="step-num">4</div><div><strong>Tweet storage</strong><p>Average tweet ~300 bytes of text + ~200 bytes of metadata = 500 B/tweet. 500 B × 7,000/sec × 86,400 × 365 ≈ <strong>110 TB/year</strong> — manageable with sharding.</p></div></div>
+      <div class="step-item"><div class="step-num">5</div><div><strong>Media storage</strong><p>If 10% of tweets carry an image (~200 KB avg): 600M tweets/day × 10% × 200 KB ≈ 12 TB/<em>day</em> → <strong>petabytes per year</strong>. CDN + object storage are mandatory, not optional.</p></div></div>
+    </div>
+
+    <pre class="code-block" data-lang="napkin"><code><span class="c-c"># Twitter-scale summary</span>
+writes:  <span class="c-n">7K</span>/sec avg  → <span class="c-n">35K</span>/sec peak
+reads:   <span class="c-n">350K</span>/sec avg → <span class="c-n">1.75M</span>/sec peak   <span class="c-c"># 50× more reads than writes!</span>
+tweets:  ~<span class="c-n">110 TB</span>/year of text+metadata
+media:   <span class="c-n">petabytes</span>/year → CDN mandatory</code></pre>
+
+    <div class="callout info">
+      <span class="co-icon"></span>
+      <div><strong>The 50:1 ratio drives the architecture</strong>
+      <p>Because reading is 50× more common than writing, Twitter pre-computes timelines into read-optimized <strong>fanout caches</strong>: a write does extra work once so that millions of reads become cheap cache hits. The estimation isn't busywork — it tells you where to spend your complexity budget.</p></div>
     </div>
   </section>
 
@@ -232,7 +421,84 @@
         <button class="quiz-option">An availability problem — the system is down</button>
         <button class="quiz-option">A latency problem — single requests are slow</button>
       </div>
-      <div class="quiz-feedback">✅ Correct! Fast-for-one but slow-under-load is the textbook definition of a scalability problem. The fix is capacity and bottleneck removal, not faster code for a single request.</div>
+      <div class="quiz-feedback"> Correct! Fast-for-one but slow-under-load is the textbook definition of a scalability problem. The fix is capacity and bottleneck removal, not faster code for a single request.</div>
+    </div>
+  </section>
+
+  <!-- ============ INTERVIEW Q&A ============ -->
+  <section class="section-block reveal">
+    <h2>Interview Q&amp;A</h2>
+    <p>Three questions interviewers actually ask about fundamentals — click to reveal strong answers.</p>
+    <div class="qa-list">
+      <div class="qa-item">
+        <button class="qa-question">What is the difference between latency and throughput? Can you optimize both?</button>
+        <div class="qa-answer">
+          <p>Latency = time for one operation. Throughput = operations/sec. They often trade off — batching improves throughput but hurts individual latency. You optimize latency with faster paths (caches, better algorithms, fewer hops). You optimize throughput with concurrency, batching, and eliminating serial bottlenecks. In practice: optimize for latency first for user-facing services, throughput first for batch/analytics pipelines.</p>
+        </div>
+      </div>
+      <div class="qa-item">
+        <button class="qa-question">If I have three services each with 99.9% availability in series, what's the total?</button>
+        <div class="qa-answer">
+          <p>99.9% × 99.9% × 99.9% ≈ <strong>99.7%</strong> — about 26 hours of downtime per year. This is why microservices systems need circuit breakers, retries with backoff, and aggressive timeouts. Services in <em>parallel</em> (any one can serve the request) multiply uptime instead: 1 − (0.1%)³ ≈ 99.9999%.</p>
+        </div>
+      </div>
+      <div class="qa-item">
+        <button class="qa-question">When would you choose vertical scaling over horizontal?</button>
+        <div class="qa-answer">
+          <p>Vertical is simpler — no distributed-systems complexity. Choose it first: scale a single powerful node until the economics break (~$20K/month for a massive RDS instance). Horizontal requires statelessness, load balancing, replication, sharding. Databases often stay vertical longer because distributed writes are hard; stateless web tiers go horizontal naturally.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ ANTI-PATTERNS ============ -->
+  <section class="section-block reveal">
+    <h2>Anti-Patterns to Avoid</h2>
+    <div class="antipatterns">
+      <div class="antipattern-item">
+        <span class="antipattern-icon">🚫</span>
+        <div class="antipattern-text">
+          <h4>Premature horizontal scaling</h4>
+          <p>Adding nodes before making the app stateless. Creates sticky-session nightmares — sessions vanish on every deploy and the load balancer can never rebalance.</p>
+        </div>
+      </div>
+      <div class="antipattern-item">
+        <span class="antipattern-icon">🚫</span>
+        <div class="antipattern-text">
+          <h4>Ignoring percentiles</h4>
+          <p>Optimizing for p50 (median) when p99 is 10× worse. The median user is fine; the 1-in-100 user is rage-quitting. Always look at p95/p99.</p>
+        </div>
+      </div>
+      <div class="antipattern-item">
+        <span class="antipattern-icon">🚫</span>
+        <div class="antipattern-text">
+          <h4>Confusing performance and scalability fixes</h4>
+          <p>Caching a slow algorithm doesn't make it scalable; it just delays the problem until the cache misses pile up. Diagnose which problem you actually have first.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FURTHER READING ============ -->
+  <section class="section-block reveal">
+    <h2>Further Reading</h2>
+    <div class="reading-links">
+      <a class="reading-link-card" href="https://highscalability.com/google-pro-tip-use-back-of-envelope-calculations-to-choose-t/" target="_blank" rel="noopener">
+        <span class="reading-link-icon">📖</span>
+        <div><span class="reading-link-title">Jeff Dean's Latency Numbers</span><span class="reading-link-source">highscalability.com</span></div>
+      </a>
+      <a class="reading-link-card" href="https://github.com/donnemartin/system-design-primer#latency-numbers-every-programmer-should-know" target="_blank" rel="noopener">
+        <span class="reading-link-icon">📗</span>
+        <div><span class="reading-link-title">Numbers Every Engineer Should Know</span><span class="reading-link-source">github.com/donnemartin</span></div>
+      </a>
+      <a class="reading-link-card" href="https://danluu.com/latency-benchmarks/" target="_blank" rel="noopener">
+        <span class="reading-link-icon">🔬</span>
+        <div><span class="reading-link-title">Dan Luu: Latency Benchmarks</span><span class="reading-link-source">danluu.com</span></div>
+      </a>
+      <a class="reading-link-card" href="https://aws.amazon.com/architecture/well-architected/" target="_blank" rel="noopener">
+        <span class="reading-link-icon"></span>
+        <div><span class="reading-link-title">AWS Well-Architected: Performance</span><span class="reading-link-source">aws.amazon.com</span></div>
+      </a>
     </div>
   </section>
 
@@ -243,7 +509,7 @@
 </main>
 
 <footer class="footer">
-  <div class="footer-bottom">⚡ System Design Illustrated · Topic 01 of 12 · Built with 💜 and vanilla web tech</div>
+  <div class="footer-bottom"> System Design Illustrated · Topic 01 of 12 · Built with 💜 and vanilla web tech</div>
 </footer>
 
 <script src="../js/main.js"></script>

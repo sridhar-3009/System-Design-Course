@@ -14,12 +14,12 @@
 
 <nav class="navbar">
   <div class="nav-inner">
-    <a href="../index.html" class="logo"><span class="bolt">⚡</span><span class="logo-text">System Design Illustrated</span></a>
+    <a href="../index.html" class="logo"><span class="bolt"></span><span class="logo-text">System Design Illustrated</span></a>
     <div class="nav-links">
       <a href="../index.html#topics">Topics</a>
       <a href="../index.html#about">About</a>
       <a href="12-interview-guide.html">Interview Guide</a>
-      <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">🌙</button>
+      <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode"></button>
     </div>
   </div>
 </nav>
@@ -28,13 +28,26 @@
   <div class="topic-header-inner">
     <div class="breadcrumb"><a href="../index.html">Home</a> / Topics / 02</div>
     <div class="topic-num-big">TOPIC 02</div>
-    <h1>CAP Theorem 🔺</h1>
+    <h1>CAP Theorem </h1>
     <p class="subtitle">The most famous impossibility result in distributed systems: when the network splits, you must choose between giving every reader the truth and giving every reader an answer.</p>
-    <div class="topic-meta"><span class="tag">🌱 Beginner</span><span class="tag">⏱ 20 min read</span><span class="tag">📐 6 concepts</span></div>
+    <div class="topic-meta"><span class="tag"> Beginner</span><span class="tag"> 20 min read</span><span class="tag"> 6 concepts</span></div>
   </div>
 </header>
 
 <main class="topic-body">
+
+  <!-- ============ AT A GLANCE ============ -->
+  <div class="at-a-glance">
+    <h3> At a Glance</h3>
+    <ul>
+      <li><strong>CAP</strong>: during a network partition, you must pick Consistency or Availability — never both.</li>
+      <li><strong>P is not optional</strong> in a real distributed system; the only real choice is CP vs AP.</li>
+      <li><strong>CP</strong> (ZooKeeper, etcd) refuses to answer rather than lie. <strong>AP</strong> (Cassandra, DynamoDB) answers, possibly with stale data.</li>
+      <li>Real systems sit on a <strong>spectrum</strong> — Cassandra's consistency level is tunable per query.</li>
+      <li><strong>PACELC</strong> adds the everyday trade-off: even without partitions, you trade Latency vs Consistency.</li>
+      <li>Google <strong>Spanner</strong> bends the rules with atomic clocks — hardware can shift what's possible.</li>
+    </ul>
+  </div>
 
   <section class="section-block reveal">
     <h2>The Three Properties</h2>
@@ -42,7 +55,7 @@
 
     <div class="cards-grid">
       <div class="mini-card">
-        <span class="mc-icon">🎯</span>
+        <span class="mc-icon"></span>
         <h4>C — Consistency</h4>
         <p>Every read receives the most recent write (or an error). All nodes agree on one truth, as if there were a single copy of the data.</p>
       </div>
@@ -97,9 +110,53 @@
     <p>There is no third option. Answering correctly requires communication; the partition forbids communication. That's the whole theorem.</p>
 
     <div class="callout warn">
-      <span class="co-icon">⚠️</span>
+      <span class="co-icon"></span>
       <div><strong>Partitions are not hypothetical</strong>
       <p>Switch failures, garbage-collection pauses, overloaded NICs, fat-fingered firewall rules — anything that delays messages long enough behaves like a partition. In any system spanning more than one machine, you must tolerate P. So the real-world choice is always <strong>CP vs AP</strong>, never "CA."</p></div>
+    </div>
+  </section>
+
+  <!-- ============ WHY P IS NON-NEGOTIABLE ============ -->
+  <section class="section-block reveal">
+    <h2>Why Partition Tolerance Is Non-Negotiable</h2>
+    <p>Newcomers sometimes ask, "Can't I just pick C and A and skip P?" No — and understanding why is the whole point of CAP. Network partitions <em>happen</em> in real distributed systems:</p>
+    <div class="cards-grid">
+      <div class="mini-card"><span class="mc-icon"></span><h4>Bad cables &amp; switches</h4><p>Hardware fails constantly at scale. A top-of-rack switch dying partitions every server in the rack.</p></div>
+      <div class="mini-card"><span class="mc-icon">🗺️</span><h4>BGP routing issues</h4><p>A bad route announcement can make two healthy datacenters mutually unreachable for minutes.</p></div>
+      <div class="mini-card"><span class="mc-icon">🔥</span><h4>Datacenter fires &amp; floods</h4><p>OVH's 2021 fire took an entire datacenter offline. Region-level partitions are rare but real.</p></div>
+      <div class="mini-card"><span class="mc-icon">⏸️</span><h4>GC pauses &amp; NAT timeouts</h4><p>A 30-second garbage-collection pause is indistinguishable from a dead node. Slow <em>is</em> the new down.</p></div>
+    </div>
+
+    <p>When a partition happens, nodes can't communicate. You have exactly <strong>two</strong> choices:</p>
+    <ul class="key-points">
+      <li><strong>Stop serving</strong> (sacrifice A) → consistent but unavailable.</li>
+      <li><strong>Keep serving</strong> with potentially stale or diverged data (sacrifice C) → available but inconsistent.</li>
+    </ul>
+    <p>You <strong>cannot</strong> sacrifice P: that would mean "assume no partitions ever happen" — which is only true on a single machine, and a single machine isn't a distributed system. So the real question is never "do we tolerate partitions?" It's: <strong>when a partition DOES occur, which side do you sacrifice?</strong></p>
+
+    <div class="diagram-box">
+      <svg viewBox="0 0 740 300" role="img" aria-label="A network split into two islands of nodes with a dashed partition line between them; the right side must choose between serving stale data and rejecting requests">
+        <text x="370" y="26" text-anchor="middle" class="svg-label">The partition forces a choice</text>
+        <!-- left island -->
+        <circle cx="180" cy="150" r="80" style="fill:none;stroke:#DB2777;stroke-width:2.5" class="svg-node"/>
+        <circle cx="150" cy="130" r="20" class="svg-node" style="fill:#DB2777"/>
+        <text x="150" y="136" text-anchor="middle" style="fill:#fff;font-weight:700;font-size:12px;font-family:Poppins">N1</text>
+        <circle cx="210" cy="170" r="20" class="svg-node" style="fill:#DB2777;animation-delay:.3s"/>
+        <text x="210" y="176" text-anchor="middle" style="fill:#fff;font-weight:700;font-size:12px;font-family:Poppins">N2</text>
+        <text x="180" y="260" text-anchor="middle" class="svg-soft">has the latest write </text>
+        <!-- partition -->
+        <line x1="370" y1="50" x2="370" y2="250" class="svg-line svg-dash" style="stroke:#EF4444;stroke-width:4"/>
+        <text x="370" y="285" text-anchor="middle" class="svg-soft" style="fill:#EF4444"> partition — no messages cross</text>
+        <!-- right island -->
+        <circle cx="560" cy="150" r="80" style="fill:none;stroke:#F59E0B;stroke-width:2.5" class="svg-node"/>
+        <circle cx="530" cy="130" r="20" class="svg-node" style="fill:#F59E0B;animation-delay:.6s"/>
+        <text x="530" y="136" text-anchor="middle" style="fill:#fff;font-weight:700;font-size:12px;font-family:Poppins">N3</text>
+        <circle cx="590" cy="170" r="20" class="svg-node" style="fill:#F59E0B;animation-delay:.9s"/>
+        <text x="590" y="176" text-anchor="middle" style="fill:#fff;font-weight:700;font-size:12px;font-family:Poppins">N4</text>
+        <g class="seq seq-3"><text x="560" y="245" text-anchor="middle" class="svg-soft">serve stale data? (AP)</text></g>
+        <g class="seq seq-5"><text x="560" y="265" text-anchor="middle" class="svg-soft">reject the request? (CP)</text></g>
+      </svg>
+      <p class="diagram-caption">N3 and N4 can't see the latest write. Their only options: answer anyway (AP) or refuse (CP).</p>
     </div>
   </section>
 
@@ -140,6 +197,44 @@
     </div>
   </section>
 
+  <!-- ============ THE SPECTRUM ============ -->
+  <section class="section-block reveal">
+    <h2>The Spectrum, Not a Triangle</h2>
+    <p>Martin Kleppmann's famous critique — <em>"Please stop calling databases CP or AP"</em> — points out that the triangle picture misleads in two ways. First, "consistency" means something different in CAP than in databases: <strong>CAP's C = linearizability</strong>, a very strong property. Most systems labeled "CP" don't actually guarantee CAP's C. Second, real systems aren't pinned to a vertex — they live on a <strong>tunable spectrum</strong>.</p>
+    <p>Cassandra makes this concrete: you choose a consistency level <em>per query</em>:</p>
+    <div class="table-wrap">
+      <table class="compare-table">
+        <thead><tr><th>Consistency level</th><th>Behavior</th><th>Where it sits</th></tr></thead>
+        <tbody>
+          <tr><td><code>ONE</code></td><td>Ack from a single replica — fast, possibly stale</td><td>AP-like (available, potentially stale)</td></tr>
+          <tr><td><code>QUORUM</code></td><td>Majority of replicas must agree</td><td>Balanced — strong-ish reads, survives a node loss</td></tr>
+          <tr><td><code>ALL</code></td><td>Every replica must respond</td><td>CP-like (consistent, fails if any node is down)</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <ul class="key-points">
+      <li>"CP or AP?" is a simplification. The real question: <strong>what consistency level does this use case need?</strong></li>
+      <li>The same cluster can serve a strongly-consistent billing query and an eventually-consistent feed query side by side.</li>
+      <li>In interviews, naming the knob (ONE / QUORUM / ALL) beats naming the vertex.</li>
+    </ul>
+  </section>
+
+  <!-- ============ SPANNER ============ -->
+  <section class="section-block reveal">
+    <h2>Spanner — When You Have Atomic Clocks</h2>
+    <p>Google Spanner is the system people point at when they say "but CAP says you can't do that!" It's an <strong>externally consistent, distributed SQL database</strong> that spans continents — and it bends the trade-off with hardware.</p>
+    <div class="steps">
+      <div class="step-item"><div class="step-num">1</div><div><strong>TrueTime API</strong><p>Every datacenter has GPS receivers + atomic clocks. Instead of "the time is X," TrueTime answers "the time is within [X−ε, X+ε]" with ε ≈ ±7 ms of global uncertainty.</p></div></div>
+      <div class="step-item"><div class="step-num">2</div><div><strong>Commit wait</strong><p>Spanner holds a transaction open until the uncertainty window has fully passed before making it visible. Result: timestamps are globally ordered → <strong>linearizable transactions across continents</strong>.</p></div></div>
+      <div class="step-item"><div class="step-num">3</div><div><strong>"Effectively CA"</strong><p>Brewer himself describes Spanner as effectively CA: partition tolerance is engineered to be so good (redundant fiber, multiple datacenters per region) that P is rarely invoked. Technically it's CP — when a real partition hits, it chooses consistency.</p></div></div>
+    </div>
+    <div class="callout tip">
+      <span class="co-icon"></span>
+      <div><strong>The lesson</strong>
+      <p>CAP describes trade-offs given your infrastructure — and hardware changes can shift what's possible in the CAP space. Atomic clocks didn't repeal the theorem; they made the painful branch of it astronomically rare.</p></div>
+    </div>
+  </section>
+
   <section class="section-block reveal">
     <h2>PACELC: The Grown-Up Version</h2>
     <p>CAP only talks about behavior <em>during</em> a partition — but partitions are rare. What about the other 99.99% of the time? Daniel Abadi's <strong>PACELC</strong> fills the gap:</p>
@@ -151,8 +246,34 @@
       <li><strong>PA/EC</strong> and hybrids: MongoDB and others let you tune per-query.</li>
     </ul>
 
+    <h3>Why the latency trade-off exists even on a healthy network</h3>
+    <div class="two-col">
+      <div class="mini-card">
+        <span class="mc-icon">🐢</span>
+        <h4>Synchronous replication</h4>
+        <p>Strongly consistent — the write isn't acknowledged until all (or a quorum of) replicas confirm. But you must wait for the slowest replica's ack, which adds latency to every single write.</p>
+      </div>
+      <div class="mini-card">
+        <span class="mc-icon">🐇</span>
+        <h4>Asynchronous replication</h4>
+        <p>Low latency — ack immediately, replicate in the background. But a replica might be behind, so reads from it can be inconsistent. You traded C for L without any partition in sight.</p>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table class="compare-table">
+        <thead><tr><th>System</th><th>During partition</th><th>Normal operation</th><th>Character</th></tr></thead>
+        <tbody>
+          <tr><td>DynamoDB</td><td>A — keep serving</td><td>L — prioritize latency</td><td>Fast, eventually consistent</td></tr>
+          <tr><td>ZooKeeper</td><td>C — refuse if no quorum</td><td>C — wait for consensus</td><td>Slow but always consistent</td></tr>
+          <tr><td>Cassandra</td><td>A — keep serving</td><td>L — prioritize latency</td><td>Tunable per query</td></tr>
+          <tr><td>Spanner</td><td>C — choose consistency</td><td>C — commit-wait</td><td>Google's magic clocks</td></tr>
+        </tbody>
+      </table>
+    </div>
+
     <div class="callout archie">
-      <span class="co-icon">🤖</span>
+      <span class="co-icon"></span>
       <div><strong>Archie says</strong>
       <p>In an interview, don't just say "CAP theorem!" and stop. Say <em>which</em> letter you're sacrificing, <em>where</em>, and <em>why</em>: "The payment ledger is CP via quorum writes; the activity feed is AP with eventual consistency, because a stale like-count never hurt anyone."</p></div>
     </div>
@@ -168,7 +289,116 @@
         <button class="quiz-option">CA — sacrificing partition tolerance</button>
         <button class="quiz-option">It violates the CAP theorem</button>
       </div>
-      <div class="quiz-feedback">✅ Right! Answering during a partition with possibly stale data is the AP choice — availability over consistency, with reconciliation later.</div>
+      <div class="quiz-feedback"> Right! Answering during a partition with possibly stale data is the AP choice — availability over consistency, with reconciliation later.</div>
+    </div>
+  </section>
+
+  <!-- ============ WHO CHOSE WHAT ============ -->
+  <section class="section-block reveal">
+    <h2>Who Chose What — Real Systems, Real Stakes</h2>
+    <div class="company-badges">
+      <span class="company-badge">🦓 ZooKeeper · CP</span>
+      <span class="company-badge">💍 Cassandra · AP</span>
+      <span class="company-badge">🛒 DynamoDB · AP</span>
+      <span class="company-badge">☸️ etcd · CP</span>
+    </div>
+    <div class="cards-grid">
+      <div class="mini-card">
+        <span class="mc-icon">🦓</span>
+        <h4>ZooKeeper (CP)</h4>
+        <p>Used by Kafka for leader election and HDFS for the name node. Chooses consistency — if a quorum is unavailable, ZK stops answering rather than risk divergence. A wrong answer about "who is the leader" would be catastrophic.</p>
+      </div>
+      <div class="mini-card">
+        <span class="mc-icon">💍</span>
+        <h4>Cassandra (AP)</h4>
+        <p>Used by Netflix, Instagram, and Discord. Chooses availability — 3 replicas, configurable quorum, tunable consistency per query. Built to keep accepting writes through node failures and partitions.</p>
+      </div>
+      <div class="mini-card">
+        <span class="mc-icon">🛒</span>
+        <h4>DynamoDB (AP)</h4>
+        <p>Powers Amazon's own cart and order systems. Single-digit-millisecond latency at any scale; born from the insight that an unavailable shopping cart costs real money.</p>
+      </div>
+      <div class="mini-card">
+        <span class="mc-icon">☸️</span>
+        <h4>etcd (CP)</h4>
+        <p>The Kubernetes control plane. Leader election and configuration storage — the cluster's source of truth must be consistent, even at the cost of brief unavailability.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ INTERVIEW Q&A ============ -->
+  <section class="section-block reveal">
+    <h2>Interview Q&amp;A</h2>
+    <div class="qa-list">
+      <div class="qa-item">
+        <button class="qa-question">Is MongoDB CP or AP?</button>
+        <div class="qa-answer">
+          <p>Trick question — it depends on configuration. With the default write concern <code>{w:1}</code> it's AP-ish (available, with risk of data loss on failover). With <code>{w:"majority", readConcern:"majority"}</code> it approaches CP behavior. The "MongoDB is CP" answer from RDBMS land is a simplification. This is the key insight: <strong>most real systems are configurable on the spectrum</strong>.</p>
+        </div>
+      </div>
+      <div class="qa-item">
+        <button class="qa-question">When a network partition occurs and you choose availability, what problems arise?</button>
+        <div class="qa-answer">
+          <p><strong>Split-brain</strong>: both sides of the partition think they're the primary and accept writes. When the partition heals, you have conflicting state. Solutions: vector clocks to detect conflicts, CRDTs for auto-merging, last-writer-wins (lossy), or application-level conflict resolution (Dropbox shows a "conflicted copy"). Dynamo (Amazon) uses all of these — the 2007 Dynamo paper is required reading.</p>
+        </div>
+      </div>
+      <div class="qa-item">
+        <button class="qa-question">Name a use case where eventual consistency is perfectly fine.</button>
+        <div class="qa-answer">
+          <p>Shopping cart: it's fine if two devices show slightly different items temporarily — they converge. DNS: cached stale records are acceptable for the TTL duration. Social media like counts: showing 104,829 vs 104,830 likes doesn't matter. Counter-example: a bank balance — you never want to read a stale balance and allow an overdraft.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ ANTI-PATTERNS ============ -->
+  <section class="section-block reveal">
+    <h2>Anti-Patterns to Avoid</h2>
+    <div class="antipatterns">
+      <div class="antipattern-item">
+        <span class="antipattern-icon">🚫</span>
+        <div class="antipattern-text">
+          <h4>"We chose CP so we have no availability issues"</h4>
+          <p>Being CP means you <em>sacrifice</em> availability during partitions. ZooKeeper can be unavailable if quorum is lost — that's the deal you signed.</p>
+        </div>
+      </div>
+      <div class="antipattern-item">
+        <span class="antipattern-icon">🚫</span>
+        <div class="antipattern-text">
+          <h4>Assuming AP means "all writes always succeed"</h4>
+          <p>AP systems still reject writes when they can't meet their own guarantees. Cassandra with QUORUM won't write if fewer than ⌊N/2⌋+1 nodes are up.</p>
+        </div>
+      </div>
+      <div class="antipattern-item">
+        <span class="antipattern-icon">🚫</span>
+        <div class="antipattern-text">
+          <h4>Applying CAP to single-node databases</h4>
+          <p>CAP is about distributed systems. SQLite is neither CP nor AP — it's just a local file. No partition, no theorem.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FURTHER READING ============ -->
+  <section class="section-block reveal">
+    <h2>Further Reading</h2>
+    <div class="reading-links">
+      <a class="reading-link-card" href="https://martin.kleppmann.com/2015/05/11/please-stop-calling-databases-cp-or-ap.html" target="_blank" rel="noopener">
+        <span class="reading-link-icon"></span>
+        <div><span class="reading-link-title">Please Stop Calling Databases CP or AP</span><span class="reading-link-source">Martin Kleppmann</span></div>
+      </a>
+      <a class="reading-link-card" href="https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf" target="_blank" rel="noopener">
+        <span class="reading-link-icon">📘</span>
+        <div><span class="reading-link-title">Dynamo: Amazon's Highly Available Key-Value Store (2007)</span><span class="reading-link-source">allthingsdistributed.com</span></div>
+      </a>
+      <a class="reading-link-card" href="https://cloud.google.com/spanner/docs/true-time-external-consistency" target="_blank" rel="noopener">
+        <span class="reading-link-icon"></span>
+        <div><span class="reading-link-title">Google Spanner / TrueTime</span><span class="reading-link-source">cloud.google.com</span></div>
+      </a>
+      <a class="reading-link-card" href="https://dataintensive.net" target="_blank" rel="noopener">
+        <span class="reading-link-icon">📖</span>
+        <div><span class="reading-link-title">Designing Data-Intensive Applications, Ch. 9</span><span class="reading-link-source">dataintensive.net</span></div>
+      </a>
     </div>
   </section>
 
@@ -179,7 +409,7 @@
 </main>
 
 <footer class="footer">
-  <div class="footer-bottom">⚡ System Design Illustrated · Topic 02 of 12 · Built with 💜 and vanilla web tech</div>
+  <div class="footer-bottom"> System Design Illustrated · Topic 02 of 12 · Built with 💜 and vanilla web tech</div>
 </footer>
 
 <script src="../js/main.js"></script>

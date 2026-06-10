@@ -14,12 +14,15 @@
 
 <nav class="navbar">
   <div class="nav-inner">
-    <a href="../index.html" class="logo"><span class="bolt">⚡</span><span class="logo-text">System Design Illustrated</span></a>
+    <a href="../index.html" class="logo"><span class="bolt"></span><span class="logo-text">System Design Illustrated</span></a>
     <div class="nav-links">
       <a href="../index.html#topics">Topics</a>
       <a href="../index.html#about">About</a>
       <a href="12-interview-guide.html">Interview Guide</a>
-      <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">🌙</button>
+      <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">
+        <svg class="icon-moon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        <svg class="icon-sun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      </button>
     </div>
   </div>
 </nav>
@@ -28,13 +31,25 @@
   <div class="topic-header-inner">
     <div class="breadcrumb"><a href="../index.html">Home</a> / Topics / 11</div>
     <div class="topic-num-big">TOPIC 11</div>
-    <h1>Security Essentials 🔐</h1>
+    <h1>Security Essentials </h1>
     <p class="subtitle">Security isn't a feature you bolt on at the end — it's a property of every layer. The fundamentals every system designer must get right, from TLS to OWASP.</p>
-    <div class="topic-meta"><span class="tag">🌿 Intermediate</span><span class="tag">⏱ 35 min read</span><span class="tag">📐 12 concepts</span></div>
+    <div class="topic-meta"><span class="tag">🌿 Intermediate</span><span class="tag"> 35 min read</span><span class="tag"> 12 concepts</span></div>
   </div>
 </header>
 
 <main class="topic-body">
+
+  <div class="at-a-glance">
+    <h3>At a Glance</h3>
+    <ul>
+      <li><strong>TLS protects data in transit</strong> via asymmetric key exchange + symmetric encryption. Always use HTTPS.</li>
+      <li><strong>Never store plaintext passwords.</strong> Use bcrypt, scrypt, or Argon2 with a per-user salt.</li>
+      <li><strong>JWT</strong> = stateless token. <strong>OAuth 2.0</strong> = authorization framework. <strong>OpenID Connect</strong> = authentication on top of OAuth.</li>
+      <li><strong>Rate limiting prevents brute force and DDoS.</strong> Token bucket is the most common algorithm.</li>
+      <li><strong>SQL injection, XSS, and CSRF</strong> are still the top attack vectors — parameterize everything.</li>
+      <li><strong>Secrets management:</strong> never hardcode credentials. Use Vault, AWS Secrets Manager, or environment variables.</li>
+    </ul>
+  </div>
 
   <section class="section-block reveal">
     <h2>Encryption: In Transit and At Rest</h2>
@@ -68,6 +83,24 @@
   </section>
 
   <section class="section-block reveal">
+    <h2>TLS Handshake — Step by Step</h2>
+    <p>What actually happens in that "one round trip" before your data is safe? The TLS 1.3 handshake, simplified:</p>
+    <div class="steps">
+      <div class="step-item"><div class="step-num">1</div><div><strong>ClientHello</strong><p>The client sends its supported cipher suites, TLS version, and a random nonce — plus its own key-share guess to save a round trip.</p></div></div>
+      <div class="step-item"><div class="step-num">2</div><div><strong>ServerHello</strong><p>The server picks a cipher suite and sends its certificate, which contains the server's public key.</p></div></div>
+      <div class="step-item"><div class="step-num">3</div><div><strong>Key exchange</strong><p>Client and server derive session keys via ECDHE using the exchanged key shares; the certificate's private key proves the server's identity — only the real key holder can complete the exchange.</p></div></div>
+      <div class="step-item"><div class="step-num">4</div><div><strong>Symmetric from here on</strong><p>Both sides now hold the same session key. All further traffic is symmetrically encrypted (AES-GCM) — fast bulk encryption, asymmetric crypto only at setup.</p></div></div>
+      <div class="step-item"><div class="step-num">5</div><div><strong>1-RTT (and 0-RTT)</strong><p>TLS 1.3 completes all of this in one round trip, and resumed sessions can send data with zero round trips (0-RTT).</p></div></div>
+    </div>
+    <h3>Trust, Pinning, and HSTS</h3>
+    <ul class="key-points">
+      <li><strong>Certificate chain:</strong> the server cert is signed by an intermediate CA, which is signed by a root CA. Browsers trust the root CAs bundled in the OS — trust flows down the chain.</li>
+      <li><strong>Certificate pinning:</strong> mobile apps hardcode the server's cert or public-key fingerprint and reject any other cert — even one signed by a trusted CA. Defeats MITM via a rogue CA. Used by banking apps and WhatsApp.</li>
+      <li><strong>HSTS:</strong> <code>Strict-Transport-Security: max-age=31536000; includeSubDomains</code> tells the browser to only ever connect via HTTPS. The preload list means browsers know before the very first visit.</li>
+    </ul>
+  </section>
+
+  <section class="section-block reveal">
     <h2>Authentication vs Authorization</h2>
     <p>Two words, constantly confused, never interchangeable:</p>
     <ul>
@@ -93,10 +126,33 @@
         <tbody>
           <tr><td>State</td><td>Server-side store</td><td>Self-contained, stateless</td></tr>
           <tr><td>Verification cost</td><td>Lookup per request</td><td>Signature check (no I/O)</td></tr>
-          <tr><td>Instant revocation</td><td>✅ delete the session</td><td>❌ wait for expiry (or keep a denylist… now you're stateful again)</td></tr>
+          <tr><td>Instant revocation</td><td> delete the session</td><td>❌ wait for expiry (or keep a denylist… now you're stateful again)</td></tr>
           <tr><td>Best for</td><td>Classic web apps</td><td>APIs, microservices, mobile</td></tr>
         </tbody>
       </table>
+    </div>
+  </section>
+
+  <section class="section-block reveal">
+    <h2>JWT — Structure, Security, Pitfalls</h2>
+    <p>Cracking open the token: a JWT is three base64url-encoded parts joined by dots — <code>Header.Payload.Signature</code>:</p>
+    <pre class="code-block" data-lang="json"><code><span class="c-c">// Header</span>
+{<span class="c-s">"alg"</span>: <span class="c-s">"HS256"</span>, <span class="c-s">"typ"</span>: <span class="c-s">"JWT"</span>}
+<span class="c-c">// Payload</span>
+{<span class="c-s">"sub"</span>: <span class="c-s">"user:123"</span>, <span class="c-s">"email"</span>: <span class="c-s">"alice@example.com"</span>, <span class="c-s">"iat"</span>: <span class="c-n">1640000000</span>, <span class="c-s">"exp"</span>: <span class="c-n">1640086400</span>}
+<span class="c-c">// Signature</span>
+HMACSHA256(base64url(header) + <span class="c-s">"."</span> + base64url(payload), secret)</code></pre>
+    <p>The server verifies the signature without any database lookup — that statelessness is the whole appeal for scaling. But the pitfalls are real:</p>
+    <ul class="key-points">
+      <li><strong>Algorithm confusion attack:</strong> a token claiming <code>"alg": "none"</code> makes naive servers skip signature verification. Always whitelist accepted algorithms server-side — never trust the token's own header.</li>
+      <li><strong>Weak secret:</strong> the HMAC secret must be cryptographically random and at least 32 bytes. Never "password123" — it's brute-forceable offline.</li>
+      <li><strong>No revocation:</strong> JWTs stay valid until expiry. If a user logs out or is compromised, you can't invalidate the token. Mitigations: short expiry (15 min), a token blacklist in Redis (which negates statelessness), or long-lived refresh tokens paired with short-lived access tokens.</li>
+      <li><strong>localStorage is XSS bait:</strong> scripts can read it, so XSS steals tokens. Prefer HttpOnly cookies (XSS-proof) — and mitigate the resulting CSRF risk with <code>SameSite=Lax</code> or CSRF tokens.</li>
+    </ul>
+    <div class="callout warn">
+      <span class="co-icon">!</span>
+      <div><strong>Base64 is not encryption</strong>
+      <p>Never store sensitive data in a JWT payload. It's base64-<em>encoded</em>, not encrypted — anyone holding the token can decode and read every claim in one line of code.</p></div>
     </div>
   </section>
 
@@ -109,6 +165,26 @@
       <div class="step-item"><div class="step-num">3</div><div><strong>Implicit (deprecated)</strong><p>Tokens delivered straight in the browser URL fragment. Leaky; replaced by Code + PKCE. Mentioning that it's deprecated is itself an interview point.</p></div></div>
     </div>
     <p><strong>OpenID Connect (OIDC)</strong> is a thin identity layer on top of OAuth: it adds a signed <code>id_token</code> (a JWT) that asserts <em>who the user is</em> — turning OAuth's authorization machinery into a proper authentication protocol. OAuth = what you may access; OIDC = who you are.</p>
+  </section>
+
+  <section class="section-block reveal">
+    <h2>OAuth 2.0 Authorization Code Flow — Walkthrough</h2>
+    <p>Four roles to keep straight: the <strong>Resource Owner</strong> (the user), the <strong>Client</strong> (your app), the <strong>Authorization Server</strong> (Google/GitHub/Okta), and the <strong>Resource Server</strong> (the API holding the data). The Authorization Code flow — the most secure option for web apps — step by step:</p>
+    <div class="steps">
+      <div class="step-item"><div class="step-num">1</div><div><strong>User clicks "Login with Google"</strong><p>Your app needs identity or data from Google — without ever seeing the user's Google password.</p></div></div>
+      <div class="step-item"><div class="step-num">2</div><div><strong>Redirect to the authorization server</strong><p><code>https://accounts.google.com/o/oauth2/v2/auth?client_id=...&amp;redirect_uri=...&amp;scope=email profile&amp;response_type=code&amp;state=xyz</code> — the <code>state</code> value protects against CSRF on the way back.</p></div></div>
+      <div class="step-item"><div class="step-num">3</div><div><strong>User authenticates and grants permission</strong><p>This happens entirely at Google. Your app is not involved — and never sees credentials.</p></div></div>
+      <div class="step-item"><div class="step-num">4</div><div><strong>Redirect back with a one-time code</strong><p><code>https://yourapp.com/callback?code=AUTH_CODE&amp;state=xyz</code> — the code is short-lived and single-use.</p></div></div>
+      <div class="step-item"><div class="step-num">5</div><div><strong>Exchange code for tokens (server-to-server)</strong><p>Your backend POSTs to Google's token endpoint with the code and your <code>client_secret</code> — never from the browser, where the secret would leak.</p></div></div>
+      <div class="step-item"><div class="step-num">6</div><div><strong>Receive tokens</strong><p>Google returns an <code>access_token</code> (short-lived, ~1 hour) and a <code>refresh_token</code> (long-lived).</p></div></div>
+      <div class="step-item"><div class="step-num">7</div><div><strong>Use and refresh</strong><p>The client calls Google APIs with the access token, refreshing via the refresh token when it expires.</p></div></div>
+    </div>
+    <div class="callout tip">
+      <span class="co-icon">&#9733;</span>
+      <div><strong>PKCE: for clients that can't keep a secret</strong>
+      <p>SPAs and mobile apps can't hold a <code>client_secret</code> — anyone can read their code. <strong>PKCE (Proof Key for Code Exchange)</strong> fixes this: the client generates a random <code>code_verifier</code>, sends its hash (<code>code_challenge</code>) in step 2, then sends the original verifier in step 5. An attacker who intercepts the authorization code can't redeem it without the verifier.</p></div>
+    </div>
+    <p>And the one-line distinction worth repeating: <strong>OAuth is for authorization</strong> (access to resources); <strong>OpenID Connect adds an ID token</strong> (a JWT containing user info) on top — that's authentication (who the user is).</p>
   </section>
 
   <section class="section-block reveal">
@@ -132,6 +208,40 @@ ph.verify(hash, attempt)                          <span class="c-c"># raises on 
   </section>
 
   <section class="section-block reveal">
+    <h2>Rate Limiting Algorithms — The Full Menu</h2>
+    <p>Token bucket and leaky bucket are the headliners, but interviews often probe the whole family. The trade-offs:</p>
+    <ul class="key-points">
+      <li><strong>Fixed window:</strong> count requests per time window (per minute, say). Simple — but exploitable at the boundary: 100 requests at 11:59:59 plus 100 at 12:00:00 means 200 in two seconds.</li>
+      <li><strong>Sliding window log:</strong> store the timestamp of every request in a Redis sorted set and count entries in the last N seconds. Accurate, but memory grows with request rate.</li>
+      <li><strong>Sliding window counter:</strong> a blend of fixed window and log — a memory-efficient approximation of true sliding behavior. The usual production compromise.</li>
+      <li><strong>Token bucket:</strong> a bucket holds up to N tokens, refilled at R/sec; each request spends one. Allows bursts up to N while capping the sustained rate. The most common choice.</li>
+      <li><strong>Leaky bucket:</strong> requests enter a queue drained at a fixed rate. Output is perfectly smooth — ideal for outbound calls protecting a fragile downstream.</li>
+    </ul>
+    <p>A token bucket against Redis, in full:</p>
+    <pre class="code-block" data-lang="python"><code><span class="c-k">def</span> is_allowed(client_id, capacity=<span class="c-n">100</span>, rate=<span class="c-n">10</span>):
+    key = <span class="c-s">f"rate:{client_id}"</span>
+    now = time.time()
+    pipe = redis.pipeline()
+    pipe.hget(key, <span class="c-s">'tokens'</span>)
+    pipe.hget(key, <span class="c-s">'last_refill'</span>)
+    tokens, last_refill = pipe.execute()
+
+    tokens = <span class="c-k">float</span>(tokens <span class="c-k">or</span> capacity)
+    last_refill = <span class="c-k">float</span>(last_refill <span class="c-k">or</span> now)
+    elapsed = now - last_refill
+    tokens = <span class="c-k">min</span>(capacity, tokens + elapsed * rate)
+
+    <span class="c-k">if</span> tokens &gt;= <span class="c-n">1</span>:
+        pipe.hset(key, <span class="c-s">'tokens'</span>, tokens - <span class="c-n">1</span>)
+        pipe.hset(key, <span class="c-s">'last_refill'</span>, now)
+        pipe.expire(key, <span class="c-n">60</span>)
+        pipe.execute()
+        <span class="c-k">return</span> <span class="c-k">True</span>
+    <span class="c-k">return</span> <span class="c-k">False</span></code></pre>
+    <p><strong>Where to enforce:</strong> the API gateway (per client), application code (per user or per endpoint), and the service mesh (per-service limits). Defense in depth applies to throttling too.</p>
+  </section>
+
+  <section class="section-block reveal">
     <h2>Input Validation &amp; the Classic Attacks</h2>
     <p>The root of most web vulnerabilities is the same sin: <strong>treating user input as code</strong>.</p>
     <ul class="key-points">
@@ -142,9 +252,48 @@ ph.verify(hash, attempt)                          <span class="c-c"># raises on 
     <p>Round out the hygiene list: <strong>HTTPS everywhere</strong> with <strong>HSTS</strong> (browsers refuse to ever try HTTP), cookies flagged <code>Secure; HttpOnly; SameSite</code>, and <strong>CORS</strong> configured to allow only your real origins — never <code>*</code> with credentials.</p>
 
     <div class="callout warn">
-      <span class="co-icon">⚠️</span>
+      <span class="co-icon"></span>
       <div><strong>OWASP Top 10, the radar view</strong>
       <p>Injection · broken authentication · sensitive data exposure · XXE (XML external entities) · broken access control (IDOR: change <code>/orders/42</code> to <code>/orders/43</code> and read someone else's order — check authorization on <em>every object</em>, not just every route) · security misconfiguration (default creds, open S3 buckets) · XSS · insecure deserialization · components with known vulnerabilities (update your dependencies!) · insufficient logging &amp; monitoring (breaches discovered months late).</p></div>
+    </div>
+  </section>
+
+  <section class="section-block reveal">
+    <h2>Common Vulnerabilities — OWASP Top 10 (2021)</h2>
+    <p>The callout above gave the radar view of the older list; here's the current 2021 edition in full, with what each item actually looks like in the wild:</p>
+    <div class="table-wrap">
+      <table class="compare-table">
+        <thead><tr><th>#</th><th>Vulnerability</th><th>What it looks like in practice</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>Broken Access Control</td><td>A user accesses <code>/admin</code> without the admin role, or another user's data via IDOR.</td></tr>
+          <tr><td>2</td><td>Cryptographic Failures</td><td>MD5/SHA1 for passwords, secrets transmitted over plain HTTP, weak cipher suites.</td></tr>
+          <tr><td>3</td><td>Injection</td><td>SQL, LDAP, and command injection. Use parameterized queries ALWAYS.</td></tr>
+          <tr><td>4</td><td>Insecure Design</td><td>No threat modeling, missing rate limiting on auth endpoints.</td></tr>
+          <tr><td>5</td><td>Security Misconfiguration</td><td>Default passwords, unnecessary features enabled, verbose error messages leaking internals.</td></tr>
+          <tr><td>6</td><td>Vulnerable &amp; Outdated Components</td><td>Libraries with known CVEs. Run npm audit, Snyk, or Dependabot.</td></tr>
+          <tr><td>7</td><td>Identification &amp; Authentication Failures</td><td>Brute force possible, weak passwords allowed, no MFA offered.</td></tr>
+          <tr><td>8</td><td>Software &amp; Data Integrity Failures</td><td>Insecure deserialization, unsigned CI/CD pipelines.</td></tr>
+          <tr><td>9</td><td>Security Logging &amp; Monitoring Failures</td><td>No alerts on failed logins, no audit log for sensitive actions.</td></tr>
+          <tr><td>10</td><td>Server-Side Request Forgery (SSRF)</td><td>A user-controlled URL makes the server request internal resources — like the cloud metadata endpoint.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="section-block reveal">
+    <h2>Zero Trust Architecture</h2>
+    <p>The old model: everything inside the network perimeter is trusted. Get on the VPN and you can access everything. The problem: insider threats, compromised VPN credentials, and lateral movement after any single breach — one popped laptop becomes the whole network.</p>
+    <p><strong>Zero Trust</strong> says: <em>never trust, always verify.</em> Assume breach. Verify every request, regardless of where on the network it comes from.</p>
+    <div class="cards-grid">
+      <div class="mini-card"><span class="mc-icon">V</span><h4>Verify explicitly</h4><p>Authenticate and authorize every single request — identity, device, and context, every time.</p></div>
+      <div class="mini-card"><span class="mc-icon">LP</span><h4>Least privilege</h4><p>Grant access only to the specific resources needed, for only as long as needed.</p></div>
+      <div class="mini-card"><span class="mc-icon">AB</span><h4>Assume breach</h4><p>Limit blast radius with micro-segmentation — a compromised service can't roam the network.</p></div>
+    </div>
+    <p><strong>Implementation in practice:</strong> strong identity (MFA, device certificates), service-to-service mTLS via a service mesh, fine-grained authorization with OPA (Open Policy Agent), and audit logging of every access.</p>
+    <div class="callout info">
+      <span class="co-icon">&#9654;</span>
+      <div><strong>Google BeyondCorp</strong>
+      <p>The flagship example: Google employees access internal apps from any network — no VPN — because every request is authenticated via device certificate + user identity + context. The network location simply stopped mattering.</p></div>
     </div>
   </section>
 
@@ -160,9 +309,87 @@ ph.verify(hash, attempt)                          <span class="c-c"># raises on 
     </ul>
 
     <div class="callout archie">
-      <span class="co-icon">🤖</span>
+      <span class="co-icon"></span>
       <div><strong>Archie says</strong>
       <p>In a design interview, you rarely get a dedicated security question — you get silent points for weaving it in: "TLS terminates at the load balancer, the gateway validates JWTs and rate-limits per user, passwords are argon2-hashed, and queries are parameterized." Four clauses, big signal.</p></div>
+    </div>
+  </section>
+
+  <section class="section-block reveal">
+    <h2>Interview Q&amp;A</h2>
+    <p>Three security questions interviewers actually ask — click to reveal strong answers.</p>
+    <div class="qa-list">
+      <div class="qa-item">
+        <button class="qa-question">How do you prevent SQL injection?</button>
+        <div class="qa-answer">
+          <p>Use parameterized queries (prepared statements). Never concatenate user input into SQL strings. In Python: <code>cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))</code> — not <code>f"SELECT * FROM users WHERE id = {user_id}"</code>. ORMs (SQLAlchemy, Hibernate) use parameterized queries by default. Additionally: a least-privilege DB user (the app user can only SELECT/INSERT, never DROP), a WAF to block obvious attack patterns, and input validation to reject obviously invalid data early.</p>
+        </div>
+      </div>
+      <div class="qa-item">
+        <button class="qa-question">JWT vs session cookies — which do you recommend?</button>
+        <div class="qa-answer">
+          <p>For most web apps: HttpOnly, Secure, SameSite=Strict cookies holding opaque session IDs stored in Redis. Reasons: XSS cannot steal HttpOnly cookies; SameSite prevents CSRF without extra tokens; the server can instantly revoke sessions (delete from Redis); and no data is exposed (a JWT payload is readable by anyone). JWT shines when: (1) statelessness is required (no shared session store across services), (2) tokens must cross domains or reach mobile apps, (3) you run a short-TTL access token + refresh token flow. Microservices often use JWT internally — service A includes the user's JWT when calling service B, which verifies it without hitting the auth DB. Just keep expiry short (15 min), use refresh tokens, and rotate signing keys regularly.</p>
+        </div>
+      </div>
+      <div class="qa-item">
+        <button class="qa-question">How would you secure an API that's accessed by both mobile apps and third-party developers?</button>
+        <div class="qa-answer">
+          <p>(1) <strong>Authentication:</strong> OAuth 2.0 Authorization Code + PKCE for mobile (no client_secret possible); Client Credentials for server-to-server third parties. (2) <strong>Authorization:</strong> scopes in OAuth tokens (<code>read:users</code>, <code>write:orders</code>), enforced at the API gateway. (3) <strong>Rate limiting:</strong> per API key, tiered — free at 100/min, paid at 10K/min. (4) <strong>Input validation:</strong> validate everything, reject early. (5) <strong>HTTPS only</strong> with an HSTS header. (6) <strong>Versioning:</strong> <code>/v1/</code>, backward-compatible changes only. (7) <strong>Logging:</strong> every request with client_id, endpoint, response code, latency — but never request bodies that may contain PII. (8) <strong>Secrets rotation:</strong> API keys must be rotatable without service disruption.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section-block reveal">
+    <h2>Anti-Patterns to Avoid</h2>
+    <div class="antipatterns">
+      <div class="antipattern-item">
+        <span class="antipattern-icon">&#10007;</span>
+        <div class="antipattern-text">
+          <h4>Plaintext or MD5/SHA1 passwords</h4>
+          <p>MD5 and SHA1 are not password hashing algorithms — they're <em>fast</em>, which is exactly wrong for passwords. Use bcrypt (cost 12), Argon2id, or scrypt.</p>
+        </div>
+      </div>
+      <div class="antipattern-item">
+        <span class="antipattern-icon">&#10007;</span>
+        <div class="antipattern-text">
+          <h4>JWTs with no expiry</h4>
+          <p>A stolen token without <code>exp</code> grants permanent access. Always set expiry. For sensitive operations (password change, large transfers), require re-authentication regardless of token freshness.</p>
+        </div>
+      </div>
+      <div class="antipattern-item">
+        <span class="antipattern-icon">&#10007;</span>
+        <div class="antipattern-text">
+          <h4>Secrets baked into Docker images</h4>
+          <p>Image layers are inspectable — secrets leak via <code>docker history</code>. Use proper secret management: Vault, AWS Secrets Manager, or Kubernetes Secrets with external-secrets-operator.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section-block reveal">
+    <h2>Further Reading</h2>
+    <div class="reading-links">
+      <a class="reading-link-card" href="https://owasp.org/www-project-top-ten/" target="_blank" rel="noopener">
+        <span class="reading-link-icon">OW</span>
+        <div><span class="reading-link-title">OWASP Top 10 (2021)</span><span class="reading-link-source">owasp.org</span></div>
+      </a>
+      <a class="reading-link-card" href="https://cloud.google.com/beyondcorp" target="_blank" rel="noopener">
+        <span class="reading-link-icon">BC</span>
+        <div><span class="reading-link-title">Google BeyondCorp Zero Trust</span><span class="reading-link-source">cloud.google.com</span></div>
+      </a>
+      <a class="reading-link-card" href="https://auth0.com/blog/a-look-at-the-latest-draft-for-jwt-bcp/" target="_blank" rel="noopener">
+        <span class="reading-link-icon">JW</span>
+        <div><span class="reading-link-title">JWT Security Best Practices</span><span class="reading-link-source">auth0.com</span></div>
+      </a>
+      <a class="reading-link-card" href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-security-topics" target="_blank" rel="noopener">
+        <span class="reading-link-icon">OA</span>
+        <div><span class="reading-link-title">OAuth 2.0 Security Best Current Practice</span><span class="reading-link-source">datatracker.ietf.org</span></div>
+      </a>
+      <a class="reading-link-card" href="https://developer.hashicorp.com/vault/tutorials" target="_blank" rel="noopener">
+        <span class="reading-link-icon">V</span>
+        <div><span class="reading-link-title">Secrets Management with HashiCorp Vault</span><span class="reading-link-source">developer.hashicorp.com</span></div>
+      </a>
     </div>
   </section>
 
@@ -176,7 +403,7 @@ ph.verify(hash, attempt)                          <span class="c-c"># raises on 
         <button class="quiz-option">Encryption — the invoice should have been encrypted at rest</button>
         <button class="quiz-option">Rate limiting — requests should have been throttled</button>
       </div>
-      <div class="quiz-feedback">✅ Correct — this is an Insecure Direct Object Reference, a broken access control bug. The user authenticated fine; the API just never verified the invoice belonged to them. Authorize every object, every time.</div>
+      <div class="quiz-feedback"> Correct — this is an Insecure Direct Object Reference, a broken access control bug. The user authenticated fine; the API just never verified the invoice belonged to them. Authorize every object, every time.</div>
     </div>
   </section>
 
@@ -187,7 +414,7 @@ ph.verify(hash, attempt)                          <span class="c-c"># raises on 
 </main>
 
 <footer class="footer">
-  <div class="footer-bottom">⚡ System Design Illustrated · Topic 11 of 12 · Built with 💜 and vanilla web tech</div>
+  <div class="footer-bottom"> System Design Illustrated · Topic 11 of 12 · Built with 💜 and vanilla web tech</div>
 </footer>
 
 <script src="../js/main.js"></script>

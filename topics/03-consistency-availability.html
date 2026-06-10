@@ -14,12 +14,12 @@
 
 <nav class="navbar">
   <div class="nav-inner">
-    <a href="../index.html" class="logo"><span class="bolt">⚡</span><span class="logo-text">System Design Illustrated</span></a>
+    <a href="../index.html" class="logo"><span class="bolt"></span><span class="logo-text">System Design Illustrated</span></a>
     <div class="nav-links">
       <a href="../index.html#topics">Topics</a>
       <a href="../index.html#about">About</a>
       <a href="12-interview-guide.html">Interview Guide</a>
-      <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">🌙</button>
+      <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode"></button>
     </div>
   </div>
 </nav>
@@ -28,13 +28,26 @@
   <div class="topic-header-inner">
     <div class="breadcrumb"><a href="../index.html">Home</a> / Topics / 03</div>
     <div class="topic-num-big">TOPIC 03</div>
-    <h1>Consistency &amp; Availability Patterns 🔄</h1>
+    <h1>Consistency &amp; Availability Patterns </h1>
     <p class="subtitle">CAP tells you a trade-off exists. These patterns are how real systems actually make it — from "reads might lie for a moment" to "two datacenters, zero downtime."</p>
-    <div class="topic-meta"><span class="tag">🌿 Intermediate</span><span class="tag">⏱ 30 min read</span><span class="tag">📐 9 concepts</span></div>
+    <div class="topic-meta"><span class="tag">🌿 Intermediate</span><span class="tag"> 30 min read</span><span class="tag"> 9 concepts</span></div>
   </div>
 </header>
 
 <main class="topic-body">
+
+  <!-- ============ AT A GLANCE ============ -->
+  <div class="at-a-glance">
+    <h3> At a Glance</h3>
+    <ul>
+      <li><strong>Consistency spectrum</strong>: weak → eventual → strong. Pick the cheapest each feature can tolerate.</li>
+      <li><strong>Quorum math</strong>: with N replicas, W + R &gt; N guarantees reads see the latest write.</li>
+      <li><strong>Vector clocks</strong> track causality without a global clock; <strong>CRDTs</strong> merge conflicts automatically.</li>
+      <li><strong>Series availability multiplies down</strong>; parallel redundancy multiplies failure away.</li>
+      <li><strong>RPO</strong> = how much data you can lose; <strong>RTO</strong> = how long you can be down.</li>
+      <li>Retry with <strong>exponential backoff + jitter</strong>, and test failure with <strong>chaos engineering</strong>.</li>
+    </ul>
+  </div>
 
   <section class="section-block reveal">
     <h2>Consistency Patterns: How Stale Can a Read Be?</h2>
@@ -52,7 +65,7 @@
       <svg viewBox="0 0 740 240" role="img" aria-label="A write lands on one node, then propagates outward to replicas which fill in with color one by one">
         <text x="370" y="24" text-anchor="middle" class="svg-label">Eventual consistency: a write ripples outward</text>
         <!-- writer -->
-        <text x="80" y="130" text-anchor="middle" style="font-size:24px">✍️</text>
+        <text x="80" y="130" text-anchor="middle" style="font-size:24px"></text>
         <line x1="105" y1="125" x2="185" y2="125" class="svg-line svg-dash" style="stroke:#D97706"/>
         <!-- node 1 (written) -->
         <circle cx="225" cy="125" r="32" style="fill:#D97706" class="svg-node"/>
@@ -89,9 +102,119 @@
     </div>
 
     <div class="callout tip">
-      <span class="co-icon">💡</span>
+      <span class="co-icon"></span>
       <div><strong>Mix per feature, not per system</strong>
       <p>One product can use all three. An e-commerce site reads product pages eventually-consistently, tracks your cart eventually, and charges your card strongly. Pick the cheapest consistency each feature can tolerate.</p></div>
+    </div>
+  </section>
+
+  <!-- ============ QUORUM ============ -->
+  <section class="section-block reveal">
+    <h2>Quorum: The Math Behind Distributed Consensus</h2>
+    <p>How do replicated systems offer strong consistency without routing everything through one leader? <strong>Quorums.</strong> With <strong>N</strong> replicas, require <strong>W</strong> nodes to acknowledge each write and consult <strong>R</strong> nodes on each read. The magic inequality:</p>
+    <pre class="code-block" data-lang="math"><code><span class="c-k">W + R &gt; N</span>   <span class="c-c"># strong consistency: read & write sets MUST overlap</span>
+
+<span class="c-c"># Example: N=3, W=2, R=2 → W+R = 4 > 3</span>
+<span class="c-c"># Any 2 written nodes overlap any 2 read nodes</span>
+<span class="c-c"># → at least one node in every read has the latest write</span></code></pre>
+
+    <div class="diagram-box">
+      <svg viewBox="0 0 740 280" role="img" aria-label="Three replica nodes; a write lands on nodes 1 and 2, a read consults nodes 2 and 3, and node 2 in the overlap is highlighted as the one guaranteed to have the latest value">
+        <text x="370" y="24" text-anchor="middle" class="svg-label">N=3, W=2, R=2 — the overlap node always has the truth</text>
+        <!-- nodes -->
+        <circle cx="220" cy="140" r="40" class="svg-node" style="fill:#D97706"/>
+        <text x="220" y="147" text-anchor="middle" style="fill:#fff;font-weight:700;font-family:Poppins;font-size:15px">N1</text>
+        <circle cx="370" cy="140" r="44" class="svg-node" style="fill:#D97706;animation-delay:.3s"/>
+        <circle cx="370" cy="140" r="52" style="fill:none;stroke:#10B981;stroke-width:3" class="svg-draw"/>
+        <text x="370" y="147" text-anchor="middle" style="fill:#fff;font-weight:700;font-family:Poppins;font-size:15px">N2</text>
+        <circle cx="520" cy="140" r="40" class="svg-node" style="fill:#D97706;animation-delay:.6s"/>
+        <text x="520" y="147" text-anchor="middle" style="fill:#fff;font-weight:700;font-family:Poppins;font-size:15px">N3</text>
+        <!-- write arrows -->
+        <g class="seq seq-2">
+          <text x="120" y="70" class="svg-label"> write (W=2)</text>
+          <line x1="170" y1="80" x2="210" y2="105" class="svg-line svg-dash" style="stroke:#DB2777"/>
+          <line x1="230" y1="78" x2="350" y2="100" class="svg-line svg-dash" style="stroke:#DB2777"/>
+        </g>
+        <!-- read arrows -->
+        <g class="seq seq-4">
+          <text x="560" y="70" class="svg-label">👓 read (R=2)</text>
+          <line x1="600" y1="80" x2="540" y2="106" class="svg-line svg-dash" style="stroke:#10B981"/>
+          <line x1="560" y1="78" x2="395" y2="102" class="svg-line svg-dash" style="stroke:#10B981"/>
+        </g>
+        <g class="seq seq-6"><text x="370" y="225" text-anchor="middle" class="svg-soft">N2 is in BOTH sets → the read is guaranteed to see the latest write </text></g>
+        <text x="370" y="255" text-anchor="middle" class="svg-soft">W + R = 4 &gt; N = 3</text>
+      </svg>
+      <p class="diagram-caption">Whatever 2 nodes the write touches and whatever 2 nodes the read consults, at least one node is in both.</p>
+    </div>
+
+    <p>Tuning W and R lets you slide along the consistency/latency spectrum without changing the architecture:</p>
+    <div class="table-wrap">
+      <table class="compare-table">
+        <thead><tr><th>Configuration (N=3)</th><th>Writes</th><th>Reads</th><th>Personality</th></tr></thead>
+        <tbody>
+          <tr><td>W=2, R=2</td><td>Medium</td><td>Medium</td><td>Balanced strong consistency</td></tr>
+          <tr><td>W=1, R=3</td><td>Fast </td><td>Slow</td><td>Write-heavy workloads, consistent reads</td></tr>
+          <tr><td>W=3, R=1</td><td>Slow</td><td>Fast </td><td>Read-heavy — like a CDN's profile</td></tr>
+          <tr><td>W=1, R=1</td><td>Fast</td><td>Fast</td><td>W+R ≤ N → eventual consistency only</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Cassandra exposes exactly this: you choose a consistency level (ONE, QUORUM, ALL) <strong>per query</strong>, which is just choosing W and R on the fly.</p>
+  </section>
+
+  <!-- ============ VECTOR CLOCKS ============ -->
+  <section class="section-block reveal">
+    <h2>Vector Clocks — Tracking Causality</h2>
+    <p>Distributed systems have no global clock — every machine's clock drifts, and NTP can only do so much. So how do you know which of two writes happened first, or whether they happened <em>concurrently</em>? <strong>Logical clocks.</strong></p>
+    <p>The simplest logical clock is a counter each node increments on every event. A <strong>vector clock</strong> extends this: each node tracks a vector of counters, one slot per node — <code>[A:2, B:1, C:0]</code> means "I've seen 2 events from A, 1 from B, none from C."</p>
+    <pre class="code-block" data-lang="pseudocode"><code><span class="c-c"># Vector clock rules (node A's perspective)</span>
+<span class="c-k">on local event:</span>
+    clock[<span class="c-s">"A"</span>] += <span class="c-n">1</span>
+
+<span class="c-k">on send(message):</span>
+    clock[<span class="c-s">"A"</span>] += <span class="c-n">1</span>
+    message.clock = clock          <span class="c-c"># piggyback the vector</span>
+
+<span class="c-k">on receive(message):</span>
+    <span class="c-k">for</span> node <span class="c-k">in</span> all_nodes:        <span class="c-c"># elementwise max</span>
+        clock[node] = max(clock[node], message.clock[node])
+    clock[<span class="c-s">"A"</span>] += <span class="c-n">1</span>
+
+<span class="c-c"># Comparing two versions:</span>
+<span class="c-c">#   [A:2,B:1] vs [A:3,B:1] → second DOMINATES → it's newer</span>
+<span class="c-c">#   [A:2,B:1] vs [A:1,B:2] → NEITHER dominates → concurrent → CONFLICT!</span></code></pre>
+    <ul class="key-points">
+      <li>If one vector is ≥ the other in every slot, it causally <strong>descends</strong> from it — safe to overwrite.</li>
+      <li>If neither dominates, the writes were <strong>concurrent</strong> — the system has detected a genuine conflict instead of silently losing data.</li>
+      <li>Used by DynamoDB for version tracking, plus Riak and CouchDB.</li>
+    </ul>
+  </section>
+
+  <!-- ============ CRDTs ============ -->
+  <section class="section-block reveal">
+    <h2>CRDTs — Auto-Merging Conflicts</h2>
+    <p>Vector clocks <em>detect</em> conflicts; someone still has to resolve them. <strong>Conflict-free Replicated Data Types</strong> go further: they're data structures mathematically designed so that any two divergent copies always merge to the same correct result — no coordination, no conflict resolution code.</p>
+    <div class="cards-grid">
+      <div class="mini-card">
+        <span class="mc-icon">➕</span>
+        <h4>G-Counter</h4>
+        <p>Grow-only counter. Each node increments only its own slot; merge = elementwise max; total = sum of slots. No conflict is even possible.</p>
+      </div>
+      <div class="mini-card">
+        <span class="mc-icon">➖</span>
+        <h4>PN-Counter</h4>
+        <p>Two G-Counters: one for increments, one for decrements. Value = P − N. Perfect for like counts and subscriber counts.</p>
+      </div>
+      <div class="mini-card">
+        <span class="mc-icon">🕐</span>
+        <h4>LWW-Register</h4>
+        <p>Last-Writer-Wins register with timestamps. Simplest CRDT — but if clocks skew, the "loser" write silently disappears. Use with care.</p>
+      </div>
+    </div>
+    <div class="callout info">
+      <span class="co-icon"></span>
+      <div><strong>CRDTs in the wild</strong>
+      <p><strong>Figma</strong> uses CRDT-style techniques for collaborative editing — multiple designers editing the same layer simultaneously, merging without locks. <strong>Apple Notes</strong> sync, <strong>Riak</strong>, and <strong>Azure Cosmos DB</strong> all use CRDT-based approaches. When you need multi-master writes with zero coordination, CRDTs are the principled answer.</p></div>
     </div>
   </section>
 
@@ -130,6 +253,73 @@
     </div>
   </section>
 
+  <!-- ============ ACTIVE-PASSIVE VS ACTIVE-ACTIVE DEEP DIVE ============ -->
+  <section class="section-block reveal">
+    <h2>Active-Passive vs Active-Active Deep Dive</h2>
+    <p>The failover patterns above deserve a closer look, because the gap between "cold standby" and "active-active" is the gap between minutes of downtime and none:</p>
+    <div class="steps">
+      <div class="step-item"><div class="step-num">1</div><div><strong>Active-Passive (cold standby)</strong><p>The passive server only receives heartbeats; data syncs periodically. Failover time: <strong>seconds to minutes</strong>. RPO depends on sync frequency — you lose whatever wasn't synced. Simplest and cheapest, but you pay for capacity that sits idle.</p></div></div>
+      <div class="step-item"><div class="step-num">2</div><div><strong>Active-Passive (warm standby)</strong><p>The passive server mirrors the primary in real time and can take over in <strong>seconds</strong>. Near-zero RPO. More expensive — you're running two full systems but serving from one.</p></div></div>
+      <div class="step-item"><div class="step-num">3</div><div><strong>Active-Active</strong><p>Both nodes handle traffic; the load balancer splits requests. If one dies, the other takes over <strong>instantly</strong> (near-zero RTO) — it was already serving. No wasted capacity.</p></div></div>
+    </div>
+    <ul class="key-points">
+      <li>Active-active's challenge is <strong>state sync</strong>: writes to node A must reach node B, or requests will diverge depending on where the LB sends them.</li>
+      <li><strong>Stateless services do active-active trivially</strong> — your web tier already does this behind a load balancer.</li>
+      <li><strong>Stateful services</strong> (a primary database) can't do naive active-active without conflict resolution — that's master-master replication with all its pain.</li>
+    </ul>
+  </section>
+
+  <!-- ============ RTO / RPO ============ -->
+  <section class="section-block reveal">
+    <h2>RTO and RPO — The Disaster Recovery Axes</h2>
+    <p>Two numbers define every disaster recovery plan. Agree on them with the business <em>before</em> the disaster:</p>
+    <div class="two-col">
+      <div class="mini-card">
+        <span class="mc-icon"></span>
+        <h4>RPO — Recovery Point Objective</h4>
+        <p>How much data loss is acceptable? "If disaster strikes at 3pm, how old can our last good copy be?" <strong>RPO=0</strong>: synchronous replication, zero loss, expensive. <strong>RPO=1hr</strong>: hourly snapshots, cheap, lose up to an hour of work.</p>
+      </div>
+      <div class="mini-card">
+        <span class="mc-icon">️</span>
+        <h4>RTO — Recovery Time Objective</h4>
+        <p>How long can the system be down during recovery? <strong>RTO≈0</strong>: active-active with instant failover. <strong>RTO=15min</strong>: warm standby plus some human involvement. <strong>RTO=4hr</strong>: restore from backup, significant downtime.</p>
+      </div>
+    </div>
+
+    <div class="diagram-box">
+      <svg viewBox="0 0 740 320" role="img" aria-label="Two axis chart with RPO data loss on the x axis and RTO downtime on the y axis; active-active sits near the origin, warm standby in the middle, backup restore in the far corner">
+        <text x="370" y="24" text-anchor="middle" class="svg-label">DR strategies on the RPO / RTO plane</text>
+        <!-- axes -->
+        <line x1="100" y1="270" x2="690" y2="270" class="svg-line" style="stroke:var(--border);stroke-width:2"/>
+        <line x1="100" y1="270" x2="100" y2="50" class="svg-line" style="stroke:var(--border);stroke-width:2"/>
+        <text x="400" y="300" text-anchor="middle" class="svg-soft">RPO: data loss → (none ... hours)</text>
+        <text x="60" y="160" text-anchor="middle" class="svg-soft" transform="rotate(-90 60 160)">RTO: downtime → (none ... hours)</text>
+        <!-- strategies -->
+        <g class="seq seq-1">
+          <circle cx="150" cy="240" r="12" style="fill:#10B981"/>
+          <text x="170" y="232" class="svg-label">Active-active + sync replication</text>
+          <text x="170" y="250" class="svg-soft">RPO≈0, RTO≈0 — $$$$</text>
+        </g>
+        <g class="seq seq-3">
+          <circle cx="300" cy="170" r="12" style="fill:#D97706"/>
+          <text x="320" y="163" class="svg-label">Warm standby</text>
+          <text x="320" y="181" class="svg-soft">RPO=seconds, RTO=minutes — $$$</text>
+        </g>
+        <g class="seq seq-5">
+          <circle cx="450" cy="120" r="12" style="fill:#F59E0B"/>
+          <text x="470" y="113" class="svg-label">Cold standby + periodic sync</text>
+          <text x="470" y="131" class="svg-soft">RPO=minutes, RTO=tens of minutes — $$</text>
+        </g>
+        <g class="seq seq-7">
+          <circle cx="580" cy="72" r="12" style="fill:#EF4444"/>
+          <text x="455" y="55" class="svg-label">Restore from backups</text>
+          <text x="600" y="78" class="svg-soft">RPO=hours, RTO=hours — $</text>
+        </g>
+      </svg>
+      <p class="diagram-caption">Closer to the origin = less loss, less downtime, more money. Pick the point your business actually needs.</p>
+    </div>
+  </section>
+
   <section class="section-block reveal">
     <h2>Availability Math: Series vs Parallel</h2>
     <p>This is the most useful arithmetic in this course. When a request must pass through services <strong>in sequence</strong>, availabilities <em>multiply</em> — and multiply means shrink:</p>
@@ -142,7 +332,7 @@ two 99.9% replicas = 1 − (0.001 × 0.001) = <span class="c-n">99.9999%</span><
     <p>Every dependency you chain in series eats your nines; every redundant replica you add in parallel multiplies failure probabilities into oblivion. This single fact explains why architects obsess over removing synchronous dependencies and adding replicas.</p>
 
     <div class="callout warn">
-      <span class="co-icon">⚠️</span>
+      <span class="co-icon"></span>
       <div><strong>The hidden series dependency</strong>
       <p>Parallel math only works if failures are <em>independent</em>. Two replicas in the same rack share a switch; two AZs share a region; everything shares your deploy pipeline. Correlated failures are why "five nines on paper" systems still make headlines.</p></div>
     </div>
@@ -158,10 +348,71 @@ two 99.9% replicas = 1 − (0.001 × 0.001) = <span class="c-n">99.9999%</span><
     </div>
 
     <div class="callout archie">
-      <span class="co-icon">🤖</span>
+      <span class="co-icon"></span>
       <div><strong>Archie says</strong>
       <p>Error budgets are sneaky-brilliant: if you're well within SLO, ship fast and take risks. If you've burned the budget, freeze features and fix reliability. It turns "devs vs ops" arguments into arithmetic.</p></div>
     </div>
+  </section>
+
+  <!-- ============ EXPONENTIAL BACKOFF ============ -->
+  <section class="section-block reveal">
+    <h2>Exponential Backoff with Jitter</h2>
+    <p>When a dependency fails, clients retry. Done naively, retries make outages <em>worse</em>:</p>
+    <ul>
+      <li><strong>Naive retry:</strong> fail → wait 1s → retry → fail → wait 1s → retry. Every client retries on the same schedule, so they all hammer the recovering service in synchronized waves — a <strong>thundering herd</strong> that knocks it right back down.</li>
+      <li><strong>Exponential backoff:</strong> wait 1s, 2s, 4s, 8s, 16s… (with a max cap). Pressure decays instead of staying constant.</li>
+      <li><strong>Jitter:</strong> add random noise — wait(1 + random(0,1)), wait(2 + random(0,2))… Clients desynchronize, spreading load evenly instead of arriving in spikes.</li>
+    </ul>
+    <pre class="code-block" data-lang="python"><code><span class="c-k">import</span> random, time
+
+<span class="c-k">def</span> retry_with_backoff(operation, max_retries=<span class="c-n">5</span>, base=<span class="c-n">1.0</span>, cap=<span class="c-n">30.0</span>):
+    <span class="c-k">for</span> attempt <span class="c-k">in</span> range(max_retries):
+        <span class="c-k">try</span>:
+            <span class="c-k">return</span> operation()
+        <span class="c-k">except</span> TransientError:
+            <span class="c-k">if</span> attempt == max_retries - <span class="c-n">1</span>:
+                <span class="c-k">raise</span>                          <span class="c-c"># out of retries</span>
+            backoff = min(cap, base * <span class="c-n">2</span> ** attempt)  <span class="c-c"># 1, 2, 4, 8, 16…</span>
+            sleep_for = random.uniform(<span class="c-n">0</span>, backoff)   <span class="c-c"># "full jitter"</span>
+            time.sleep(sleep_for)                    <span class="c-c"># clients desynchronize</span></code></pre>
+    <div class="callout tip">
+      <span class="co-icon"></span>
+      <div><strong>This is table stakes</strong>
+      <p>The AWS SDK does exponential backoff with jitter <em>by default</em>. Any distributed system that retries needs it — AWS's own benchmarks showed full jitter cuts total work and completion time dramatically versus plain backoff.</p></div>
+    </div>
+  </section>
+
+  <!-- ============ CHAOS ENGINEERING ============ -->
+  <section class="section-block reveal">
+    <h2>Chaos Engineering: Break It on Purpose</h2>
+    <p>You can't claim your failover works if you've never watched it fire. <strong>Chaos engineering</strong> injects failures deliberately — in production — so you discover the gaps on a calm Tuesday instead of during the real outage.</p>
+    <div class="cards-grid">
+      <div class="mini-card">
+        <span class="mc-icon">🐒</span>
+        <h4>Chaos Monkey (2010)</h4>
+        <p>Netflix's original: randomly kills production servers during business hours. If an engineer's service can't survive a dead instance, they find out fast.</p>
+      </div>
+      <div class="mini-card">
+        <span class="mc-icon">🦍</span>
+        <h4>Chaos Gorilla</h4>
+        <p>Bigger stick: kills entire availability zones to prove the system survives a datacenter-scale failure.</p>
+      </div>
+      <div class="mini-card">
+        <span class="mc-icon">🐌</span>
+        <h4>Latency Monkey</h4>
+        <p>Injects artificial latency between services — because "slow" is harder to handle than "dead," and timeouts are where bugs hide.</p>
+      </div>
+      <div class="mini-card">
+        <span class="mc-icon">🧪</span>
+        <h4>FIT</h4>
+        <p>Netflix Failure Injection Testing: controlled, scoped chaos in production — fail specific calls for specific users and watch the blast radius.</p>
+      </div>
+    </div>
+    <ul class="key-points">
+      <li>Key insight: <strong>if you're not testing failure modes, you'll discover them at the worst possible time.</strong></li>
+      <li>Modern tooling: Gremlin, AWS Fault Injection Service, Chaos Mesh (Kubernetes).</li>
+      <li>The principle: "Hope is not a strategy. Build systems that degrade gracefully."</li>
+    </ul>
   </section>
 
   <section class="section-block reveal">
@@ -174,7 +425,83 @@ two 99.9% replicas = 1 − (0.001 × 0.001) = <span class="c-n">99.9999%</span><
         <button class="quiz-option" data-correct="true">~99.7% — series availabilities multiply</button>
         <button class="quiz-option">33.3% — divide by the number of services</button>
       </div>
-      <div class="quiz-feedback">✅ Exactly: 0.999 × 0.999 × 0.999 ≈ 0.997. Chaining services in series quietly triples your downtime — which is why architects fight to shorten synchronous call chains.</div>
+      <div class="quiz-feedback"> Exactly: 0.999 × 0.999 × 0.999 ≈ 0.997. Chaining services in series quietly triples your downtime — which is why architects fight to shorten synchronous call chains.</div>
+    </div>
+  </section>
+
+  <!-- ============ INTERVIEW Q&A ============ -->
+  <section class="section-block reveal">
+    <h2>Interview Q&amp;A</h2>
+    <div class="qa-list">
+      <div class="qa-item">
+        <button class="qa-question">How do you ensure read-your-own-writes consistency when using read replicas?</button>
+        <div class="qa-answer">
+          <p>Three approaches: (1) Route all reads to the primary immediately after a write from that user — sticky routing for N seconds. (2) Track the replication position (LSN in Postgres) and route reads only to a replica that's caught up to that point. (3) Use synchronous replication for writes — the replica is guaranteed up-to-date before the write is acknowledged. Trade-offs: (1) adds load to the primary, (2) requires replica-lag tracking, (3) increases write latency.</p>
+        </div>
+      </div>
+      <div class="qa-item">
+        <button class="qa-question">What's the difference between high availability and fault tolerance?</button>
+        <div class="qa-answer">
+          <p>HA means the system stays available despite failures — usually via redundancy and failover, which has some downtime window (seconds to minutes). Fault tolerance means the system continues operating without <em>any</em> service interruption even during a failure — much harder and more expensive (think NASA space shuttle computers with 5-way redundancy). In practice, most web systems aim for HA (99.99%), not true fault tolerance.</p>
+        </div>
+      </div>
+      <div class="qa-item">
+        <button class="qa-question">Walk me through designing a system that goes from 99.9% to 99.99% availability.</button>
+        <div class="qa-answer">
+          <p>You're going from ~8.8 hrs/year of downtime to ~52 min: (1) Eliminate single points of failure — add redundancy to DB, LB, cache. (2) Multi-AZ deployment — spread across availability zones so a datacenter fire doesn't kill you. (3) Automated failover — manual intervention is too slow. (4) Health checks and circuit breakers — detect failures in seconds, not minutes. (5) Blue-green deployments — zero-downtime deploys. (6) Comprehensive monitoring with &lt;1 min alert time. Each extra nine requires the previous nine plus more redundancy and better automation.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ ANTI-PATTERNS ============ -->
+  <section class="section-block reveal">
+    <h2>Anti-Patterns to Avoid</h2>
+    <div class="antipatterns">
+      <div class="antipattern-item">
+        <span class="antipattern-icon">🚫</span>
+        <div class="antipattern-text">
+          <h4>Single point of failure</h4>
+          <p>One load balancer, one database, one DNS server. Always ask: "what happens if <em>this</em> dies?" — and keep asking until the answer is "nothing much."</p>
+        </div>
+      </div>
+      <div class="antipattern-item">
+        <span class="antipattern-icon">🚫</span>
+        <div class="antipattern-text">
+          <h4>Not testing failover</h4>
+          <p>"We have a standby" means nothing if failover has never been rehearsed. Automating the test — like Netflix's Chaos Monkey — is table stakes.</p>
+        </div>
+      </div>
+      <div class="antipattern-item">
+        <span class="antipattern-icon">🚫</span>
+        <div class="antipattern-text">
+          <h4>Synchronous replication everywhere</h4>
+          <p>Yes, it eliminates lag — but now every write waits for all replicas, and a slow replica slows your primary. Use async replication + read-your-own-writes techniques instead.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FURTHER READING ============ -->
+  <section class="section-block reveal">
+    <h2>Further Reading</h2>
+    <div class="reading-links">
+      <a class="reading-link-card" href="https://sre.google/sre-book/embracing-risk/" target="_blank" rel="noopener">
+        <span class="reading-link-icon">📖</span>
+        <div><span class="reading-link-title">Google SRE Book: Embracing Risk</span><span class="reading-link-source">sre.google</span></div>
+      </a>
+      <a class="reading-link-card" href="https://netflixtechblog.com/tagged/chaos-engineering" target="_blank" rel="noopener">
+        <span class="reading-link-icon"></span>
+        <div><span class="reading-link-title">Netflix: Chaos Engineering</span><span class="reading-link-source">netflixtechblog.com</span></div>
+      </a>
+      <a class="reading-link-card" href="https://aws.amazon.com/architecture/well-architected/?wa-lens-whitepapers.sort-by=item.additionalFields.sortDate" target="_blank" rel="noopener">
+        <span class="reading-link-icon"></span>
+        <div><span class="reading-link-title">AWS Well-Architected: Reliability</span><span class="reading-link-source">aws.amazon.com</span></div>
+      </a>
+      <a class="reading-link-card" href="https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/" target="_blank" rel="noopener">
+        <span class="reading-link-icon">📘</span>
+        <div><span class="reading-link-title">Exponential Backoff And Jitter</span><span class="reading-link-source">aws.amazon.com</span></div>
+      </a>
     </div>
   </section>
 
@@ -185,7 +512,7 @@ two 99.9% replicas = 1 − (0.001 × 0.001) = <span class="c-n">99.9999%</span><
 </main>
 
 <footer class="footer">
-  <div class="footer-bottom">⚡ System Design Illustrated · Topic 03 of 12 · Built with 💜 and vanilla web tech</div>
+  <div class="footer-bottom"> System Design Illustrated · Topic 03 of 12 · Built with 💜 and vanilla web tech</div>
 </footer>
 
 <script src="../js/main.js"></script>

@@ -14,12 +14,15 @@
 
 <nav class="navbar">
   <div class="nav-inner">
-    <a href="../index.html" class="logo"><span class="bolt">⚡</span><span class="logo-text">System Design Illustrated</span></a>
+    <a href="../index.html" class="logo"><span class="bolt"></span><span class="logo-text">System Design Illustrated</span></a>
     <div class="nav-links">
       <a href="../index.html#topics">Topics</a>
       <a href="../index.html#about">About</a>
       <a href="12-interview-guide.html">Interview Guide</a>
-      <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">🌙</button>
+      <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">
+        <svg class="icon-moon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        <svg class="icon-sun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      </button>
     </div>
   </div>
 </nav>
@@ -28,13 +31,25 @@
   <div class="topic-header-inner">
     <div class="breadcrumb"><a href="../index.html">Home</a> / Topics / 10</div>
     <div class="topic-num-big">TOPIC 10</div>
-    <h1>Microservices Architecture 🧩</h1>
+    <h1>Microservices Architecture </h1>
     <p class="subtitle">Splitting one application into many is a trade: you exchange code complexity for distributed-systems complexity. Here's the full toolbox that makes the trade survivable.</p>
-    <div class="topic-meta"><span class="tag">🌳 Advanced</span><span class="tag">⏱ 40 min read</span><span class="tag">📐 11 concepts</span></div>
+    <div class="topic-meta"><span class="tag"> Advanced</span><span class="tag"> 40 min read</span><span class="tag"> 11 concepts</span></div>
   </div>
 </header>
 
 <main class="topic-body">
+
+  <div class="at-a-glance">
+    <h3>At a Glance</h3>
+    <ul>
+      <li><strong>Microservices split a monolith by domain</strong> — each service owns its data and is independently deployable.</li>
+      <li><strong>Conway's Law:</strong> your architecture mirrors your org chart. Split teams &rarr; split services.</li>
+      <li><strong>Database per service</strong> prevents tight coupling; but distributed queries require application-side joins.</li>
+      <li><strong>API Gateway is the single entry point</strong> — it handles routing, auth, rate limiting, SSL termination.</li>
+      <li><strong>Circuit breaker stops cascading failures:</strong> the Open state rejects requests without hitting the failing service.</li>
+      <li><strong>Service mesh</strong> (Istio, Linkerd) handles mTLS, retries, timeouts, and observability between services.</li>
+    </ul>
+  </div>
 
   <section class="section-block reveal">
     <h2>Monolith vs Microservices</h2>
@@ -60,10 +75,39 @@
     </div>
 
     <div class="callout warn">
-      <span class="co-icon">⚠️</span>
+      <span class="co-icon"></span>
       <div><strong>The honest heuristic</strong>
       <p>Microservices solve an <em>organizational</em> scaling problem more than a technical one. Under ~20 engineers, a modular monolith almost always wins. Amazon, Netflix, and Uber split because hundreds of teams couldn't share one deploy train — not because the code demanded it.</p></div>
     </div>
+  </section>
+
+  <section class="section-block reveal">
+    <h2>Conway's Law and Service Boundaries</h2>
+    <p>In 1967, Melvin Conway observed: <em>"organizations which design systems are constrained to produce designs which are copies of the communication structures of these organizations."</em> Your architecture mirrors your org chart whether you like it or not.</p>
+    <p>The practical implication: if the payments team and the shipping team share a codebase, they <em>will</em> have integration conflicts. Split by team &rarr; split by service &rarr; fewer conflicts. Smart companies use this deliberately (the "Inverse Conway Maneuver"): design the org you want, and the architecture follows.</p>
+    <h3>Finding Boundaries with Domain-Driven Design</h3>
+    <ul class="key-points">
+      <li><strong>Bounded context:</strong> an area where a particular model applies. Each bounded context maps to a service.</li>
+      <li><strong>Same word, different models:</strong> "Order" in the Sales context has a <code>shipping_address</code>; "Order" in the Warehouse context has a <code>picking_list</code>. Forcing one shared Order model couples both teams to each other's changes.</li>
+      <li><strong>Anti-corruption layer:</strong> when two bounded contexts must communicate, a translation layer at the boundary prevents one context's model from contaminating the other.</li>
+    </ul>
+    <div class="callout tip">
+      <span class="co-icon">&#9733;</span>
+      <div><strong>How to actually find service boundaries</strong>
+      <p>Draw the entity-relationship diagram, then look for clusters with high internal cohesion and low external coupling — those are your services. The golden rule: <strong>if two things change together, they belong together.</strong></p></div>
+    </div>
+  </section>
+
+  <section class="section-block reveal">
+    <h2>The Strangler Fig Pattern</h2>
+    <p>"Rewrite the monolith" big-bang migrations almost always fail — too risky, too long, and the business doesn't pause while you rebuild. The <strong>Strangler Fig</strong> pattern (named by Martin Fowler after the vine that gradually envelops and replaces its host tree) migrates incrementally instead:</p>
+    <div class="steps">
+      <div class="step-item"><div class="step-num">1</div><div><strong>Put a facade in front</strong><p>Place a proxy in front of the monolith — an API gateway or even plain Nginx. All traffic now flows through a point you control.</p></div></div>
+      <div class="step-item"><div class="step-num">2</div><div><strong>Pick the first extraction</strong><p>Identify one bounded context to extract — choose low-risk, high-value, or most-painful. Don't start with the hardest one.</p></div></div>
+      <div class="step-item"><div class="step-num">3</div><div><strong>Build and reroute</strong><p>Build the new service, then route traffic for that context to it via the proxy. The monolith keeps serving everything else.</p></div></div>
+      <div class="step-item"><div class="step-num">4</div><div><strong>Repeat until done</strong><p>Extract context after context until the monolith is empty — or keep a small residual monolith if that's pragmatic. Amazon went monolith &rarr; 100+ services over roughly 3 years; Netflix went from a DVD-era monolith to 700+ streaming services.</p></div></div>
+    </div>
+    <p>The key discipline: <strong>never rewrite from scratch in one go.</strong> Always migrate incrementally, with traffic proving each step.</p>
   </section>
 
   <section class="section-block reveal">
@@ -82,6 +126,20 @@
   </section>
 
   <section class="section-block reveal">
+    <h2>Service Discovery Deep Dive</h2>
+    <p>The problem in one sentence: service A needs to call service B, but B's IPs change on every deploy, autoscale event, and crash. The two solutions differ in <em>who</em> does the lookup:</p>
+    <div class="cards-grid">
+      <div class="mini-card"><span class="mc-icon">CS</span><h4>Client-side discovery</h4><p>A queries the registry (Consul, Eureka, etcd) itself, gets the list of B's instances, and picks one (round-robin, least-connections). Netflix's Ribbon is the classic client-side LB library, querying Eureka for live instances. Pros: no extra network hop. Cons: every client, in every language, must implement discovery + load-balancing logic.</p></div>
+      <div class="mini-card"><span class="mc-icon">SS</span><h4>Server-side discovery</h4><p>A calls a stable load balancer address (AWS ALB, a Kubernetes Service); the LB consults the registry and forwards. In Kubernetes, a Service object gives a stable DNS name (<code>my-service.namespace.svc.cluster.local</code>) and kube-proxy routes to healthy pods. Pros: clients stay dumb. Cons: an extra hop, and the LB is on the critical path.</p></div>
+    </div>
+    <div class="callout info">
+      <span class="co-icon">&#9654;</span>
+      <div><strong>Health checking keeps the registry honest</strong>
+      <p>Instances register with a heartbeat (every ~10s); the registry deregisters them after ~3 missed heartbeats. Only healthy instances are ever returned — so a crashed pod silently disappears from rotation instead of eating requests.</p></div>
+    </div>
+  </section>
+
+  <section class="section-block reveal">
     <h2>The API Gateway</h2>
     <p>Clients shouldn't memorize forty service addresses. An <strong>API gateway</strong> is the single front door that routes <code>/api/orders/*</code> to the order service and <code>/api/users/*</code> to the user service — and centralizes the cross-cutting chores: <strong>authentication</strong>, <strong>rate limiting</strong>, <strong>TLS termination</strong>, request/response transformation, caching, and logging. Examples: Kong, AWS API Gateway, Nginx, Apigee.</p>
 
@@ -96,7 +154,7 @@
         <circle cx="90" cy="155" r="6" class="pkt pkt-1" style="fill:#F59E0B;animation-delay:1.2s"/>
         <!-- gateway -->
         <rect x="220" y="105" width="130" height="100" rx="14" style="fill:#16A34A"/>
-        <text x="285" y="143" text-anchor="middle" style="fill:#fff;font-family:Poppins;font-weight:700;font-size:13px">🚪 API</text>
+        <text x="285" y="143" text-anchor="middle" style="fill:#fff;font-family:Poppins;font-weight:700;font-size:13px"> API</text>
         <text x="285" y="163" text-anchor="middle" style="fill:#fff;font-family:Poppins;font-weight:700;font-size:13px">Gateway</text>
         <text x="285" y="186" text-anchor="middle" style="fill:#D3F2DD;font-size:10px;font-family:Inter">auth · rate limit · route</text>
         <!-- routes -->
@@ -107,15 +165,31 @@
         <circle cx="375" cy="155" r="5" class="pkt pkt-1" style="fill:#16A34A;animation-delay:1s"/>
         <circle cx="375" cy="192" r="5" class="pkt pkt-1" style="fill:#16A34A;animation-delay:1.6s"/>
         <!-- services -->
-        <g class="bob"><rect x="495" y="30" width="150" height="58" rx="10" class="svg-box-p"/><text x="570" y="56" text-anchor="middle" class="svg-label">👤 User Service</text><text x="570" y="76" text-anchor="middle" class="svg-soft">own DB 🗄️</text></g>
-        <g class="bob" style="animation-delay:.5s"><rect x="495" y="126" width="150" height="58" rx="10" class="svg-box-p"/><text x="570" y="152" text-anchor="middle" class="svg-label">📦 Order Service</text><text x="570" y="172" text-anchor="middle" class="svg-soft">own DB 🗄️</text></g>
-        <g class="bob" style="animation-delay:1s"><rect x="495" y="226" width="150" height="58" rx="10" class="svg-box-p"/><text x="570" y="252" text-anchor="middle" class="svg-label">💳 Payment Service</text><text x="570" y="272" text-anchor="middle" class="svg-soft">own DB 🗄️</text></g>
+        <g class="bob"><rect x="495" y="30" width="150" height="58" rx="10" class="svg-box-p"/><text x="570" y="56" text-anchor="middle" class="svg-label">👤 User Service</text><text x="570" y="76" text-anchor="middle" class="svg-soft">own DB </text></g>
+        <g class="bob" style="animation-delay:.5s"><rect x="495" y="126" width="150" height="58" rx="10" class="svg-box-p"/><text x="570" y="152" text-anchor="middle" class="svg-label">📦 Order Service</text><text x="570" y="172" text-anchor="middle" class="svg-soft">own DB </text></g>
+        <g class="bob" style="animation-delay:1s"><rect x="495" y="226" width="150" height="58" rx="10" class="svg-box-p"/><text x="570" y="252" text-anchor="middle" class="svg-label">💳 Payment Service</text><text x="570" y="272" text-anchor="middle" class="svg-soft">own DB </text></g>
         <!-- inter-service call -->
         <path d="M 660 184 Q 700 205 660 226" fill="none" class="svg-line svg-dash" style="stroke:#F59E0B"/>
         <text x="712" y="210" text-anchor="middle" class="svg-soft">gRPC</text>
       </svg>
       <p class="diagram-caption">One front door for clients; services own their data and talk to each other behind it.</p>
     </div>
+  </section>
+
+  <section class="section-block reveal">
+    <h2>API Gateway Patterns — BFF</h2>
+    <p>One gateway serving every client type eventually serves none of them well: mobile over-fetches data it can't display, while the web app under-fetches and makes extra calls. The <strong>BFF (Backend for Frontend)</strong> pattern gives each client class its own gateway:</p>
+    <div class="cards-grid">
+      <div class="mini-card"><span class="mc-icon">M</span><h4>Mobile BFF</h4><p>Compact JSON, fewer fields, responses optimized for mobile bandwidth and battery. Aggregates several backend calls into one round trip.</p></div>
+      <div class="mini-card"><span class="mc-icon">W</span><h4>Web BFF</h4><p>Richer data shapes, includes analytics events, tuned for desktop screens that show more at once.</p></div>
+      <div class="mini-card"><span class="mc-icon">3P</span><h4>Third-party BFF</h4><p>Strict rate limiting, a versioned and documented API, conservative defaults. External developers get stability, not your internal churn.</p></div>
+    </div>
+    <h3>Gateway Tooling</h3>
+    <ul class="key-points">
+      <li><strong>Kong:</strong> open-source gateway with a plugin ecosystem — JWT auth, rate limiting, logging, request transformation.</li>
+      <li><strong>AWS API Gateway:</strong> fully managed, integrates with Lambda and Cognito — the natural fit for serverless architectures.</li>
+      <li><strong>Nginx / Envoy:</strong> low-level reverse proxies you can configure into a gateway when you want full control and minimal abstraction.</li>
+    </ul>
   </section>
 
   <section class="section-block reveal">
@@ -127,6 +201,19 @@
       <div class="step-item"><div class="step-num">3</div><div><strong>Half-open (probing)</strong><p>After a cooldown, a few trial calls go through. Success → close the breaker; failure → snap back open.</p></div></div>
     </div>
     <p>Netflix's <strong>Hystrix</strong> made the pattern famous; <strong>Resilience4j</strong> is its modern successor, and Envoy/Istio implement it at the proxy layer. Pair it with timeouts, capped exponential-backoff retries, and bulkheads (separate thread/connection pools per dependency).</p>
+  </section>
+
+  <section class="section-block reveal">
+    <h2>Circuit Breaker — Stopping the Cascade</h2>
+    <p>Worth dwelling on <em>why</em> the cascade happens: Service A calls B, which calls C (broken). A's thread pool fills with threads waiting on B, which is waiting on C. A stops answering its own callers; <em>their</em> thread pools fill. One broken leaf service has now taken down the whole tree. The breaker's job is to cut that chain at the first link.</p>
+    <ul class="key-points">
+      <li><strong>Thresholds in practice:</strong> open the circuit when the failure rate exceeds 50% over the last 10 requests, or after 5 consecutive failures. Tune to the dependency's normal error profile.</li>
+      <li><strong>Open means instant rejection:</strong> while open, calls fail in microseconds without touching the failing service — no threads parked, and the struggling service gets room to recover.</li>
+      <li><strong>Half-open is the probe:</strong> after a cooldown, let one test request through. Success &rarr; close; failure &rarr; snap back open.</li>
+    </ul>
+    <h3>Fallbacks: Never Just Error</h3>
+    <p>What do you return while the circuit is open? In order of preference: (1) <strong>cached stale data</strong> — yesterday's recommendations beat no recommendations; (2) a <strong>default or empty response</strong>; (3) an explicit <strong>degraded mode</strong> ("recommendations unavailable right now"). The goal is graceful degradation, never a raw error page.</p>
+    <p><strong>Libraries:</strong> Hystrix (Netflix's original, now in maintenance), Resilience4j (Java), Polly (.NET) — every ecosystem has one. <strong>How Netflix uses it:</strong> every downstream call is wrapped. If the recommendation service fails, users see generic popular titles — content, not an error page. Most users never notice anything happened.</p>
   </section>
 
   <section class="section-block reveal">
@@ -150,15 +237,109 @@
     </div>
 
     <div class="callout info">
-      <span class="co-icon">🏢</span>
+      <span class="co-icon"></span>
       <div><strong>Real-world receipts</strong>
       <p>Netflix runs 1000+ microservices and birthed Eureka, Hystrix and chaos engineering. Uber rebuilt around domain-oriented services after its early microservice sprawl became "a distributed monolith." And Amazon's Prime Video team made headlines by merging some microservices <em>back</em> into a monolith and cutting costs 90% — architecture is a pendulum, not a ladder.</p></div>
     </div>
 
     <div class="callout archie">
-      <span class="co-icon">🤖</span>
+      <span class="co-icon"></span>
       <div><strong>Archie says</strong>
       <p>In interviews, never open with microservices. Say: "I'd start with a modular monolith; here's the seam — payments — I'd extract first, and here's the trigger: team contention on deploys or a component needing independent scale." That sentence shows more architectural maturity than any box diagram.</p></div>
+    </div>
+  </section>
+
+  <section class="section-block reveal">
+    <h2>Observability in Microservices — The Impossible Problem</h2>
+    <p>In a monolith, you grep the logs. Across 500 microservices, "grep the logs" is not a strategy — a single user request might touch 30 services on 30 machines. Observability rebuilds the single-system view from three pillars:</p>
+    <div class="cards-grid">
+      <div class="mini-card"><span class="mc-icon">L</span><h4>Logs</h4><p>Structured (JSON), each line carrying a <code>trace_id</code> so you can find every log for one request across all services. Tooling: ELK stack (Elasticsearch/Logstash/Kibana), Loki, Datadog Logs.</p></div>
+      <div class="mini-card"><span class="mc-icon">M</span><h4>Metrics</h4><p>Counters, gauges, histograms. Prometheus scrapes each service's <code>/metrics</code> endpoint; Grafana turns them into dashboards and alerts.</p></div>
+      <div class="mini-card"><span class="mc-icon">T</span><h4>Distributed tracing</h4><p>Attach a <code>trace_id</code> to every request; each service adds a span (start/end time, tags). Visualized as a timeline, the slow hop is obvious. Tooling: Jaeger, Zipkin, AWS X-Ray, Datadog APM.</p></div>
+    </div>
+    <p><strong>OpenTelemetry</strong> is the vendor-neutral standard for all three pillars: instrument once, export to any backend.</p>
+    <div class="callout tip">
+      <span class="co-icon">&#9733;</span>
+      <div><strong>Finding a bug across 500 services</strong>
+      <p>(1) An alert fires on error rate. (2) Grafana tells you <em>which service</em>. (3) Jaeger's trace shows <em>which downstream call</em> failed. (4) Grep that service's logs for the <code>trace_id</code>. Four steps, minutes — without the three pillars, it's an all-day archaeology dig.</p></div>
+    </div>
+  </section>
+
+  <section class="section-block reveal">
+    <h2>Interview Q&amp;A</h2>
+    <p>Three microservices questions interviewers actually ask — click to reveal strong answers.</p>
+    <div class="qa-list">
+      <div class="qa-item">
+        <button class="qa-question">When should you NOT use microservices?</button>
+        <div class="qa-answer">
+          <p>Early-stage startups: the coordination overhead is not worth it with 5 engineers and 1000 users. Monolith first — deploy fast, iterate fast, find product-market fit. Skip microservices when team size &lt; 10, release frequency &lt; weekly, or the domain model isn't well understood yet (you'll draw the wrong boundaries). Microservices shine when: independent teams need independent deployment, specific services need independent scaling, regulatory isolation is required (PCI scope), or the monolith is causing genuine deployment bottlenecks. Rule of thumb: don't start with microservices, but know when to split.</p>
+        </div>
+      </div>
+      <div class="qa-item">
+        <button class="qa-question">How do you handle a transaction that spans 3 microservices?</button>
+        <div class="qa-answer">
+          <p>There are no distributed ACID transactions — use the Saga pattern. (1) <strong>Orchestration saga:</strong> a central coordinator tells Order Service to create the order &rarr; Payment Service to charge &rarr; Inventory Service to reserve. Each step has a compensating transaction on failure (cancel order, refund payment). (2) <strong>Choreography saga:</strong> each service emits events and downstream services react: OrderCreated &rarr; PaymentService charges &rarr; PaymentSucceeded &rarr; InventoryService reserves &rarr; ItemsReserved &rarr; ShippingService schedules. On failure: InventoryReservationFailed &rarr; PaymentService refunds &rarr; OrderService cancels. Downsides to name: no immediate consistency, and complex failure scenarios require carefully designed compensating transactions.</p>
+        </div>
+      </div>
+      <div class="qa-item">
+        <button class="qa-question">A service is down and causing other services to fail. How do you diagnose and fix?</button>
+        <div class="qa-answer">
+          <p><strong>Immediate:</strong> (1) Check circuit breaker status — is it open? If not, open it manually to stop the cascade. (2) Check health endpoints / Kubernetes pod status. (3) Check error logs and metrics. (4) Check the broken service's own downstream dependencies. <strong>Diagnosis:</strong> use distributed tracing to find the root-cause service, then ask: did a recent deployment introduce the bug (rollback)? Is it capacity (scale up)? Is it a dependency (check that service's health)? <strong>Fix:</strong> short-term — add missing circuit breakers, enable fallbacks; medium-term — fix the root cause; long-term — add health checks, SLOs, and alerting so the next failure is caught in minutes, not hours.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section-block reveal">
+    <h2>Anti-Patterns to Avoid</h2>
+    <div class="antipatterns">
+      <div class="antipattern-item">
+        <span class="antipattern-icon">&#10007;</span>
+        <div class="antipattern-text">
+          <h4>The distributed monolith</h4>
+          <p>You split into microservices, but they share a database, call each other synchronously everywhere, and must deploy together. Worst of both worlds. True microservices must be independently deployable.</p>
+        </div>
+      </div>
+      <div class="antipattern-item">
+        <span class="antipattern-icon">&#10007;</span>
+        <div class="antipattern-text">
+          <h4>Too-fine-grained services</h4>
+          <p>"Nano-services" with a single function each: network overhead, complexity, and coordination cost exceed any benefit. A service should own a meaningful bounded context.</p>
+        </div>
+      </div>
+      <div class="antipattern-item">
+        <span class="antipattern-icon">&#10007;</span>
+        <div class="antipattern-text">
+          <h4>No service mesh at scale</h4>
+          <p>50+ services, each with hand-rolled retry, timeout, and mTLS logic — security inconsistencies and subtle bugs everywhere. Introduce a service mesh for cross-cutting concerns.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section-block reveal">
+    <h2>Further Reading</h2>
+    <div class="reading-links">
+      <a class="reading-link-card" href="https://microservices.io/patterns/" target="_blank" rel="noopener">
+        <span class="reading-link-icon">MS</span>
+        <div><span class="reading-link-title">Microservices.io Pattern Catalog</span><span class="reading-link-source">microservices.io</span></div>
+      </a>
+      <a class="reading-link-card" href="https://samnewman.io/books/building_microservices/" target="_blank" rel="noopener">
+        <span class="reading-link-icon">B</span>
+        <div><span class="reading-link-title">Building Microservices (Sam Newman)</span><span class="reading-link-source">samnewman.io</span></div>
+      </a>
+      <a class="reading-link-card" href="https://netflixtechblog.com/the-netflix-api-platform-db8cd1f33cf9" target="_blank" rel="noopener">
+        <span class="reading-link-icon">N</span>
+        <div><span class="reading-link-title">Netflix: Evolution of the Netflix API</span><span class="reading-link-source">netflixtechblog.com</span></div>
+      </a>
+      <a class="reading-link-card" href="https://12factor.net" target="_blank" rel="noopener">
+        <span class="reading-link-icon">12</span>
+        <div><span class="reading-link-title">The Twelve-Factor App</span><span class="reading-link-source">12factor.net</span></div>
+      </a>
+      <a class="reading-link-card" href="https://engineering.uber.com/service-mesh-architecture-rethink-production-networking/" target="_blank" rel="noopener">
+        <span class="reading-link-icon">U</span>
+        <div><span class="reading-link-title">Uber: Service Mesh with Envoy</span><span class="reading-link-source">engineering.uber.com</span></div>
+      </a>
     </div>
   </section>
 
@@ -172,7 +353,7 @@
         <button class="quiz-option" data-correct="true">A circuit breaker with a fallback (e.g., show popular items instead)</button>
         <button class="quiz-option">Splitting recommendations into three smaller services</button>
       </div>
-      <div class="quiz-feedback">✅ Exactly. Trip the breaker, fail fast, serve a cached/default fallback — the page loads without recommendations instead of not loading at all. Graceful degradation beats cascading failure.</div>
+      <div class="quiz-feedback"> Exactly. Trip the breaker, fail fast, serve a cached/default fallback — the page loads without recommendations instead of not loading at all. Graceful degradation beats cascading failure.</div>
     </div>
   </section>
 
@@ -183,7 +364,7 @@
 </main>
 
 <footer class="footer">
-  <div class="footer-bottom">⚡ System Design Illustrated · Topic 10 of 12 · Built with 💜 and vanilla web tech</div>
+  <div class="footer-bottom"> System Design Illustrated · Topic 10 of 12 · Built with 💜 and vanilla web tech</div>
 </footer>
 
 <script src="../js/main.js"></script>
