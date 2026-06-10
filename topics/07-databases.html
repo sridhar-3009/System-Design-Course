@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Databases Deep Dive — System Design Illustrated</title>
+<meta name="description" content="ACID, replication, federation, sharding, denormalization, SQL tuning, the four NoSQL families, BASE, and how to choose SQL vs NoSQL.">
+<script>try{var t=localStorage.getItem('sdi-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body data-topic="07" style="--topic-color:#7C3AED">
+
+<div class="reading-progress"></div>
+
+<nav class="navbar">
+  <div class="nav-inner">
+    <a href="../index.html" class="logo"><span class="bolt">⚡</span><span class="logo-text">System Design Illustrated</span></a>
+    <div class="nav-links">
+      <a href="../index.html#topics">Topics</a>
+      <a href="../index.html#about">About</a>
+      <a href="12-interview-guide.html">Interview Guide</a>
+      <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">🌙</button>
+    </div>
+  </div>
+</nav>
+
+<header class="topic-header" style="--topic-color:#7C3AED">
+  <div class="topic-header-inner">
+    <div class="breadcrumb"><a href="../index.html">Home</a> / Topics / 07</div>
+    <div class="topic-num-big">TOPIC 07</div>
+    <h1>Databases Deep Dive 🗄️</h1>
+    <p class="subtitle">The database is where most systems actually bottleneck — and where the richest design decisions live. Replication, federation, sharding, and the great SQL vs NoSQL question.</p>
+    <div class="topic-meta"><span class="tag">🌳 Advanced</span><span class="tag">⏱ 45 min read</span><span class="tag">📐 14 concepts</span></div>
+  </div>
+</header>
+
+<main class="topic-body">
+
+  <section class="section-block reveal">
+    <h2>Relational Databases &amp; ACID</h2>
+    <p>An <strong>RDBMS</strong> (PostgreSQL, MySQL, SQL Server…) organizes data into tables of rows and columns, related by keys and queried with SQL — including <strong>joins</strong> that combine tables on the fly. Their superpower is the <strong>transaction</strong>, guaranteed by ACID:</p>
+    <div class="cards-grid">
+      <div class="mini-card"><span class="mc-icon">⚛️</span><h4>Atomic</h4><p>All steps of a transaction happen, or none do. A money transfer never debits without crediting.</p></div>
+      <div class="mini-card"><span class="mc-icon">📏</span><h4>Consistent</h4><p>Every transaction moves the DB from one valid state to another — constraints, foreign keys, and invariants always hold.</p></div>
+      <div class="mini-card"><span class="mc-icon">🚪</span><h4>Isolated</h4><p>Concurrent transactions behave as if they ran one at a time. No reading anyone's half-finished work.</p></div>
+      <div class="mini-card"><span class="mc-icon">💾</span><h4>Durable</h4><p>Once committed, it survives crashes — written to a log on disk before the "OK" is returned.</p></div>
+    </div>
+    <p><strong>Reach for an RDBMS when:</strong> data is structured and interrelated, you need complex queries and ad-hoc joins, or correctness is money — orders, payments, inventory, anything an accountant might audit.</p>
+  </section>
+
+  <section class="section-block reveal">
+    <h2>Replication: Copies for Safety and Speed</h2>
+    <h3>Master-slave (primary-replica)</h3>
+    <p>The primary accepts all writes and streams its change log to read-only replicas. You scale reads by adding replicas, and a replica can be promoted if the primary dies (manually, or via automated election — which takes seconds to minutes).</p>
+    <p>The catch is <strong>replication lag</strong>: a user updates their avatar (write → primary), refreshes (read → replica), and sees the old avatar. Mitigations: read-your-own-writes routing (send a user's reads to the primary briefly after they write), or synchronous replication (safe but slow).</p>
+
+    <div class="diagram-box">
+      <svg viewBox="0 0 740 280" role="img" aria-label="Writes go to a master database which streams replication to two replicas; reads are served by the replicas">
+        <text x="100" y="60" text-anchor="middle" class="svg-label">✍️ writes</text>
+        <line x1="100" y1="75" x2="100" y2="115" class="svg-line svg-dash" style="stroke:#7C3AED"/>
+        <!-- master -->
+        <rect x="30" y="120" width="140" height="70" rx="12" style="fill:#7C3AED"/>
+        <text x="100" y="150" text-anchor="middle" style="fill:#fff;font-family:Poppins;font-weight:700;font-size:14px">Primary</text>
+        <text x="100" y="172" text-anchor="middle" style="fill:#DDD3FA;font-size:11px;font-family:Inter">all writes</text>
+        <!-- replication streams -->
+        <line x1="175" y1="140" x2="420" y2="75" class="svg-line svg-dash" style="stroke:#A78BFA;stroke-width:2.5"/>
+        <line x1="175" y1="170" x2="420" y2="225" class="svg-line svg-dash" style="stroke:#A78BFA;stroke-width:2.5"/>
+        <circle cx="200" cy="133" r="6" class="pkt pkt-1" style="fill:#F59E0B"/>
+        <circle cx="200" cy="177" r="6" class="pkt pkt-1" style="fill:#F59E0B;animation-delay:1.2s"/>
+        <text x="300" y="105" class="svg-soft" transform="rotate(-15 300 105)">change log →</text>
+        <!-- replicas -->
+        <rect x="425" y="40" width="140" height="70" rx="12" class="svg-box-p"/>
+        <text x="495" y="70" text-anchor="middle" class="svg-label">Replica 1</text>
+        <text x="495" y="92" text-anchor="middle" class="svg-soft">reads only</text>
+        <rect x="425" y="190" width="140" height="70" rx="12" class="svg-box-p"/>
+        <text x="495" y="220" text-anchor="middle" class="svg-label">Replica 2</text>
+        <text x="495" y="242" text-anchor="middle" class="svg-soft">reads only</text>
+        <!-- readers -->
+        <line x1="570" y1="75" x2="660" y2="75" class="svg-line svg-dash" style="stroke:#10B981"/>
+        <line x1="570" y1="225" x2="660" y2="225" class="svg-line svg-dash" style="stroke:#10B981"/>
+        <text x="690" y="80" text-anchor="middle" class="svg-label">👀</text>
+        <text x="690" y="230" text-anchor="middle" class="svg-label">👀</text>
+      </svg>
+      <p class="diagram-caption">One writer, many readers: the change log flows continuously from primary to replicas.</p>
+    </div>
+
+    <h3>Master-master</h3>
+    <p>Multiple primaries, each accepting writes and syncing with the others. No failover dance and writes survive a node loss — but concurrent writes to the same row on different masters <strong>conflict</strong>. You'll need last-writer-wins (lossy), conflict-free data types (CRDTs), or app-level merge logic. Loosely-coupled multi-region systems use this; most OLTP apps avoid it.</p>
+  </section>
+
+  <section class="section-block reveal">
+    <h2>Federation: Split by Function</h2>
+    <p><strong>Federation</strong> (functional partitioning) splits one monolithic database into several by <em>domain</em>: a users DB, an orders DB, a products DB. Each is smaller, with its own cache-friendly working set and independent write capacity.</p>
+    <p><em>Costs:</em> cross-database joins are gone — you join in application code or duplicate reference data. Transactions spanning two databases require distributed-transaction machinery (or, more realistically, the saga pattern from Topic 10). This split also maps neatly onto microservice boundaries.</p>
+  </section>
+
+  <section class="section-block reveal">
+    <h2>Sharding: Split by Rows</h2>
+    <p>When even a single-purpose table outgrows one machine, <strong>sharding</strong> distributes its <em>rows</em> across servers by a <strong>shard key</strong>:</p>
+    <ul>
+      <li><strong>Hash-based:</strong> <code>shard = hash(user_id) % N</code>. Even distribution, but range queries scatter across all shards, and changing N is painful.</li>
+      <li><strong>Range-based:</strong> users A–H on shard 1, I–P on shard 2… Great for range scans; risky for hotspots (everyone signing up today lands on the "newest IDs" shard).</li>
+      <li><strong>Directory-based:</strong> a lookup service maps each key to its shard. Maximum flexibility (move tenants individually), plus one more critical service to keep alive.</li>
+    </ul>
+    <h3>The pain points</h3>
+    <ul class="key-points">
+      <li><strong>Hotspots:</strong> a bad key concentrates traffic. The <em>celebrity problem</em>: Rihanna's row gets a million times the reads of yours — shard-by-user puts her whole load on one box.</li>
+      <li><strong>Resharding:</strong> with naive <code>hash % N</code>, going from 4 to 5 shards remaps ~80% of all keys. Migration nightmare.</li>
+      <li><strong>Cross-shard operations:</strong> joins, transactions, and unique constraints across shards all require application gymnastics.</li>
+    </ul>
+    <h3>Consistent hashing</h3>
+    <p>The standard fix for resharding: place shards and keys on a conceptual ring; each key belongs to the next shard clockwise. Adding a shard moves only ~1/N of keys instead of nearly all of them. Virtual nodes (each server appears many times on the ring) smooth the distribution. This is the heart of DynamoDB and Cassandra — and of how CDNs and distributed caches assign keys.</p>
+  </section>
+
+  <section class="section-block reveal">
+    <h2>Denormalization: Buy Reads with Writes</h2>
+    <p>Normalization removes duplicate data; <strong>denormalization</strong> deliberately adds it back to kill expensive joins. Store <code>author_name</code> directly on each post, keep a precomputed <code>follower_count</code>, maintain a separate read-optimized table per view.</p>
+    <p>Reads become single-row lookups. The price: every write must now update multiple copies, and copies can drift out of sync. Once data is federated or sharded (joins across servers ≈ misery), denormalization stops being optional and becomes the norm.</p>
+
+    <div class="callout tip">
+      <span class="co-icon">💡</span>
+      <div><strong>SQL tuning before scaling</strong>
+      <p>Before sharding anything, do the cheap stuff: add <strong>indexes</strong> matching your query patterns (and covering indexes so queries never touch the table), run <code>EXPLAIN</code> on slow queries, kill <strong>N+1 query</strong> loops (fetch 100 posts, then 100 author queries — use one join or batch fetch), avoid <code>SELECT *</code>, and batch your inserts. A week of tuning routinely buys a year of growth.</p></div>
+    </div>
+  </section>
+
+  <section class="section-block reveal">
+    <h2>NoSQL: The Four Families</h2>
+    <p>"NoSQL" is a marketing umbrella for databases that trade relational guarantees for scale, flexibility, or specialized shapes. Four families matter:</p>
+    <div class="cards-grid">
+      <div class="mini-card"><span class="mc-icon">🔑</span><h4>Key-Value</h4><p><strong>Redis, DynamoDB, Riak.</strong> A giant hash map: get/put by key, O(1), no schema. Perfect for sessions, carts, feature flags, caching. Useless for "find all users where…".</p></div>
+      <div class="mini-card"><span class="mc-icon">📄</span><h4>Document</h4><p><strong>MongoDB, CouchDB, Firestore.</strong> Values are structured JSON-ish documents you can query into. Flexible per-document schema. Great for user profiles, product catalogs, CMS content.</p></div>
+      <div class="mini-card"><span class="mc-icon">📊</span><h4>Wide-Column</h4><p><strong>Cassandra, HBase, Bigtable.</strong> Rows with millions of sparse columns, partitioned and sorted for sequential scans. Built for massive write volumes: time-series, IoT telemetry, message history, analytics.</p></div>
+      <div class="mini-card"><span class="mc-icon">🕸️</span><h4>Graph</h4><p><strong>Neo4j, Amazon Neptune.</strong> Nodes and edges as first-class citizens; traversals ("friends of friends who like jazz") that would be brutal multi-joins in SQL run naturally. Social graphs, fraud rings, recommendations.</p></div>
+    </div>
+
+    <h3>BASE: NoSQL's looser promise</h3>
+    <p>Where ACID promises correctness, BASE promises resilience: <strong>B</strong>asically <strong>A</strong>vailable (the system answers, even during failures), <strong>S</strong>oft state (data may be in flux as replicas sync), <strong>E</strong>ventually consistent (replicas converge, given time). It's the AP corner of CAP wearing a database costume.</p>
+  </section>
+
+  <section class="section-block reveal">
+    <h2>SQL vs NoSQL: The Decision Guide</h2>
+    <div class="table-wrap">
+      <table class="compare-table">
+        <thead><tr><th>Question</th><th>Leans SQL</th><th>Leans NoSQL</th></tr></thead>
+        <tbody>
+          <tr><td>Data shape</td><td>Structured, interrelated tables</td><td>Flexible / nested / evolving schema</td></tr>
+          <tr><td>Queries</td><td>Ad-hoc, joins, aggregations</td><td>Known access patterns by key</td></tr>
+          <tr><td>Correctness needs</td><td>Multi-row transactions (money!)</td><td>Per-item atomicity is enough</td></tr>
+          <tr><td>Scale</td><td>Up to a few TB / one big node + replicas</td><td>Horizontal from day one, petabytes</td></tr>
+          <tr><td>Write volume</td><td>Moderate</td><td>Extreme (time-series, events, logs)</td></tr>
+          <tr><td>Examples</td><td>PostgreSQL, MySQL</td><td>DynamoDB, Cassandra, MongoDB, Neo4j</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout info">
+      <span class="co-icon">🏢</span>
+      <div><strong>Real-world receipts</strong>
+      <p>Stripe and most banks live on PostgreSQL/MySQL — ledgers demand ACID. Discord moved trillions of messages from MongoDB to Cassandra, then to ScyllaDB — wide-column for write-heavy history. Netflix pairs Cassandra (viewing data) with caches; Amazon's retail cart is the original DynamoDB story. Notice the theme: <em>polyglot persistence</em> — one company, many databases, each chosen per workload.</p></div>
+    </div>
+
+    <div class="callout archie">
+      <span class="co-icon">🤖</span>
+      <div><strong>Archie says</strong>
+      <p>The safest interview default: "Start with PostgreSQL plus read replicas and caching. Shard or add a specialized NoSQL store only when a specific workload demands it." Boring databases are a feature, not a cop-out — just show you know where the cliff edges are.</p></div>
+    </div>
+  </section>
+
+  <section class="section-block reveal">
+    <div class="quiz">
+      <h3>🧠 Quick Check</h3>
+      <p class="quiz-q">You're storing sensor readings: 2 million writes per minute, queried only as "give me device X's readings between t1 and t2." Best fit?</p>
+      <div class="quiz-options">
+        <button class="quiz-option">A normalized PostgreSQL schema with joins</button>
+        <button class="quiz-option">A graph database — sensors are connected, right?</button>
+        <button class="quiz-option" data-correct="true">A wide-column store like Cassandra, partitioned by device, sorted by time</button>
+        <button class="quiz-option">A single Redis instance</button>
+      </div>
+      <div class="quiz-feedback">✅ Exactly. Massive sequential writes + known access pattern (partition key = device, clustering key = timestamp) is the textbook wide-column workload. This is why IoT and metrics systems live on Cassandra/Bigtable-style stores.</div>
+    </div>
+  </section>
+
+  <nav class="bottom-nav">
+    <a href="06-caching.html"><span class="bn-dir">← Previous</span><span class="bn-title">Caching Strategies</span></a>
+    <a class="next" href="08-async-messaging.html"><span class="bn-dir">Next →</span><span class="bn-title">Async Processing &amp; Messaging</span></a>
+  </nav>
+</main>
+
+<footer class="footer">
+  <div class="footer-bottom">⚡ System Design Illustrated · Topic 07 of 12 · Built with 💜 and vanilla web tech</div>
+</footer>
+
+<script src="../js/main.js"></script>
+</body>
+</html>

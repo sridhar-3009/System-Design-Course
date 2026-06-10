@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>System Design Illustrated — Complex systems, simply beautiful</title>
+<meta name="description" content="A friendly, animated, illustrated course on system design. Learn scalability, CAP theorem, caching, databases, microservices and more — with Archie the robot.">
+<script>try{var t=localStorage.getItem('sdi-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="reading-progress"></div>
+
+<!-- ============ NAVBAR ============ -->
+<nav class="navbar">
+  <div class="nav-inner">
+    <a href="index.html" class="logo"><span class="bolt">⚡</span><span class="logo-text">System Design Illustrated</span></a>
+    <div class="nav-links">
+      <a href="#topics">Topics</a>
+      <a href="#about">About</a>
+      <a href="topics/12-interview-guide.html">Interview Guide</a>
+      <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">🌙</button>
+    </div>
+  </div>
+</nav>
+
+<!-- ============ HERO ============ -->
+<header class="hero">
+  <svg class="hero-svg" viewBox="0 0 1200 600" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <!-- network connections -->
+    <line x1="150" y1="120" x2="380" y2="200" class="svg-line svg-dash" style="stroke:#A78BFA;stroke-width:1.5;opacity:.6"/>
+    <line x1="380" y1="200" x2="620" y2="110" class="svg-line svg-dash" style="stroke:#A78BFA;stroke-width:1.5;opacity:.6"/>
+    <line x1="620" y1="110" x2="880" y2="190" class="svg-line svg-dash" style="stroke:#F59E0B;stroke-width:1.5;opacity:.5"/>
+    <line x1="880" y1="190" x2="1080" y2="100" class="svg-line svg-dash" style="stroke:#A78BFA;stroke-width:1.5;opacity:.6"/>
+    <line x1="380" y1="200" x2="250" y2="420" class="svg-line svg-dash" style="stroke:#10B981;stroke-width:1.5;opacity:.5"/>
+    <line x1="620" y1="110" x2="700" y2="430" class="svg-line svg-dash" style="stroke:#A78BFA;stroke-width:1.5;opacity:.5"/>
+    <line x1="880" y1="190" x2="990" y2="450" class="svg-line svg-dash" style="stroke:#F59E0B;stroke-width:1.5;opacity:.5"/>
+    <line x1="250" y1="420" x2="700" y2="430" class="svg-line svg-dash" style="stroke:#A78BFA;stroke-width:1.5;opacity:.5"/>
+    <line x1="700" y1="430" x2="990" y2="450" class="svg-line svg-dash" style="stroke:#10B981;stroke-width:1.5;opacity:.5"/>
+    <!-- nodes -->
+    <circle cx="150" cy="120" r="9" class="svg-node" style="fill:#7C3AED"/>
+    <circle cx="380" cy="200" r="13" class="svg-node" style="fill:#9F67F8;animation-delay:.3s"/>
+    <circle cx="620" cy="110" r="10" class="svg-node" style="fill:#F59E0B;animation-delay:.6s"/>
+    <circle cx="880" cy="190" r="12" class="svg-node" style="fill:#7C3AED;animation-delay:.9s"/>
+    <circle cx="1080" cy="100" r="8" class="svg-node" style="fill:#10B981;animation-delay:1.2s"/>
+    <circle cx="250" cy="420" r="11" class="svg-node" style="fill:#10B981;animation-delay:.4s"/>
+    <circle cx="700" cy="430" r="13" class="svg-node" style="fill:#7C3AED;animation-delay:.8s"/>
+    <circle cx="990" cy="450" r="9" class="svg-node" style="fill:#F59E0B;animation-delay:1.1s"/>
+    <!-- floating data packets -->
+    <circle cx="160" cy="125" r="4" class="pkt pkt-1" style="fill:#F59E0B"/>
+    <circle cx="640" cy="118" r="4" class="pkt pkt-1" style="fill:#10B981;animation-delay:.8s"/>
+    <circle cx="860" cy="185" r="4" class="pkt pkt-2" style="fill:#7C3AED"/>
+    <circle cx="680" cy="425" r="4" class="pkt pkt-2" style="fill:#F59E0B;animation-delay:1.6s"/>
+  </svg>
+
+  <div class="hero-inner">
+    <span class="hero-badge">🤖 Guided by Archie, your robot study buddy</span>
+    <h1>Complex systems,<br><span class="grad">simply beautiful.</span></h1>
+    <p class="lead">An original, animated course on system design. From your first load balancer
+    to acing the interview — every concept illustrated, every trade-off explained, zero jargon walls.</p>
+    <div class="hero-ctas">
+      <a href="topics/01-fundamentals.html" class="btn btn-primary">Start Learning →</a>
+      <a href="#topics" class="btn btn-ghost">Browse Topics</a>
+    </div>
+    <div class="hero-stats">
+      <div class="stat"><div class="num">12</div><div class="lbl">Topics</div></div>
+      <div class="stat"><div class="num">80+</div><div class="lbl">Concepts</div></div>
+      <div class="stat"><div class="num">40+</div><div class="lbl">Animations</div></div>
+      <div class="stat"><div class="num">100%</div><div class="lbl">Free &amp; Offline</div></div>
+    </div>
+  </div>
+</header>
+
+<!-- ============ TOPICS GRID ============ -->
+<section class="section" id="topics">
+  <h2 class="section-title reveal">The Curriculum</h2>
+  <p class="section-sub reveal">Twelve carefully sequenced topics. Start at the top, or jump to what you need — your progress is saved automatically.</p>
+
+  <div class="topics-grid">
+    <a class="topic-card reveal" data-topic="01" href="topics/01-fundamentals.html" style="--card-color:var(--t1)">
+      <div class="tc-top"><span class="tc-num">01</span><span class="tc-icon">📈</span></div>
+      <h3>Fundamentals of Scale</h3>
+      <p>Vertical vs horizontal scaling, latency vs throughput, the famous "nines" of availability, and back-of-envelope math.</p>
+      <div class="tc-tags"><span class="tag difficulty">Beginner</span><span class="tag">⏱ 25 min</span></div>
+    </a>
+
+    <a class="topic-card reveal" data-topic="02" href="topics/02-cap-theorem.html" style="--card-color:var(--t2)">
+      <div class="tc-top"><span class="tc-num">02</span><span class="tc-icon">🔺</span></div>
+      <h3>CAP Theorem</h3>
+      <p>Consistency, Availability, Partition tolerance — why you can only ever pick two, and what PACELC adds to the story.</p>
+      <div class="tc-tags"><span class="tag difficulty">Beginner</span><span class="tag">⏱ 20 min</span></div>
+    </a>
+
+    <a class="topic-card reveal" data-topic="03" href="topics/03-consistency-availability.html" style="--card-color:var(--t3)">
+      <div class="tc-top"><span class="tc-num">03</span><span class="tc-icon">🔄</span></div>
+      <h3>Consistency &amp; Availability Patterns</h3>
+      <p>Weak, eventual, and strong consistency. Failover and replication patterns. Why two 99.9% services in series make a 99.8% system.</p>
+      <div class="tc-tags"><span class="tag difficulty">Intermediate</span><span class="tag">⏱ 30 min</span></div>
+    </a>
+
+    <a class="topic-card reveal" data-topic="04" href="topics/04-dns-cdn.html" style="--card-color:var(--t4)">
+      <div class="tc-top"><span class="tc-num">04</span><span class="tc-icon">🌍</span></div>
+      <h3>DNS &amp; CDN</h3>
+      <p>How the internet's phone book works, step by step, and how content delivery networks move bytes closer to your users.</p>
+      <div class="tc-tags"><span class="tag difficulty">Beginner</span><span class="tag">⏱ 25 min</span></div>
+    </a>
+
+    <a class="topic-card reveal" data-topic="05" href="topics/05-load-balancers.html" style="--card-color:var(--t5)">
+      <div class="tc-top"><span class="tc-num">05</span><span class="tc-icon">⚖️</span></div>
+      <h3>Load Balancers &amp; Reverse Proxies</h3>
+      <p>L4 vs L7, balancing algorithms, health checks, sticky sessions, and the subtle difference between an LB and a reverse proxy.</p>
+      <div class="tc-tags"><span class="tag difficulty">Intermediate</span><span class="tag">⏱ 30 min</span></div>
+    </a>
+
+    <a class="topic-card reveal" data-topic="06" href="topics/06-caching.html" style="--card-color:var(--t6)">
+      <div class="tc-top"><span class="tc-num">06</span><span class="tc-icon">⚡</span></div>
+      <h3>Caching Strategies</h3>
+      <p>Cache-aside, write-through, write-behind, eviction policies, Redis vs Memcached, and the three classic cache disasters.</p>
+      <div class="tc-tags"><span class="tag difficulty">Intermediate</span><span class="tag">⏱ 35 min</span></div>
+    </a>
+
+    <a class="topic-card reveal" data-topic="07" href="topics/07-databases.html" style="--card-color:var(--t7)">
+      <div class="tc-top"><span class="tc-num">07</span><span class="tc-icon">🗄️</span></div>
+      <h3>Databases Deep Dive</h3>
+      <p>ACID vs BASE, replication, federation, sharding, denormalization, the four NoSQL families, and how to choose between them.</p>
+      <div class="tc-tags"><span class="tag difficulty">Advanced</span><span class="tag">⏱ 45 min</span></div>
+    </a>
+
+    <a class="topic-card reveal" data-topic="08" href="topics/08-async-messaging.html" style="--card-color:var(--t8)">
+      <div class="tc-top"><span class="tc-num">08</span><span class="tc-icon">📬</span></div>
+      <h3>Async Processing &amp; Messaging</h3>
+      <p>Message queues, delivery guarantees, Kafka's event streaming model, task queues, and surviving back pressure.</p>
+      <div class="tc-tags"><span class="tag difficulty">Intermediate</span><span class="tag">⏱ 30 min</span></div>
+    </a>
+
+    <a class="topic-card reveal" data-topic="09" href="topics/09-communication.html" style="--card-color:var(--t9)">
+      <div class="tc-top"><span class="tc-num">09</span><span class="tc-icon">🔌</span></div>
+      <h3>Communication Protocols</h3>
+      <p>HTTP/1.1 → 2 → 3, TCP vs UDP, REST vs gRPC, WebSockets vs SSE vs long polling — and when to reach for each.</p>
+      <div class="tc-tags"><span class="tag difficulty">Intermediate</span><span class="tag">⏱ 30 min</span></div>
+    </a>
+
+    <a class="topic-card reveal" data-topic="10" href="topics/10-microservices.html" style="--card-color:var(--t10)">
+      <div class="tc-top"><span class="tc-num">10</span><span class="tc-icon">🧩</span></div>
+      <h3>Microservices Architecture</h3>
+      <p>Monolith vs microservices, service discovery, API gateways, circuit breakers, service meshes, and the saga pattern.</p>
+      <div class="tc-tags"><span class="tag difficulty">Advanced</span><span class="tag">⏱ 40 min</span></div>
+    </a>
+
+    <a class="topic-card reveal" data-topic="11" href="topics/11-security.html" style="--card-color:var(--t11)">
+      <div class="tc-top"><span class="tc-num">11</span><span class="tc-icon">🔐</span></div>
+      <h3>Security Essentials</h3>
+      <p>TLS, password hashing, sessions vs JWTs, OAuth 2.0, rate limiting, the OWASP Top 10, and securing your APIs.</p>
+      <div class="tc-tags"><span class="tag difficulty">Intermediate</span><span class="tag">⏱ 35 min</span></div>
+    </a>
+
+    <a class="topic-card reveal" data-topic="12" href="topics/12-interview-guide.html" style="--card-color:var(--t12)">
+      <div class="tc-top"><span class="tc-num">12</span><span class="tc-icon">🎯</span></div>
+      <h3>System Design Interview Guide</h3>
+      <p>A five-step framework plus three fully worked examples: a URL shortener, the Twitter timeline, and a rate limiter.</p>
+      <div class="tc-tags"><span class="tag difficulty">All levels</span><span class="tag">⏱ 50 min</span></div>
+    </a>
+  </div>
+</section>
+
+<!-- ============ ABOUT / ARCHIE ============ -->
+<section class="section" id="about">
+  <div class="about-grid">
+    <div class="reveal">
+      <h2 class="section-title" style="text-align:left">Meet Archie 👋</h2>
+      <p style="color:var(--text-soft);margin:0.6rem 0 0.4rem">
+        Archie is the friendly robot who narrates this course. He's read every postmortem,
+        survived every outage, and has strong opinions about caching. Here's why he built
+        this course differently:
+      </p>
+      <ul class="why-list">
+        <li><span class="wl-icon">✍️</span><div><strong>Original writing, zero copy-paste</strong><span class="desc">Every explanation written fresh, with analogies that actually stick.</span></div></li>
+        <li><span class="wl-icon">🎬</span><div><strong>Animated diagrams everywhere</strong><span class="desc">Watch data replicate, queues drain, and handshakes happen — in pure CSS + SVG.</span></div></li>
+        <li><span class="wl-icon">⚖️</span><div><strong>Trade-offs, not dogma</strong><span class="desc">There are no right answers in system design, only trade-offs. We name them explicitly.</span></div></li>
+        <li><span class="wl-icon">🏢</span><div><strong>Real-world receipts</strong><span class="desc">Which companies use which patterns, and why — Netflix, Discord, Stripe, and friends.</span></div></li>
+        <li><span class="wl-icon">📴</span><div><strong>Works offline, no frameworks</strong><span class="desc">Vanilla HTML, CSS, and JavaScript. Save it, fork it, read it on a plane.</span></div></li>
+      </ul>
+    </div>
+
+    <div class="archie-stage reveal">
+      <div class="archie" aria-label="Archie, a cute robot mascot">
+        <div class="archie-antenna"><div class="archie-antenna-tip"></div></div>
+        <div class="archie-head">
+          <div class="archie-eye left"></div>
+          <div class="archie-eye right"></div>
+          <div class="archie-mouth"></div>
+        </div>
+        <div class="archie-arm left"></div>
+        <div class="archie-arm right"></div>
+        <div class="archie-torso">
+          <div class="archie-screen"><span>while(alive){ learn(); }</span></div>
+        </div>
+        <div class="archie-leg left"></div>
+        <div class="archie-leg right"></div>
+        <div class="archie-shadow"></div>
+      </div>
+      <p class="archie-caption">"Distributed systems are just friendships<br>with extra failure modes." — Archie</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FOOTER ============ -->
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="brand">
+      <h4>⚡ System Design Illustrated</h4>
+      <p>Complex systems, simply beautiful. A free, animated, original course covering everything you need to design systems at scale.</p>
+    </div>
+    <div>
+      <h4>Start Here</h4>
+      <ul>
+        <li><a href="topics/01-fundamentals.html">Fundamentals of Scale</a></li>
+        <li><a href="topics/02-cap-theorem.html">CAP Theorem</a></li>
+        <li><a href="topics/06-caching.html">Caching Strategies</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Go Deeper</h4>
+      <ul>
+        <li><a href="topics/07-databases.html">Databases Deep Dive</a></li>
+        <li><a href="topics/10-microservices.html">Microservices</a></li>
+        <li><a href="topics/11-security.html">Security Essentials</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Get Hired</h4>
+      <ul>
+        <li><a href="topics/12-interview-guide.html">Interview Guide</a></li>
+        <li><a href="topics/12-interview-guide.html#worked-examples">Worked Examples</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">Built with 💜 and vanilla HTML/CSS/JS · Archie approves this message 🤖</div>
+</footer>
+
+<script src="js/main.js"></script>
+</body>
+</html>

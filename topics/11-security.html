@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Security Essentials — System Design Illustrated</title>
+<meta name="description" content="TLS, encryption at rest, sessions vs JWTs, OAuth 2.0, password hashing, rate limiting, OWASP Top 10, and API security fundamentals.">
+<script>try{var t=localStorage.getItem('sdi-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body data-topic="11" style="--topic-color:#BE185D">
+
+<div class="reading-progress"></div>
+
+<nav class="navbar">
+  <div class="nav-inner">
+    <a href="../index.html" class="logo"><span class="bolt">⚡</span><span class="logo-text">System Design Illustrated</span></a>
+    <div class="nav-links">
+      <a href="../index.html#topics">Topics</a>
+      <a href="../index.html#about">About</a>
+      <a href="12-interview-guide.html">Interview Guide</a>
+      <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">🌙</button>
+    </div>
+  </div>
+</nav>
+
+<header class="topic-header" style="--topic-color:#BE185D">
+  <div class="topic-header-inner">
+    <div class="breadcrumb"><a href="../index.html">Home</a> / Topics / 11</div>
+    <div class="topic-num-big">TOPIC 11</div>
+    <h1>Security Essentials 🔐</h1>
+    <p class="subtitle">Security isn't a feature you bolt on at the end — it's a property of every layer. The fundamentals every system designer must get right, from TLS to OWASP.</p>
+    <div class="topic-meta"><span class="tag">🌿 Intermediate</span><span class="tag">⏱ 35 min read</span><span class="tag">📐 12 concepts</span></div>
+  </div>
+</header>
+
+<main class="topic-body">
+
+  <section class="section-block reveal">
+    <h2>Encryption: In Transit and At Rest</h2>
+    <p><strong>In transit:</strong> plain HTTP is a postcard — every router, Wi-Fi hotspot, and ISP between client and server can read and <em>modify</em> it. <strong>TLS</strong> (the S in HTTPS) wraps the connection in encryption and authentication: the server presents a <strong>certificate</strong>, signed by a chain of certificate authorities your browser already trusts, proving "I really am api.shop.dev." Then both sides agree on keys (modern TLS 1.3 does this in one round trip) and everything after is encrypted gibberish to onlookers.</p>
+    <p><strong>At rest:</strong> disks get stolen, backups leak, snapshots get misconfigured. Encrypting stored data — full-disk encryption, database-level encryption (TDE), or per-field application-level encryption with <strong>AES-256</strong> — means a stolen disk is a stolen brick. Cloud providers make this nearly free (S3/EBS/RDS encryption is a checkbox); the real work is <strong>key management</strong> (KMS, Vault) and never committing keys to git.</p>
+
+    <div class="diagram-box">
+      <svg viewBox="0 0 740 250" role="img" aria-label="A shield with a lock pulses in the center; encrypted traffic flows past an eavesdropper who sees only gibberish">
+        <!-- client -->
+        <rect x="30" y="95" width="110" height="60" rx="12" class="svg-box-p"/>
+        <text x="85" y="131" text-anchor="middle" class="svg-label">💻 Client</text>
+        <!-- server -->
+        <rect x="600" y="95" width="110" height="60" rx="12" class="svg-box-p"/>
+        <text x="655" y="131" text-anchor="middle" class="svg-label">🖥️ Server</text>
+        <!-- encrypted pipe -->
+        <line x1="145" y1="125" x2="595" y2="125" class="svg-line svg-dash" style="stroke:#BE185D;stroke-width:3"/>
+        <circle cx="170" cy="125" r="6" class="pkt pkt-1" style="fill:#BE185D"/>
+        <circle cx="170" cy="125" r="6" class="pkt pkt-1" style="fill:#F472B6;animation-delay:1.2s"/>
+        <!-- shield -->
+        <g class="svg-node" style="animation-duration:2.6s">
+          <path d="M 370 60 L 410 75 L 410 115 Q 410 150 370 168 Q 330 150 330 115 L 330 75 Z" style="fill:#BE185D"/>
+          <text x="370" y="125" text-anchor="middle" style="font-size:26px">🔒</text>
+        </g>
+        <text x="370" y="45" text-anchor="middle" class="svg-label">TLS 1.3</text>
+        <!-- eavesdropper -->
+        <text x="370" y="215" text-anchor="middle" style="font-size:22px">🕵️</text>
+        <text x="370" y="240" text-anchor="middle" class="svg-mono">sees only: 8f3a♯x0…¤q2 🤷</text>
+      </svg>
+      <p class="diagram-caption">With TLS, the eavesdropper still sees packets — just not anything useful inside them.</p>
+    </div>
+  </section>
+
+  <section class="section-block reveal">
+    <h2>Authentication vs Authorization</h2>
+    <p>Two words, constantly confused, never interchangeable:</p>
+    <ul>
+      <li><strong>Authentication (authn):</strong> <em>who are you?</em> — verifying identity (password, passkey, SSO).</li>
+      <li><strong>Authorization (authz):</strong> <em>what may you do?</em> — verifying permissions (roles, ACLs, policies).</li>
+    </ul>
+    <p>A 401 means "I don't know who you are"; a 403 means "I know exactly who you are, and no."</p>
+
+    <h3>Session-based auth (stateful)</h3>
+    <p>On login, the server creates a session record (in Redis or the DB) and hands the browser a random <strong>session ID cookie</strong>. Every request looks the session up server-side. Revocation is trivial — delete the record — but every request costs a lookup, and all servers must share the session store.</p>
+
+    <h3>Token-based auth: JWT (stateless)</h3>
+    <p>A <strong>JSON Web Token</strong> packs the user's identity and claims into a signed blob: <code>header.payload.signature</code>. Any server holding the public key can verify it <em>without any lookup</em> — perfect for microservices and APIs. The trade-offs are sharp though:</p>
+    <ul class="key-points">
+      <li>JWTs are encoded, <strong>not encrypted</strong> — never put secrets in the payload.</li>
+      <li><strong>You can't revoke one</strong> before it expires. Mitigate with short lifetimes (5–15 min) plus a refresh token that <em>is</em> checked server-side.</li>
+      <li>Algorithm pitfalls (the <code>alg: none</code> attack) — pin your algorithm, use a vetted library.</li>
+    </ul>
+
+    <div class="table-wrap">
+      <table class="compare-table">
+        <thead><tr><th></th><th>Sessions</th><th>JWTs</th></tr></thead>
+        <tbody>
+          <tr><td>State</td><td>Server-side store</td><td>Self-contained, stateless</td></tr>
+          <tr><td>Verification cost</td><td>Lookup per request</td><td>Signature check (no I/O)</td></tr>
+          <tr><td>Instant revocation</td><td>✅ delete the session</td><td>❌ wait for expiry (or keep a denylist… now you're stateful again)</td></tr>
+          <tr><td>Best for</td><td>Classic web apps</td><td>APIs, microservices, mobile</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="section-block reveal">
+    <h2>OAuth 2.0 &amp; OpenID Connect</h2>
+    <p><strong>OAuth 2.0</strong> answers: how does app A access your data in app B without ever seeing your app-B password? It's a framework for <em>delegated authorization</em> — the "Sign in with Google" and "let this app read your calendar" machinery. Key flows:</p>
+    <div class="steps">
+      <div class="step-item"><div class="step-num">1</div><div><strong>Authorization Code (+ PKCE)</strong><p>The main flow. The user approves at the provider, the app receives a one-time code, and exchanges it server-side for an access token. PKCE protects the exchange for mobile/SPA clients. Use this one.</p></div></div>
+      <div class="step-item"><div class="step-num">2</div><div><strong>Client Credentials</strong><p>No user involved — service A authenticates as <em>itself</em> to call service B. The machine-to-machine flow.</p></div></div>
+      <div class="step-item"><div class="step-num">3</div><div><strong>Implicit (deprecated)</strong><p>Tokens delivered straight in the browser URL fragment. Leaky; replaced by Code + PKCE. Mentioning that it's deprecated is itself an interview point.</p></div></div>
+    </div>
+    <p><strong>OpenID Connect (OIDC)</strong> is a thin identity layer on top of OAuth: it adds a signed <code>id_token</code> (a JWT) that asserts <em>who the user is</em> — turning OAuth's authorization machinery into a proper authentication protocol. OAuth = what you may access; OIDC = who you are.</p>
+  </section>
+
+  <section class="section-block reveal">
+    <h2>Password Storage: One Right Answer</h2>
+    <p>Never plain text. Never reversible encryption. Never fast hashes — MD5 and SHA-1/SHA-256 are <em>designed for speed</em>, so GPUs guess billions per second. The right answer is a <strong>slow, salted, adaptive</strong> hash: <strong>bcrypt</strong>, <strong>scrypt</strong>, or <strong>argon2</strong> (current best). Each password gets a unique random salt (killing rainbow tables), and a cost factor keeps hashing expensive (~100&nbsp;ms) as hardware improves.</p>
+    <pre class="code-block" data-lang="python"><code><span class="c-c"># The entire correct implementation:</span>
+<span class="c-k">from</span> argon2 <span class="c-k">import</span> PasswordHasher
+ph = PasswordHasher()
+hash = ph.hash(<span class="c-s">"correct horse battery staple"</span>)  <span class="c-c"># salted automatically</span>
+ph.verify(hash, attempt)                          <span class="c-c"># raises on mismatch</span></code></pre>
+  </section>
+
+  <section class="section-block reveal">
+    <h2>Rate Limiting</h2>
+    <p>Rate limiting protects against brute-force login attempts, scrapers, runaway clients, and cost-amplification attacks. Two classic algorithms:</p>
+    <div class="two-col">
+      <div class="mini-card"><span class="mc-icon">🪙</span><h4>Token bucket</h4><p>A bucket holds up to N tokens, refilled at R/sec; each request spends one. Allows short <strong>bursts</strong> (a full bucket) while capping the sustained rate. The default choice — Stripe and AWS APIs work this way.</p></div>
+      <div class="mini-card"><span class="mc-icon">🚰</span><h4>Leaky bucket</h4><p>Requests enter a queue that drains at a fixed rate; overflow is rejected. Output is perfectly <strong>smooth</strong> — ideal when downstream must never see spikes.</p></div>
+    </div>
+    <p>Return <code>429 Too Many Requests</code> with a <code>Retry-After</code> header. For distributed limiting across many servers, keep counters in Redis (atomic ops or a small Lua script) — Topic 12 builds exactly this.</p>
+  </section>
+
+  <section class="section-block reveal">
+    <h2>Input Validation &amp; the Classic Attacks</h2>
+    <p>The root of most web vulnerabilities is the same sin: <strong>treating user input as code</strong>.</p>
+    <ul class="key-points">
+      <li><strong>SQL injection:</strong> <code>'; DROP TABLE users;--</code> in a form field becomes a query. Cure: parameterized queries / prepared statements, always — never string concatenation.</li>
+      <li><strong>XSS (cross-site scripting):</strong> a stored <code>&lt;script&gt;</code> in a comment runs in every visitor's browser, stealing their tokens. Cure: escape all output by default (modern frameworks do), plus a Content-Security-Policy header.</li>
+      <li><strong>CSRF (cross-site request forgery):</strong> a malicious site silently submits a form to your bank, riding the cookies your browser auto-attaches. Cure: <code>SameSite</code> cookies and anti-CSRF tokens.</li>
+    </ul>
+    <p>Round out the hygiene list: <strong>HTTPS everywhere</strong> with <strong>HSTS</strong> (browsers refuse to ever try HTTP), cookies flagged <code>Secure; HttpOnly; SameSite</code>, and <strong>CORS</strong> configured to allow only your real origins — never <code>*</code> with credentials.</p>
+
+    <div class="callout warn">
+      <span class="co-icon">⚠️</span>
+      <div><strong>OWASP Top 10, the radar view</strong>
+      <p>Injection · broken authentication · sensitive data exposure · XXE (XML external entities) · broken access control (IDOR: change <code>/orders/42</code> to <code>/orders/43</code> and read someone else's order — check authorization on <em>every object</em>, not just every route) · security misconfiguration (default creds, open S3 buckets) · XSS · insecure deserialization · components with known vulnerabilities (update your dependencies!) · insufficient logging &amp; monitoring (breaches discovered months late).</p></div>
+    </div>
+  </section>
+
+  <section class="section-block reveal">
+    <h2>API Security Checklist</h2>
+    <ul class="key-points">
+      <li><strong>Identify callers:</strong> API keys for simple server-to-server; OAuth/JWT for user-scoped access.</li>
+      <li><strong>Authorize per object</strong> — every endpoint checks the caller owns the resource (IDOR is the #1 real-world API bug).</li>
+      <li><strong>Rate limit per key/user/IP</strong>, with tighter limits on auth endpoints.</li>
+      <li><strong>Validate everything inbound</strong> (schemas, types, sizes) and encode everything outbound.</li>
+      <li><strong>TLS only</strong>; secrets in a vault, rotated; never in code or logs.</li>
+      <li><strong>Log auth events</strong> and alert on anomalies — you can't respond to what you can't see.</li>
+    </ul>
+
+    <div class="callout archie">
+      <span class="co-icon">🤖</span>
+      <div><strong>Archie says</strong>
+      <p>In a design interview, you rarely get a dedicated security question — you get silent points for weaving it in: "TLS terminates at the load balancer, the gateway validates JWTs and rate-limits per user, passwords are argon2-hashed, and queries are parameterized." Four clauses, big signal.</p></div>
+    </div>
+  </section>
+
+  <section class="section-block reveal">
+    <div class="quiz">
+      <h3>🧠 Quick Check</h3>
+      <p class="quiz-q">A user changes the URL from <code>/api/invoices/1001</code> to <code>/api/invoices/1002</code> and sees another customer's invoice. What failed?</p>
+      <div class="quiz-options">
+        <button class="quiz-option">Authentication — they should have been asked to log in again</button>
+        <button class="quiz-option" data-correct="true">Authorization — the endpoint never checked object ownership (IDOR)</button>
+        <button class="quiz-option">Encryption — the invoice should have been encrypted at rest</button>
+        <button class="quiz-option">Rate limiting — requests should have been throttled</button>
+      </div>
+      <div class="quiz-feedback">✅ Correct — this is an Insecure Direct Object Reference, a broken access control bug. The user authenticated fine; the API just never verified the invoice belonged to them. Authorize every object, every time.</div>
+    </div>
+  </section>
+
+  <nav class="bottom-nav">
+    <a href="10-microservices.html"><span class="bn-dir">← Previous</span><span class="bn-title">Microservices Architecture</span></a>
+    <a class="next" href="12-interview-guide.html"><span class="bn-dir">Next →</span><span class="bn-title">Interview Guide</span></a>
+  </nav>
+</main>
+
+<footer class="footer">
+  <div class="footer-bottom">⚡ System Design Illustrated · Topic 11 of 12 · Built with 💜 and vanilla web tech</div>
+</footer>
+
+<script src="../js/main.js"></script>
+</body>
+</html>

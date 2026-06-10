@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Caching Strategies — System Design Illustrated</title>
+<meta name="description" content="Cache levels, cache-aside vs write-through vs write-behind, eviction policies, Redis vs Memcached, and the three classic cache disasters.">
+<script>try{var t=localStorage.getItem('sdi-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body data-topic="06" style="--topic-color:#DC2626">
+
+<div class="reading-progress"></div>
+
+<nav class="navbar">
+  <div class="nav-inner">
+    <a href="../index.html" class="logo"><span class="bolt">⚡</span><span class="logo-text">System Design Illustrated</span></a>
+    <div class="nav-links">
+      <a href="../index.html#topics">Topics</a>
+      <a href="../index.html#about">About</a>
+      <a href="12-interview-guide.html">Interview Guide</a>
+      <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">🌙</button>
+    </div>
+  </div>
+</nav>
+
+<header class="topic-header" style="--topic-color:#DC2626">
+  <div class="topic-header-inner">
+    <div class="breadcrumb"><a href="../index.html">Home</a> / Topics / 06</div>
+    <div class="topic-num-big">TOPIC 06</div>
+    <h1>Caching Strategies ⚡</h1>
+    <p class="subtitle">The single highest-leverage trick in system design: remember the answer instead of recomputing it. Cheap when it works, fascinating when it fails.</p>
+    <div class="topic-meta"><span class="tag">🌿 Intermediate</span><span class="tag">⏱ 35 min read</span><span class="tag">📐 11 concepts</span></div>
+  </div>
+</header>
+
+<main class="topic-body">
+
+  <section class="section-block reveal">
+    <h2>Why Caching Works</h2>
+    <p>Most workloads are wildly skewed: a tiny fraction of data gets the vast majority of reads (the 80/20 rule, often more like 95/5). A <strong>cache</strong> keeps those hot answers in fast storage (usually RAM) so repeated requests skip the slow path — the database query, the API call, the expensive computation.</p>
+    <p>Recall the latency table from Topic 01: RAM ≈ 100&nbsp;ns, SSD ≈ 100&nbsp;µs. A cache hit can be <strong>1,000× faster</strong> than the query it replaces — and it spares your database the work entirely.</p>
+
+    <div class="diagram-box">
+      <svg viewBox="0 0 740 290" role="img" aria-label="Cache hit takes a short fast green path; cache miss takes a long red path through the database">
+        <!-- app -->
+        <rect x="20" y="110" width="110" height="64" rx="12" class="svg-box-p"/>
+        <text x="75" y="148" text-anchor="middle" class="svg-label">📱 App</text>
+        <!-- cache -->
+        <rect x="300" y="40" width="140" height="64" rx="12" style="fill:#FEE2E2;stroke:#DC2626;stroke-width:2"/>
+        <text x="370" y="70" text-anchor="middle" class="svg-label">⚡ Cache</text>
+        <text x="370" y="90" text-anchor="middle" class="svg-soft">RAM · ~1 ms</text>
+        <!-- db -->
+        <rect x="560" y="190" width="150" height="64" rx="12" class="svg-box"/>
+        <text x="635" y="220" text-anchor="middle" class="svg-label">🗄️ Database</text>
+        <text x="635" y="240" text-anchor="middle" class="svg-soft">disk · ~50 ms</text>
+        <!-- HIT path -->
+        <path d="M 135 125 Q 220 70 295 72" fill="none" style="stroke:#10B981;stroke-width:3" class="svg-dash"/>
+        <circle cx="160" cy="105" r="6" class="pkt pkt-1" style="fill:#10B981"/>
+        <text x="200" y="48" class="svg-label" style="fill:#10B981">HIT ✓ fast</text>
+        <!-- MISS path -->
+        <path d="M 135 160 Q 340 230 555 222" fill="none" style="stroke:#DC2626;stroke-width:3" class="svg-dash"/>
+        <circle cx="170" cy="185" r="6" class="pkt pkt-1" style="fill:#DC2626;animation-delay:1.2s"/>
+        <text x="300" y="265" class="svg-label" style="fill:#DC2626">MISS ✗ slow — fetch from DB, then fill cache</text>
+        <!-- backfill -->
+        <path d="M 560 200 Q 470 130 445 95" fill="none" style="stroke:#F59E0B;stroke-width:2;stroke-dasharray:5 5" class="svg-dash"/>
+        <text x="540" y="130" class="svg-soft">backfill</text>
+      </svg>
+      <p class="diagram-caption">Hit: answer in ~1 ms. Miss: pay the full database trip, then store the answer for next time.</p>
+    </div>
+  </section>
+
+  <section class="section-block reveal">
+    <h2>The Caching Layers (You're Already Using Five)</h2>
+    <div class="steps">
+      <div class="step-item"><div class="step-num">1</div><div><strong>Client / browser cache</strong><p>HTTP headers tell the browser to keep assets locally. <code>Cache-Control: max-age=86400</code> means "don't even ask me for a day." <code>ETag</code> enables cheap revalidation: the server replies <code>304 Not Modified</code> instead of resending the body.</p></div></div>
+      <div class="step-item"><div class="step-num">2</div><div><strong>CDN cache</strong><p>Edge servers worldwide cache your static (and sometimes dynamic) responses — Topic 04's whole job.</p></div></div>
+      <div class="step-item"><div class="step-num">3</div><div><strong>Web server cache</strong><p>Reverse proxies like Varnish or Nginx cache whole HTTP responses, shielding the app from rendering the same page twice.</p></div></div>
+      <div class="step-item"><div class="step-num">4</div><div><strong>Application cache</strong><p>In-memory stores — <strong>Redis</strong> and <strong>Memcached</strong> — hold objects, query results, sessions, and computed values between your app and the database. The layer this topic mostly lives in.</p></div></div>
+      <div class="step-item"><div class="step-num">5</div><div><strong>Database cache</strong><p>The DB's own buffer pool keeps hot pages in RAM, and some databases cache query results. Free, but invalidation is coarse.</p></div></div>
+    </div>
+  </section>
+
+  <section class="section-block reveal">
+    <h2>Cache Update Strategies</h2>
+    <p>The hard part of caching isn't reading — it's keeping the cache and the database telling the same story. Four patterns:</p>
+
+    <h3>1. Cache-aside (lazy loading) — the default</h3>
+    <pre class="code-block" data-lang="python"><code><span class="c-k">def</span> get_user(user_id):
+    user = cache.get(<span class="c-s">f"user:{user_id}"</span>)
+    <span class="c-k">if</span> user <span class="c-k">is</span> <span class="c-n">None</span>:                      <span class="c-c"># miss</span>
+        user = db.query(<span class="c-s">"SELECT … WHERE id = %s"</span>, user_id)
+        cache.set(<span class="c-s">f"user:{user_id}"</span>, user, ttl=<span class="c-n">3600</span>)
+    <span class="c-k">return</span> user</code></pre>
+    <p>The app owns the logic: check cache → on miss, load from DB → populate cache. Only requested data gets cached, and a dead cache just means slow (not broken). <em>Risks:</em> stale data until TTL expires, and three round trips on every miss. On writes, the usual move is to <strong>invalidate</strong> (delete) the key, not update it.</p>
+
+    <h3>2. Write-through</h3>
+    <p>Every write goes to the cache, and the cache synchronously writes to the DB before confirming. The cache is always fresh and reads after writes never miss. <em>Cost:</em> every write pays double latency, and you cache data that may never be read.</p>
+
+    <h3>3. Write-behind (write-back)</h3>
+    <p>Writes land in the cache and are acknowledged immediately; a background process flushes them to the DB later, often batched. Spectacular write throughput. <em>Risk:</em> the cache crashes before flushing and those writes are gone forever. Use for tolerable-loss data: view counters, analytics, "last seen" timestamps.</p>
+
+    <h3>4. Refresh-ahead</h3>
+    <p>For hot keys, the cache proactively re-fetches the value shortly <em>before</em> its TTL expires, so popular items never go cold. Works great when you can predict what stays popular; wasteful when you can't.</p>
+
+    <div class="table-wrap">
+      <table class="compare-table">
+        <thead><tr><th>Strategy</th><th>Write latency</th><th>Staleness</th><th>Data-loss risk</th><th>Use when</th></tr></thead>
+        <tbody>
+          <tr><td>Cache-aside</td><td>Normal</td><td>Until TTL/invalidation</td><td>None</td><td>Default; read-heavy workloads</td></tr>
+          <tr><td>Write-through</td><td>Slower (2 writes)</td><td>None</td><td>None</td><td>Reads must always be fresh</td></tr>
+          <tr><td>Write-behind</td><td>Fastest</td><td>None (cache is truth)</td><td>Yes — on crash</td><td>Write-heavy, loss-tolerant data</td></tr>
+          <tr><td>Refresh-ahead</td><td>Normal</td><td>Minimal for hot keys</td><td>None</td><td>Predictably popular items</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="section-block reveal">
+    <h2>Eviction: Who Gets Kicked Out?</h2>
+    <p>RAM is finite. When the cache fills, an <strong>eviction policy</strong> chooses the victim:</p>
+    <div class="cards-grid">
+      <div class="mini-card"><span class="mc-icon">🕰️</span><h4>LRU — Least Recently Used</h4><p>Evict whatever was touched longest ago. Matches real access patterns well; the industry default.</p></div>
+      <div class="mini-card"><span class="mc-icon">📊</span><h4>LFU — Least Frequently Used</h4><p>Evict the least <em>popular</em> item. Protects steady favorites from being flushed by one-off scans.</p></div>
+      <div class="mini-card"><span class="mc-icon">📥</span><h4>FIFO</h4><p>Evict the oldest insert, ignoring usage. Simple, rarely optimal.</p></div>
+      <div class="mini-card"><span class="mc-icon">🎲</span><h4>Random</h4><p>Evict anyone. Shockingly competitive in practice and nearly free to implement (Redis approximates LRU by sampling randomly).</p></div>
+    </div>
+  </section>
+
+  <section class="section-block reveal">
+    <h2>Redis vs Memcached</h2>
+    <div class="table-wrap">
+      <table class="compare-table">
+        <thead><tr><th></th><th>Redis</th><th>Memcached</th></tr></thead>
+        <tbody>
+          <tr><td>Data types</td><td>Strings, lists, hashes, sets, sorted sets, streams, geo, bitmaps</td><td>Strings/blobs only</td></tr>
+          <tr><td>Persistence</td><td>Optional (RDB snapshots, AOF log)</td><td>None — pure cache</td></tr>
+          <tr><td>Replication / HA</td><td>Built-in replicas, Sentinel, Cluster</td><td>None built in (client-side sharding)</td></tr>
+          <tr><td>Threading</td><td>Mostly single-threaded event loop</td><td>Multi-threaded — scales across cores</td></tr>
+          <tr><td>Extras</td><td>Pub/sub, Lua scripting, transactions, TTL per key</td><td>Deliberately minimal</td></tr>
+          <tr><td>Pick it when</td><td>You need structures, durability, or HA (most cases)</td><td>You want a dead-simple, multi-core LRU for flat objects</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout info">
+      <span class="co-icon">🏢</span>
+      <div><strong>Real-world receipts</strong>
+      <p>Facebook runs one of the largest Memcached fleets on Earth (their "Scaling Memcache" paper is a classic). Twitter, GitHub, Stack Overflow, and Discord lean on Redis — Discord famously caches recent messages so channels open instantly.</p></div>
+    </div>
+  </section>
+
+  <section class="section-block reveal">
+    <h2>The Three Classic Cache Disasters</h2>
+    <h3>💥 Cache stampede (thundering herd)</h3>
+    <p>A hot key expires. Ten thousand concurrent requests all miss at once and all hammer the database with the same query, possibly knocking it over. <em>Fixes:</em> a <strong>mutex/lock</strong> so only one request recomputes while others wait or serve stale; or <strong>probabilistic early refresh</strong> — each request has a small chance of refreshing before expiry, smearing the recompute over time.</p>
+    <h3>🕳️ Cache penetration</h3>
+    <p>Requests for keys that <em>don't exist anywhere</em> (random IDs, often malicious) bypass the cache every time and hit the DB. <em>Fixes:</em> cache the nulls (<code>set("user:999", NOT_FOUND, ttl=60)</code>), or keep a <strong>Bloom filter</strong> of all valid keys and reject impossible IDs before they touch storage.</p>
+    <h3>🏔️ Cache avalanche</h3>
+    <p>Thousands of keys share the same TTL (e.g., all cached at deploy time) and expire in the same second — or the cache node itself reboots empty. The DB takes the entire load at once. <em>Fixes:</em> add <strong>jitter</strong> to TTLs (<code>ttl = 3600 + random(0, 300)</code>), warm caches before traffic, and run replicated cache clusters.</p>
+
+    <div class="callout warn">
+      <span class="co-icon">⚠️</span>
+      <div><strong>The two hard things</strong>
+      <p>"There are only two hard things in computer science: cache invalidation and naming things." It's a joke because it's true — every strategy above is a different answer to "when do we admit our copy is wrong?"</p></div>
+    </div>
+
+    <h3>Cache-Control, decoded</h3>
+    <pre class="code-block" data-lang="http"><code><span class="c-c"># Static asset with hashed filename — cache forever</span>
+Cache-Control: <span class="c-s">public, max-age=31536000, immutable</span>
+
+<span class="c-c"># API response — cache 60s, then revalidate with ETag</span>
+Cache-Control: <span class="c-s">private, max-age=60</span>
+ETag: <span class="c-s">"a1b9c3"</span>
+
+<span class="c-c"># Sensitive page — never store</span>
+Cache-Control: <span class="c-s">no-store</span></code></pre>
+
+    <div class="callout archie">
+      <span class="co-icon">🤖</span>
+      <div><strong>Archie says</strong>
+      <p>Interview cheat code: almost every "make it faster / cheaper" follow-up has a caching answer. Just always mention the trade-off in the same breath — "we cache profiles for 5 minutes, accepting up to 5 minutes of staleness."</p></div>
+    </div>
+  </section>
+
+  <section class="section-block reveal">
+    <div class="quiz">
+      <h3>🧠 Quick Check</h3>
+      <p class="quiz-q">A celebrity's profile key expires and 50,000 simultaneous requests slam the database with the same query. What just happened?</p>
+      <div class="quiz-options">
+        <button class="quiz-option">Cache penetration — querying nonexistent keys</button>
+        <button class="quiz-option">Cache avalanche — many different keys expired together</button>
+        <button class="quiz-option" data-correct="true">Cache stampede — one hot key expired under heavy concurrency</button>
+        <button class="quiz-option">Write-behind data loss</button>
+      </div>
+      <div class="quiz-feedback">✅ That's a stampede (thundering herd): one popular key, many concurrent misses. Fix with a recompute lock, serving stale while refreshing, or probabilistic early refresh.</div>
+    </div>
+  </section>
+
+  <nav class="bottom-nav">
+    <a href="05-load-balancers.html"><span class="bn-dir">← Previous</span><span class="bn-title">Load Balancers &amp; Reverse Proxies</span></a>
+    <a class="next" href="07-databases.html"><span class="bn-dir">Next →</span><span class="bn-title">Databases Deep Dive</span></a>
+  </nav>
+</main>
+
+<footer class="footer">
+  <div class="footer-bottom">⚡ System Design Illustrated · Topic 06 of 12 · Built with 💜 and vanilla web tech</div>
+</footer>
+
+<script src="../js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Consistency &amp; Availability Patterns — System Design Illustrated</title>
+<meta name="description" content="Weak, eventual and strong consistency; failover and replication patterns; availability math and SLAs/SLOs/SLIs — explained with animations.">
+<script>try{var t=localStorage.getItem('sdi-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body data-topic="03" style="--topic-color:#D97706">
+
+<div class="reading-progress"></div>
+
+<nav class="navbar">
+  <div class="nav-inner">
+    <a href="../index.html" class="logo"><span class="bolt">⚡</span><span class="logo-text">System Design Illustrated</span></a>
+    <div class="nav-links">
+      <a href="../index.html#topics">Topics</a>
+      <a href="../index.html#about">About</a>
+      <a href="12-interview-guide.html">Interview Guide</a>
+      <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">🌙</button>
+    </div>
+  </div>
+</nav>
+
+<header class="topic-header" style="--topic-color:#D97706">
+  <div class="topic-header-inner">
+    <div class="breadcrumb"><a href="../index.html">Home</a> / Topics / 03</div>
+    <div class="topic-num-big">TOPIC 03</div>
+    <h1>Consistency &amp; Availability Patterns 🔄</h1>
+    <p class="subtitle">CAP tells you a trade-off exists. These patterns are how real systems actually make it — from "reads might lie for a moment" to "two datacenters, zero downtime."</p>
+    <div class="topic-meta"><span class="tag">🌿 Intermediate</span><span class="tag">⏱ 30 min read</span><span class="tag">📐 9 concepts</span></div>
+  </div>
+</header>
+
+<main class="topic-body">
+
+  <section class="section-block reveal">
+    <h2>Consistency Patterns: How Stale Can a Read Be?</h2>
+    <p>When data lives on multiple nodes, "what does a read return right after a write?" becomes a spectrum. Three useful points on it:</p>
+
+    <h3>1. Weak consistency</h3>
+    <p>After a write, reads <em>may or may not</em> ever see it. No promises. This sounds terrible until you realize it's perfect for real-time data where late information is worthless anyway: if you drop a few frames of a video call or a position update in a game, you want the <em>newest</em> data next, not a replay of the old.</p>
+    <p><strong>Used by:</strong> VoIP, video chat, multiplayer game state, memcached under contention.</p>
+
+    <h3>2. Eventual consistency</h3>
+    <p>After a write, reads will see it <em>eventually</em> — typically within milliseconds to seconds — once replication catches up. The system converges to one truth, just not instantly.</p>
+    <p><strong>Used by:</strong> DNS propagation, email delivery, S3 (historically), Amazon shopping carts, social media timelines.</p>
+
+    <div class="diagram-box">
+      <svg viewBox="0 0 740 240" role="img" aria-label="A write lands on one node, then propagates outward to replicas which fill in with color one by one">
+        <text x="370" y="24" text-anchor="middle" class="svg-label">Eventual consistency: a write ripples outward</text>
+        <!-- writer -->
+        <text x="80" y="130" text-anchor="middle" style="font-size:24px">✍️</text>
+        <line x1="105" y1="125" x2="185" y2="125" class="svg-line svg-dash" style="stroke:#D97706"/>
+        <!-- node 1 (written) -->
+        <circle cx="225" cy="125" r="32" style="fill:#D97706" class="svg-node"/>
+        <text x="225" y="131" text-anchor="middle" style="fill:#fff;font-weight:700;font-family:Poppins;font-size:13px">N1</text>
+        <!-- propagation lines -->
+        <line x1="257" y1="110" x2="408" y2="70" class="svg-line svg-dash" style="stroke:#F59E0B"/>
+        <line x1="257" y1="140" x2="408" y2="180" class="svg-line svg-dash" style="stroke:#F59E0B"/>
+        <!-- node 2 fills later -->
+        <g class="seq seq-3"><circle cx="440" cy="62" r="28" style="fill:#D97706"/><text x="440" y="68" text-anchor="middle" style="fill:#fff;font-weight:700;font-family:Poppins;font-size:13px">N2</text></g>
+        <circle cx="440" cy="62" r="28" style="fill:none;stroke:var(--border);stroke-width:2"/>
+        <!-- node 3 fills even later -->
+        <g class="seq seq-5"><circle cx="440" cy="188" r="28" style="fill:#D97706"/><text x="440" y="194" text-anchor="middle" style="fill:#fff;font-weight:700;font-family:Poppins;font-size:13px">N3</text></g>
+        <circle cx="440" cy="188" r="28" style="fill:none;stroke:var(--border);stroke-width:2"/>
+        <!-- readers -->
+        <g class="seq seq-4"><text x="560" y="68" class="svg-soft">reader sees new value ✓</text></g>
+        <g class="seq seq-2"><text x="560" y="194" class="svg-soft">reader sees old value… for now</text></g>
+      </svg>
+      <p class="diagram-caption">N1 accepts the write instantly; N2 and N3 converge moments later. Readers in between may see history.</p>
+    </div>
+
+    <h3>3. Strong consistency</h3>
+    <p>After a write completes, <em>every</em> read sees it, everywhere. Achieved by synchronous replication, quorums, or routing all reads through the leader. The price is latency (you wait for replicas) and reduced availability (no majority → no service).</p>
+    <p><strong>Used by:</strong> bank ledgers, payment systems, seat/inventory reservation, anything in an RDBMS transaction, Google Spanner.</p>
+
+    <div class="table-wrap">
+      <table class="compare-table">
+        <thead><tr><th>Pattern</th><th>Guarantee</th><th>Cost</th><th>Great for</th></tr></thead>
+        <tbody>
+          <tr><td>Weak</td><td>None — best effort</td><td>—</td><td>Calls, gaming, live telemetry</td></tr>
+          <tr><td>Eventual</td><td>Converges after replication lag</td><td>Brief staleness</td><td>Feeds, carts, DNS, email</td></tr>
+          <tr><td>Strong</td><td>Reads always see latest write</td><td>Latency + availability</td><td>Money, inventory, transactions</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout tip">
+      <span class="co-icon">💡</span>
+      <div><strong>Mix per feature, not per system</strong>
+      <p>One product can use all three. An e-commerce site reads product pages eventually-consistently, tracks your cart eventually, and charges your card strongly. Pick the cheapest consistency each feature can tolerate.</p></div>
+    </div>
+  </section>
+
+  <section class="section-block reveal">
+    <h2>Availability Patterns: Surviving Failure</h2>
+    <p>Availability comes from one idea — <strong>redundancy</strong> — applied two ways: failover (a spare takes over) and replication (multiple copies serve at once).</p>
+
+    <h3>Active-passive failover</h3>
+    <p>One node serves traffic (active); a second waits in the wings (passive). They exchange <strong>heartbeats</strong> — periodic "still alive?" pings. If heartbeats stop, the passive node takes over the IP address or DNS name and starts serving.</p>
+    <ul>
+      <li><strong>Hot standby:</strong> fully running and synced — takeover in seconds.</li>
+      <li><strong>Warm standby:</strong> running but lightly synced — takeover in minutes.</li>
+      <li><strong>Cold standby:</strong> powered off until needed — cheapest, slowest to recover.</li>
+    </ul>
+    <p><em>Drawbacks:</em> you pay for hardware that's idle most of its life, and there's a blip of downtime during failover. If the standby's data lags, recent writes can be lost.</p>
+
+    <h3>Active-active failover</h3>
+    <p>Both nodes serve traffic simultaneously, with a load balancer (or geo-DNS) spreading requests between them. Lose one and the other simply absorbs the load. No idle hardware — but now both nodes must handle writes or share state, which drags in the replication problems below.</p>
+
+    <h3>Master-slave (primary-replica) replication</h3>
+    <p>One primary takes all writes and streams its change log to read-only replicas. Reads scale beautifully — just add replicas. The catch is <strong>replication lag</strong>: read a replica right after writing the primary and you might not see your own write. If the primary dies, a replica must be promoted (manually or via election), and unreplicated writes can vanish.</p>
+
+    <h3>Master-master (multi-primary) replication</h3>
+    <p>Every node accepts writes and syncs with the others. Survives any single node loss with no promotion dance — but two nodes can accept conflicting writes to the same row at the same moment. Now you need <strong>conflict resolution</strong>: last-writer-wins (data loss risk), CRDTs, or app-level merging. Many teams sidestep conflicts entirely by partitioning writes (odd IDs to node 1, even to node 2).</p>
+
+    <div class="table-wrap">
+      <table class="compare-table">
+        <thead><tr><th>Pattern</th><th>Writes</th><th>Failure behavior</th><th>Main pain</th></tr></thead>
+        <tbody>
+          <tr><td>Active-passive</td><td>One node</td><td>Standby promoted on heartbeat loss</td><td>Idle spare, failover blip</td></tr>
+          <tr><td>Active-active</td><td>Both nodes</td><td>Survivor absorbs traffic</td><td>State sync complexity</td></tr>
+          <tr><td>Master-slave</td><td>Primary only</td><td>Replica promotion needed</td><td>Replication lag, lost tail writes</td></tr>
+          <tr><td>Master-master</td><td>All nodes</td><td>Seamless</td><td>Write conflicts</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="section-block reveal">
+    <h2>Availability Math: Series vs Parallel</h2>
+    <p>This is the most useful arithmetic in this course. When a request must pass through services <strong>in sequence</strong>, availabilities <em>multiply</em> — and multiply means shrink:</p>
+    <pre class="code-block" data-lang="math"><code><span class="c-c"># In series (request needs BOTH): availability drops</span>
+LB(<span class="c-n">99.9%</span>) → App(<span class="c-n">99.9%</span>)  =  0.999 × 0.999 ≈ <span class="c-n">99.8%</span>
+add DB(<span class="c-n">99.9%</span>)             =  0.999³        ≈ <span class="c-n">99.7%</span>
+
+<span class="c-c"># In parallel (request needs EITHER): availability soars</span>
+two 99.9% replicas = 1 − (0.001 × 0.001) = <span class="c-n">99.9999%</span></code></pre>
+    <p>Every dependency you chain in series eats your nines; every redundant replica you add in parallel multiplies failure probabilities into oblivion. This single fact explains why architects obsess over removing synchronous dependencies and adding replicas.</p>
+
+    <div class="callout warn">
+      <span class="co-icon">⚠️</span>
+      <div><strong>The hidden series dependency</strong>
+      <p>Parallel math only works if failures are <em>independent</em>. Two replicas in the same rack share a switch; two AZs share a region; everything shares your deploy pipeline. Correlated failures are why "five nines on paper" systems still make headlines.</p></div>
+    </div>
+  </section>
+
+  <section class="section-block reveal">
+    <h2>SLAs, SLOs, and SLIs</h2>
+    <p>Three acronyms that turn "the site should be up" into engineering:</p>
+    <div class="steps">
+      <div class="step-item"><div class="step-num">1</div><div><strong>SLI — Service Level Indicator</strong><p>The measurement itself. "p99 latency over 5 minutes" or "fraction of 2xx responses." If you can't graph it, it's not an SLI.</p></div></div>
+      <div class="step-item"><div class="step-num">2</div><div><strong>SLO — Service Level Objective</strong><p>Your internal target for the SLI: "99.95% of requests succeed each month." Miss it and pagers ring; the gap between 100% and the SLO is your <em>error budget</em> for risky deploys.</p></div></div>
+      <div class="step-item"><div class="step-num">3</div><div><strong>SLA — Service Level Agreement</strong><p>The contractual promise to customers, with penalties (usually service credits) for breaking it. Always looser than the SLO — you promise 99.9% while targeting 99.95%, so you breach your own alarm before you breach the contract.</p></div></div>
+    </div>
+
+    <div class="callout archie">
+      <span class="co-icon">🤖</span>
+      <div><strong>Archie says</strong>
+      <p>Error budgets are sneaky-brilliant: if you're well within SLO, ship fast and take risks. If you've burned the budget, freeze features and fix reliability. It turns "devs vs ops" arguments into arithmetic.</p></div>
+    </div>
+  </section>
+
+  <section class="section-block reveal">
+    <div class="quiz">
+      <h3>🧠 Quick Check</h3>
+      <p class="quiz-q">A request flows through three services in sequence, each 99.9% available. Roughly how available is the whole path?</p>
+      <div class="quiz-options">
+        <button class="quiz-option">99.9% — the chain is as strong as each link</button>
+        <button class="quiz-option">99.99% — redundancy adds a nine</button>
+        <button class="quiz-option" data-correct="true">~99.7% — series availabilities multiply</button>
+        <button class="quiz-option">33.3% — divide by the number of services</button>
+      </div>
+      <div class="quiz-feedback">✅ Exactly: 0.999 × 0.999 × 0.999 ≈ 0.997. Chaining services in series quietly triples your downtime — which is why architects fight to shorten synchronous call chains.</div>
+    </div>
+  </section>
+
+  <nav class="bottom-nav">
+    <a href="02-cap-theorem.html"><span class="bn-dir">← Previous</span><span class="bn-title">CAP Theorem</span></a>
+    <a class="next" href="04-dns-cdn.html"><span class="bn-dir">Next →</span><span class="bn-title">DNS &amp; CDN</span></a>
+  </nav>
+</main>
+
+<footer class="footer">
+  <div class="footer-bottom">⚡ System Design Illustrated · Topic 03 of 12 · Built with 💜 and vanilla web tech</div>
+</footer>
+
+<script src="../js/main.js"></script>
+</body>
+</html>

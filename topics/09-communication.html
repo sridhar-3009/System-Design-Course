@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Communication Protocols — System Design Illustrated</title>
+<meta name="description" content="HTTP/1.1 to HTTP/3, TCP vs UDP, REST vs gRPC, WebSockets vs SSE vs long polling, and GraphQL — with an animated TCP handshake.">
+<script>try{var t=localStorage.getItem('sdi-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body data-topic="09" style="--topic-color:#0891B2">
+
+<div class="reading-progress"></div>
+
+<nav class="navbar">
+  <div class="nav-inner">
+    <a href="../index.html" class="logo"><span class="bolt">⚡</span><span class="logo-text">System Design Illustrated</span></a>
+    <div class="nav-links">
+      <a href="../index.html#topics">Topics</a>
+      <a href="../index.html#about">About</a>
+      <a href="12-interview-guide.html">Interview Guide</a>
+      <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">🌙</button>
+    </div>
+  </div>
+</nav>
+
+<header class="topic-header" style="--topic-color:#0891B2">
+  <div class="topic-header-inner">
+    <div class="breadcrumb"><a href="../index.html">Home</a> / Topics / 09</div>
+    <div class="topic-num-big">TOPIC 09</div>
+    <h1>Communication Protocols 🔌</h1>
+    <p class="subtitle">How machines actually talk: the transport layer beneath everything, the evolution of HTTP, and the API styles — REST, gRPC, WebSockets — you'll choose between in every design.</p>
+    <div class="topic-meta"><span class="tag">🌿 Intermediate</span><span class="tag">⏱ 30 min read</span><span class="tag">📐 10 concepts</span></div>
+  </div>
+</header>
+
+<main class="topic-body">
+
+  <section class="section-block reveal">
+    <h2>TCP vs UDP: The Foundation</h2>
+    <p>Almost everything rides on one of two transport protocols, and their personalities couldn't differ more.</p>
+    <p><strong>TCP</strong> is the careful courier: it establishes a connection with a <strong>three-way handshake</strong>, numbers every byte, acknowledges receipt, retransmits losses, and delivers everything <em>in order</em>. Reliability costs latency — at minimum one full round trip before the first byte of data.</p>
+
+    <div class="diagram-box">
+      <svg viewBox="0 0 740 270" role="img" aria-label="TCP three-way handshake: client sends SYN, server replies SYN-ACK, client sends ACK, then data flows">
+        <!-- lifelines -->
+        <rect x="60" y="20" width="110" height="44" rx="10" class="svg-box-p"/>
+        <text x="115" y="48" text-anchor="middle" class="svg-label">💻 Client</text>
+        <rect x="570" y="20" width="110" height="44" rx="10" class="svg-box-p"/>
+        <text x="625" y="48" text-anchor="middle" class="svg-label">🖥️ Server</text>
+        <line x1="115" y1="64" x2="115" y2="255" class="svg-line" style="stroke:var(--border)"/>
+        <line x1="625" y1="64" x2="625" y2="255" class="svg-line" style="stroke:var(--border)"/>
+        <!-- SYN -->
+        <g class="seq seq-1">
+          <line x1="115" y1="95" x2="625" y2="95" class="svg-line svg-dash" style="stroke:#0891B2"/>
+          <text x="370" y="86" text-anchor="middle" class="svg-mono" style="fill:#0891B2">1 · SYN  "can we talk?" →</text>
+        </g>
+        <!-- SYN-ACK -->
+        <g class="seq seq-3">
+          <line x1="625" y1="145" x2="115" y2="145" class="svg-line svg-dash" style="stroke:#F59E0B"/>
+          <text x="370" y="136" text-anchor="middle" class="svg-mono" style="fill:#D97706">← 2 · SYN-ACK  "yes! you ready?"</text>
+        </g>
+        <!-- ACK -->
+        <g class="seq seq-5">
+          <line x1="115" y1="195" x2="625" y2="195" class="svg-line svg-dash" style="stroke:#10B981"/>
+          <text x="370" y="186" text-anchor="middle" class="svg-mono" style="fill:#059669">3 · ACK  "ready — let's go" →</text>
+        </g>
+        <!-- data -->
+        <g class="seq seq-7">
+          <line x1="115" y1="237" x2="625" y2="237" style="stroke:#0891B2;stroke-width:4" class="svg-line"/>
+          <text x="370" y="228" text-anchor="middle" class="svg-label">🎉 connection open — data flows both ways</text>
+        </g>
+      </svg>
+      <p class="diagram-caption">The TCP three-way handshake: one round trip of politeness before any data moves.</p>
+    </div>
+
+    <p><strong>UDP</strong> is the confetti cannon: no handshake, no acknowledgments, no ordering — just fire datagrams and hope. What you lose in reliability you gain in speed and per-packet independence, which is exactly right when <em>fresh</em> beats <em>complete</em>.</p>
+
+    <div class="table-wrap">
+      <table class="compare-table">
+        <thead><tr><th></th><th>TCP</th><th>UDP</th></tr></thead>
+        <tbody>
+          <tr><td>Connection</td><td>Handshake required</td><td>Connectionless</td></tr>
+          <tr><td>Delivery</td><td>Guaranteed, ordered, error-checked</td><td>Best effort — drops and reordering happen</td></tr>
+          <tr><td>Speed</td><td>Slower (ACKs, congestion control)</td><td>Minimal overhead</td></tr>
+          <tr><td>Use for</td><td>Web, APIs, email, file transfer, databases</td><td>Video/voice calls, game state, DNS lookups, live streams</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>The intuition: a missing chunk of a bank transfer is a catastrophe (TCP retransmits it); a missing 40&nbsp;ms of your voice call is a blip that retransmission would only make <em>worse</em> by delivering it late (UDP shrugs and moves on).</p>
+  </section>
+
+  <section class="section-block reveal">
+    <h2>HTTP: Three Generations</h2>
+    <p>HTTP is the request/response protocol of the web: a client sends a method + path + headers (+ body), the server returns a status code + headers + body. Methods map to intent — <code>GET</code> (read), <code>POST</code> (create), <code>PUT</code> (replace), <code>PATCH</code> (modify), <code>DELETE</code> (remove). Status codes tell the story: <code>2xx</code> success, <code>3xx</code> redirect, <code>4xx</code> your fault, <code>5xx</code> our fault.</p>
+    <div class="steps">
+      <div class="step-item"><div class="step-num">1</div><div><strong>HTTP/1.1 (1997)</strong><p>One request at a time per TCP connection. Pipelining existed but responses had to return in order — one slow response blocks everything behind it (<strong>head-of-line blocking</strong>). Browsers coped by opening ~6 parallel connections per host; developers coped with sprite sheets and bundling.</p></div></div>
+      <div class="step-item"><div class="step-num">2</div><div><strong>HTTP/2 (2015)</strong><p><strong>Multiplexing:</strong> many requests and responses interleave as binary frames on one connection — no more waiting in line at the HTTP layer. Plus header compression (HPACK) and server push. One gotcha remains: a single lost TCP packet still stalls <em>all</em> streams, because TCP itself delivers in order.</p></div></div>
+      <div class="step-item"><div class="step-num">3</div><div><strong>HTTP/3 (2022)</strong><p>Solves that by abandoning TCP: it runs on <strong>QUIC</strong>, built atop UDP. Streams are independent (one lost packet stalls only its own stream), the handshake merges transport + TLS into 0–1 round trips, and connections survive switching from Wi-Fi to cellular. Google and Cloudflare serve a huge share of traffic this way already.</p></div></div>
+    </div>
+  </section>
+
+  <section class="section-block reveal">
+    <h2>REST: The Web's Lingua Franca</h2>
+    <p><strong>REST</strong> models your API as <strong>resources</strong> (nouns, not verbs) manipulated through uniform HTTP methods:</p>
+    <pre class="code-block" data-lang="http"><code>GET    /users/42          <span class="c-c"># read user 42</span>
+POST   /users             <span class="c-c"># create a user</span>
+PUT    /users/42          <span class="c-c"># replace user 42</span>
+PATCH  /users/42          <span class="c-c"># update part of user 42</span>
+DELETE /users/42          <span class="c-c"># remove user 42</span></code></pre>
+    <ul class="key-points">
+      <li><strong>Stateless:</strong> each request carries everything needed (auth token included) — any server can answer it, which makes horizontal scaling trivial.</li>
+      <li><strong>Cacheable:</strong> GETs can be cached by browsers, CDNs and proxies for free.</li>
+      <li><strong>Idempotency:</strong> GET, PUT and DELETE can be safely retried — doing them twice equals doing them once. <strong>POST is not idempotent</strong> (retry a payment POST and you may charge twice — hence idempotency keys).</li>
+      <li><strong>HATEOAS:</strong> the purist ideal where responses contain links to next actions. Widely admired, rarely implemented.</li>
+    </ul>
+  </section>
+
+  <section class="section-block reveal">
+    <h2>RPC &amp; gRPC: Just Call the Function</h2>
+    <p><strong>RPC</strong> frames network calls as function calls: <code>userService.getUser(42)</code> instead of building an HTTP request. <strong>gRPC</strong> (Google's open-source RPC) is the modern standard: you define services and messages in <strong>Protocol Buffers</strong>, and the toolchain generates typed client/server code in any language. It rides HTTP/2, encodes messages in compact binary, and supports four shapes: unary, server-streaming, client-streaming, and bidirectional streaming.</p>
+    <div class="table-wrap">
+      <table class="compare-table">
+        <thead><tr><th></th><th>REST + JSON</th><th>gRPC + Protobuf</th></tr></thead>
+        <tbody>
+          <tr><td>Payload</td><td>Text JSON — human-readable</td><td>Binary — smaller, faster to parse</td></tr>
+          <tr><td>Contract</td><td>Optional (OpenAPI)</td><td>Mandatory .proto — compile-time types</td></tr>
+          <tr><td>Streaming</td><td>Awkward</td><td>First-class, bidirectional</td></tr>
+          <tr><td>Browser support</td><td>Universal</td><td>Needs gRPC-Web proxy</td></tr>
+          <tr><td>Debuggability</td><td>curl and read it</td><td>Needs tooling</td></tr>
+          <tr><td>Sweet spot</td><td>Public APIs, web/mobile clients</td><td>Internal service-to-service at scale</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>The common pattern at Netflix, Google, and Uber: <strong>REST (or GraphQL) at the edge</strong> for clients, <strong>gRPC inside</strong> between microservices.</p>
+  </section>
+
+  <section class="section-block reveal">
+    <h2>Real-Time: Polling, SSE, and WebSockets</h2>
+    <p>HTTP is client-initiated — but chat apps, dashboards, and trading screens need the <em>server</em> to speak first. Three escalating options:</p>
+    <div class="table-wrap">
+      <table class="compare-table">
+        <thead><tr><th></th><th>Long polling</th><th>Server-Sent Events (SSE)</th><th>WebSockets</th></tr></thead>
+        <tbody>
+          <tr><td>How it works</td><td>Client asks; server holds the request open until news arrives; repeat</td><td>One HTTP response that never ends; server streams events down it</td><td>HTTP connection upgrades to a persistent, full-duplex socket</td></tr>
+          <tr><td>Direction</td><td>Server → client (per request)</td><td>Server → client only</td><td>Both ways, anytime</td></tr>
+          <tr><td>Overhead</td><td>High — repeated requests &amp; headers</td><td>Low</td><td>Lowest after setup (~2-byte frames)</td></tr>
+          <tr><td>Reconnection</td><td>Inherent (it's just requests)</td><td>Automatic, with replay via Last-Event-ID</td><td>Manual (you write it)</td></tr>
+          <tr><td>Best for</td><td>Legacy fallback, rare updates</td><td>Feeds, notifications, AI token streams</td><td>Chat, games, collaborative editing, trading</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p><strong>WebSockets</strong> power Slack and Discord conversations and every serious multiplayer or trading UI. <strong>SSE</strong> is having a renaissance: it's exactly how ChatGPT-style apps stream tokens. Long polling survives as the universal fallback.</p>
+
+    <div class="callout info">
+      <span class="co-icon">💡</span>
+      <div><strong>GraphQL, briefly</strong>
+      <p>GraphQL lets clients query exactly the fields they need in one request — solving REST's over-fetching and the mobile "n round trips" problem. Costs: server complexity, tricky caching (everything's a POST), and the risk of pathological queries. Facebook built it; GitHub's public API v4 showcases it.</p></div>
+    </div>
+
+    <div class="callout archie">
+      <span class="co-icon">🤖</span>
+      <div><strong>Archie says</strong>
+      <p>When an interviewer says "real-time," interrogate the requirement before saying WebSockets. One-way updates every few seconds? SSE is simpler and proxies love it. True two-way interactivity at sub-100ms? Now you've earned the socket.</p></div>
+    </div>
+  </section>
+
+  <section class="section-block reveal">
+    <div class="quiz">
+      <h3>🧠 Quick Check</h3>
+      <p class="quiz-q">A live sports-score widget needs one-way updates pushed every few seconds, with automatic reconnection, to millions of browsers. Best transport?</p>
+      <div class="quiz-options">
+        <button class="quiz-option">WebSockets — real-time means WebSockets</button>
+        <button class="quiz-option" data-correct="true">Server-Sent Events — one-way streaming with built-in reconnect</button>
+        <button class="quiz-option">Short polling every 100 ms</button>
+        <button class="quiz-option">gRPC bidirectional streaming to each browser</button>
+      </div>
+      <div class="quiz-feedback">✅ SSE is the fit: server-to-client only, plain HTTP (CDN/proxy friendly), auto-reconnect with event replay — and far simpler to operate at fan-out scale than millions of stateful sockets.</div>
+    </div>
+  </section>
+
+  <nav class="bottom-nav">
+    <a href="08-async-messaging.html"><span class="bn-dir">← Previous</span><span class="bn-title">Async Processing &amp; Messaging</span></a>
+    <a class="next" href="10-microservices.html"><span class="bn-dir">Next →</span><span class="bn-title">Microservices Architecture</span></a>
+  </nav>
+</main>
+
+<footer class="footer">
+  <div class="footer-bottom">⚡ System Design Illustrated · Topic 09 of 12 · Built with 💜 and vanilla web tech</div>
+</footer>
+
+<script src="../js/main.js"></script>
+</body>
+</html>

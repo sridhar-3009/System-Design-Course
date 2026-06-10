@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Microservices Architecture — System Design Illustrated</title>
+<meta name="description" content="Monolith vs microservices, service discovery, API gateways, circuit breakers, service meshes, and the saga pattern — with animated diagrams.">
+<script>try{var t=localStorage.getItem('sdi-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body data-topic="10" style="--topic-color:#16A34A">
+
+<div class="reading-progress"></div>
+
+<nav class="navbar">
+  <div class="nav-inner">
+    <a href="../index.html" class="logo"><span class="bolt">⚡</span><span class="logo-text">System Design Illustrated</span></a>
+    <div class="nav-links">
+      <a href="../index.html#topics">Topics</a>
+      <a href="../index.html#about">About</a>
+      <a href="12-interview-guide.html">Interview Guide</a>
+      <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">🌙</button>
+    </div>
+  </div>
+</nav>
+
+<header class="topic-header" style="--topic-color:#16A34A">
+  <div class="topic-header-inner">
+    <div class="breadcrumb"><a href="../index.html">Home</a> / Topics / 10</div>
+    <div class="topic-num-big">TOPIC 10</div>
+    <h1>Microservices Architecture 🧩</h1>
+    <p class="subtitle">Splitting one application into many is a trade: you exchange code complexity for distributed-systems complexity. Here's the full toolbox that makes the trade survivable.</p>
+    <div class="topic-meta"><span class="tag">🌳 Advanced</span><span class="tag">⏱ 40 min read</span><span class="tag">📐 11 concepts</span></div>
+  </div>
+</header>
+
+<main class="topic-body">
+
+  <section class="section-block reveal">
+    <h2>Monolith vs Microservices</h2>
+    <p>A <strong>monolith</strong> is one deployable unit containing all your features. It's gloriously simple: one repo, one deploy, function calls instead of network calls, real ACID transactions across every feature, and trivially easy local debugging. Most successful companies started here — and Shopify and Stack Overflow famously stayed (as well-modularized monoliths).</p>
+    <p>The pain arrives with scale — of <em>teams</em> more than traffic. Fifty engineers in one codebase step on each other; one team's memory leak takes down everyone's features; you must scale (and deploy) the whole thing to scale any part of it.</p>
+    <p><strong>Microservices</strong> split the system along business domains — a user service, an order service, a payment service — each with its own codebase, database, and deployment pipeline, communicating over the network.</p>
+    <div class="two-col">
+      <div class="mini-card"><span class="mc-icon">🏆</span><h4>What you gain</h4><p>Independent deploys (ship payments without touching search), per-service scaling (10 instances of orders, 2 of admin), team autonomy and tech freedom, and fault isolation — one service's crash isn't automatically everyone's outage.</p></div>
+      <div class="mini-card"><span class="mc-icon">💸</span><h4>What you pay</h4><p>Function calls become network calls (latency + failure modes), data consistency without cross-service transactions, debugging spans a dozen services (hello, distributed tracing), and serious DevOps overhead — CI/CD, monitoring and on-call per service.</p></div>
+    </div>
+    <div class="table-wrap">
+      <table class="compare-table">
+        <thead><tr><th></th><th>Monolith</th><th>Microservices</th></tr></thead>
+        <tbody>
+          <tr><td>Deployment</td><td>One unit — all or nothing</td><td>Per service, independent</td></tr>
+          <tr><td>Scaling</td><td>Whole app together</td><td>Each service to its own load</td></tr>
+          <tr><td>Transactions</td><td>Real ACID across features</td><td>Sagas &amp; eventual consistency</td></tr>
+          <tr><td>Debugging</td><td>One stack trace</td><td>Distributed tracing required</td></tr>
+          <tr><td>Team fit</td><td>One small/medium team</td><td>Many autonomous teams</td></tr>
+          <tr><td>Ops overhead</td><td>Low</td><td>High (CI/CD, monitoring × N)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout warn">
+      <span class="co-icon">⚠️</span>
+      <div><strong>The honest heuristic</strong>
+      <p>Microservices solve an <em>organizational</em> scaling problem more than a technical one. Under ~20 engineers, a modular monolith almost always wins. Amazon, Netflix, and Uber split because hundreds of teams couldn't share one deploy train — not because the code demanded it.</p></div>
+    </div>
+  </section>
+
+  <section class="section-block reveal">
+    <h2>How Services Talk</h2>
+    <p><strong>Synchronous</strong> (HTTP/gRPC): the caller waits for the answer. Simple to reason about, but it chains availabilities (Topic 03 math!) and couples deploy-time-independent services at runtime. <strong>Asynchronous</strong> (events on a queue/Kafka): the caller publishes a fact and moves on. Resilient and decoupled — but eventual consistency, and tracing "what happened to order 42" requires real observability tooling.</p>
+    <p>Mature systems use both: synchronous for queries the user is waiting on, asynchronous for everything that can happen "shortly after."</p>
+  </section>
+
+  <section class="section-block reveal">
+    <h2>Service Discovery</h2>
+    <p>Service instances are cattle: they autoscale, crash, and move IPs constantly. <strong>Service discovery</strong> answers "where is the order service <em>right now</em>?" via a <strong>registry</strong> (Consul, Eureka, etcd, or Kubernetes' built-in DNS) that instances register with on boot (and heartbeat to stay listed).</p>
+    <ul>
+      <li><strong>Client-side discovery:</strong> the calling service queries the registry itself and picks an instance (Netflix's Eureka + Ribbon pattern). Fewer hops; discovery logic in every client.</li>
+      <li><strong>Server-side discovery:</strong> the caller hits a stable LB/router address, which consults the registry (AWS ALB + ECS, Kubernetes Services). Dumb clients; one more hop.</li>
+    </ul>
+  </section>
+
+  <section class="section-block reveal">
+    <h2>The API Gateway</h2>
+    <p>Clients shouldn't memorize forty service addresses. An <strong>API gateway</strong> is the single front door that routes <code>/api/orders/*</code> to the order service and <code>/api/users/*</code> to the user service — and centralizes the cross-cutting chores: <strong>authentication</strong>, <strong>rate limiting</strong>, <strong>TLS termination</strong>, request/response transformation, caching, and logging. Examples: Kong, AWS API Gateway, Nginx, Apigee.</p>
+
+    <div class="diagram-box">
+      <svg viewBox="0 0 740 320" role="img" aria-label="Clients call an API gateway which routes requests to user, order, and payment microservices; the order service talks to payment">
+        <!-- clients -->
+        <text x="50" y="120" text-anchor="middle" style="font-size:24px">📱</text>
+        <text x="50" y="200" text-anchor="middle" style="font-size:24px">💻</text>
+        <!-- arrows to gateway -->
+        <line x1="75" y1="155" x2="215" y2="155" class="svg-line svg-dash" style="stroke:#86CB9D"/>
+        <circle cx="90" cy="155" r="6" class="pkt pkt-1" style="fill:#16A34A"/>
+        <circle cx="90" cy="155" r="6" class="pkt pkt-1" style="fill:#F59E0B;animation-delay:1.2s"/>
+        <!-- gateway -->
+        <rect x="220" y="105" width="130" height="100" rx="14" style="fill:#16A34A"/>
+        <text x="285" y="143" text-anchor="middle" style="fill:#fff;font-family:Poppins;font-weight:700;font-size:13px">🚪 API</text>
+        <text x="285" y="163" text-anchor="middle" style="fill:#fff;font-family:Poppins;font-weight:700;font-size:13px">Gateway</text>
+        <text x="285" y="186" text-anchor="middle" style="fill:#D3F2DD;font-size:10px;font-family:Inter">auth · rate limit · route</text>
+        <!-- routes -->
+        <line x1="355" y1="125" x2="490" y2="60" class="svg-line svg-dash" style="stroke:#86CB9D"/>
+        <line x1="355" y1="155" x2="490" y2="155" class="svg-line svg-dash" style="stroke:#86CB9D"/>
+        <line x1="355" y1="185" x2="490" y2="255" class="svg-line svg-dash" style="stroke:#86CB9D"/>
+        <circle cx="375" cy="116" r="5" class="pkt pkt-1" style="fill:#16A34A;animation-delay:.4s"/>
+        <circle cx="375" cy="155" r="5" class="pkt pkt-1" style="fill:#16A34A;animation-delay:1s"/>
+        <circle cx="375" cy="192" r="5" class="pkt pkt-1" style="fill:#16A34A;animation-delay:1.6s"/>
+        <!-- services -->
+        <g class="bob"><rect x="495" y="30" width="150" height="58" rx="10" class="svg-box-p"/><text x="570" y="56" text-anchor="middle" class="svg-label">👤 User Service</text><text x="570" y="76" text-anchor="middle" class="svg-soft">own DB 🗄️</text></g>
+        <g class="bob" style="animation-delay:.5s"><rect x="495" y="126" width="150" height="58" rx="10" class="svg-box-p"/><text x="570" y="152" text-anchor="middle" class="svg-label">📦 Order Service</text><text x="570" y="172" text-anchor="middle" class="svg-soft">own DB 🗄️</text></g>
+        <g class="bob" style="animation-delay:1s"><rect x="495" y="226" width="150" height="58" rx="10" class="svg-box-p"/><text x="570" y="252" text-anchor="middle" class="svg-label">💳 Payment Service</text><text x="570" y="272" text-anchor="middle" class="svg-soft">own DB 🗄️</text></g>
+        <!-- inter-service call -->
+        <path d="M 660 184 Q 700 205 660 226" fill="none" class="svg-line svg-dash" style="stroke:#F59E0B"/>
+        <text x="712" y="210" text-anchor="middle" class="svg-soft">gRPC</text>
+      </svg>
+      <p class="diagram-caption">One front door for clients; services own their data and talk to each other behind it.</p>
+    </div>
+  </section>
+
+  <section class="section-block reveal">
+    <h2>Circuit Breakers: Failing Fast, Healing Gracefully</h2>
+    <p>When the payment service starts timing out, every caller that keeps retrying ties up its own threads waiting — and the failure <em>cascades</em> upstream until the whole site is down. A <strong>circuit breaker</strong> wraps risky calls and trips when failures pass a threshold, exactly like the one in your house:</p>
+    <div class="steps">
+      <div class="step-item"><div class="step-num">1</div><div><strong>Closed (normal)</strong><p>Calls flow through; the breaker counts recent failures.</p></div></div>
+      <div class="step-item"><div class="step-num">2</div><div><strong>Open (tripped)</strong><p>Failure rate crossed the line — calls now fail <em>instantly</em> (or return a fallback: cached data, a default, a "try later"). No threads wasted, and the struggling service gets breathing room to recover.</p></div></div>
+      <div class="step-item"><div class="step-num">3</div><div><strong>Half-open (probing)</strong><p>After a cooldown, a few trial calls go through. Success → close the breaker; failure → snap back open.</p></div></div>
+    </div>
+    <p>Netflix's <strong>Hystrix</strong> made the pattern famous; <strong>Resilience4j</strong> is its modern successor, and Envoy/Istio implement it at the proxy layer. Pair it with timeouts, capped exponential-backoff retries, and bulkheads (separate thread/connection pools per dependency).</p>
+  </section>
+
+  <section class="section-block reveal">
+    <h2>Service Mesh: Networking as Infrastructure</h2>
+    <p>Retries, mTLS, metrics, circuit breaking… implementing these in every service, in every language, is madness. A <strong>service mesh</strong> moves them out of your code: a <strong>sidecar proxy</strong> (almost always <strong>Envoy</strong>) sits beside each service instance, and all traffic flows through the sidecars. A control plane (<strong>Istio</strong>, <strong>Linkerd</strong>) configures the fleet.</p>
+    <ul class="key-points">
+      <li>Automatic mutual TLS between every pair of services.</li>
+      <li>Uniform retries, timeouts and circuit breaking — set by config, not code.</li>
+      <li>Traffic shifting: "send 5% of requests to v2" for canary releases.</li>
+      <li>Golden metrics and distributed-tracing hooks for free, every hop.</li>
+    </ul>
+    <p>Cost: real operational complexity and a latency tax per hop. Meshes earn their keep at dozens-of-services scale, not at five.</p>
+  </section>
+
+  <section class="section-block reveal">
+    <h2>Sagas: Transactions Without Transactions</h2>
+    <p>Placing an order touches orders, payments, and inventory — three services, three databases, and no ACID transaction can span them. A <strong>saga</strong> replaces the big transaction with a sequence of local ones, each paired with a <strong>compensating action</strong> to undo it if a later step fails (payment failed → release reserved inventory → cancel order).</p>
+    <div class="two-col">
+      <div class="mini-card"><span class="mc-icon">💃</span><h4>Choreography</h4><p>No boss: each service reacts to events. Order service emits <code>OrderCreated</code>; payment hears it, charges, emits <code>PaymentCompleted</code>; inventory hears that… Loosely coupled, but the overall flow lives nowhere — good luck answering "what's the state of order 42?"</p></div>
+      <div class="mini-card"><span class="mc-icon">🎼</span><h4>Orchestration</h4><p>A coordinator (e.g., Temporal, AWS Step Functions) explicitly calls each step and triggers compensations on failure. The flow is readable and debuggable in one place — at the cost of a central component to operate.</p></div>
+    </div>
+
+    <div class="callout info">
+      <span class="co-icon">🏢</span>
+      <div><strong>Real-world receipts</strong>
+      <p>Netflix runs 1000+ microservices and birthed Eureka, Hystrix and chaos engineering. Uber rebuilt around domain-oriented services after its early microservice sprawl became "a distributed monolith." And Amazon's Prime Video team made headlines by merging some microservices <em>back</em> into a monolith and cutting costs 90% — architecture is a pendulum, not a ladder.</p></div>
+    </div>
+
+    <div class="callout archie">
+      <span class="co-icon">🤖</span>
+      <div><strong>Archie says</strong>
+      <p>In interviews, never open with microservices. Say: "I'd start with a modular monolith; here's the seam — payments — I'd extract first, and here's the trigger: team contention on deploys or a component needing independent scale." That sentence shows more architectural maturity than any box diagram.</p></div>
+    </div>
+  </section>
+
+  <section class="section-block reveal">
+    <div class="quiz">
+      <h3>🧠 Quick Check</h3>
+      <p class="quiz-q">The recommendation service is timing out, and now the whole product page hangs waiting for it. Which pattern stops the bleeding fastest?</p>
+      <div class="quiz-options">
+        <button class="quiz-option">A saga with compensating transactions</button>
+        <button class="quiz-option">Client-side service discovery</button>
+        <button class="quiz-option" data-correct="true">A circuit breaker with a fallback (e.g., show popular items instead)</button>
+        <button class="quiz-option">Splitting recommendations into three smaller services</button>
+      </div>
+      <div class="quiz-feedback">✅ Exactly. Trip the breaker, fail fast, serve a cached/default fallback — the page loads without recommendations instead of not loading at all. Graceful degradation beats cascading failure.</div>
+    </div>
+  </section>
+
+  <nav class="bottom-nav">
+    <a href="09-communication.html"><span class="bn-dir">← Previous</span><span class="bn-title">Communication Protocols</span></a>
+    <a class="next" href="11-security.html"><span class="bn-dir">Next →</span><span class="bn-title">Security Essentials</span></a>
+  </nav>
+</main>
+
+<footer class="footer">
+  <div class="footer-bottom">⚡ System Design Illustrated · Topic 10 of 12 · Built with 💜 and vanilla web tech</div>
+</footer>
+
+<script src="../js/main.js"></script>
+</body>
+</html>

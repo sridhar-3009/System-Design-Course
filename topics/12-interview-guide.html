@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>System Design Interview Guide — System Design Illustrated</title>
+<meta name="description" content="A five-step interview framework plus three fully worked examples: URL shortener, Twitter timeline, and a distributed rate limiter.">
+<script>try{var t=localStorage.getItem('sdi-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body data-topic="12" style="--topic-color:#4338CA">
+
+<div class="reading-progress"></div>
+
+<nav class="navbar">
+  <div class="nav-inner">
+    <a href="../index.html" class="logo"><span class="bolt">⚡</span><span class="logo-text">System Design Illustrated</span></a>
+    <div class="nav-links">
+      <a href="../index.html#topics">Topics</a>
+      <a href="../index.html#about">About</a>
+      <a href="12-interview-guide.html">Interview Guide</a>
+      <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">🌙</button>
+    </div>
+  </div>
+</nav>
+
+<header class="topic-header" style="--topic-color:#4338CA">
+  <div class="topic-header-inner">
+    <div class="breadcrumb"><a href="../index.html">Home</a> / Topics / 12</div>
+    <div class="topic-num-big">TOPIC 12 · CAPSTONE</div>
+    <h1>The System Design Interview Guide 🎯</h1>
+    <p class="subtitle">Everything from Topics 01–11, weaponized. A repeatable five-step framework, the patterns interviewers expect, and three classic questions worked end to end.</p>
+    <div class="topic-meta"><span class="tag">🎓 All levels</span><span class="tag">⏱ 50 min read</span><span class="tag">📐 3 worked examples</span></div>
+  </div>
+</header>
+
+<main class="topic-body">
+
+  <section class="section-block reveal">
+    <h2>The Five-Step Framework</h2>
+    <p>A system design interview is 45 minutes of deliberate ambiguity — the interviewer wants to watch you impose structure on it. This framework (a cousin of RADIO) always works:</p>
+
+    <div class="diagram-box">
+      <svg viewBox="0 0 740 150" role="img" aria-label="Five framework steps appear in sequence: requirements, estimation, high-level design, deep dive, and bottlenecks">
+        <g class="seq seq-1">
+          <rect x="15" y="40" width="120" height="70" rx="12" style="fill:#4338CA"/>
+          <text x="75" y="70" text-anchor="middle" style="fill:#fff;font-family:Poppins;font-weight:700;font-size:12px">1 · Requirements</text>
+          <text x="75" y="92" text-anchor="middle" style="fill:#C9C4F4;font-size:10px;font-family:Inter">5–10 min</text>
+        </g>
+        <g class="seq seq-2"><line x1="138" y1="75" x2="158" y2="75" class="svg-line svg-dash" style="stroke:#4338CA"/></g>
+        <g class="seq seq-2">
+          <rect x="161" y="40" width="120" height="70" rx="12" style="fill:#5B50DB"/>
+          <text x="221" y="70" text-anchor="middle" style="fill:#fff;font-family:Poppins;font-weight:700;font-size:12px">2 · Estimation</text>
+          <text x="221" y="92" text-anchor="middle" style="fill:#D4D0F6;font-size:10px;font-family:Inter">~5 min</text>
+        </g>
+        <g class="seq seq-3"><line x1="284" y1="75" x2="304" y2="75" class="svg-line svg-dash" style="stroke:#4338CA"/></g>
+        <g class="seq seq-3">
+          <rect x="307" y="40" width="120" height="70" rx="12" style="fill:#7C3AED"/>
+          <text x="367" y="70" text-anchor="middle" style="fill:#fff;font-family:Poppins;font-weight:700;font-size:12px">3 · High-level</text>
+          <text x="367" y="92" text-anchor="middle" style="fill:#E2D5FC;font-size:10px;font-family:Inter">10–15 min</text>
+        </g>
+        <g class="seq seq-4"><line x1="430" y1="75" x2="450" y2="75" class="svg-line svg-dash" style="stroke:#4338CA"/></g>
+        <g class="seq seq-4">
+          <rect x="453" y="40" width="120" height="70" rx="12" style="fill:#9F67F8"/>
+          <text x="513" y="70" text-anchor="middle" style="fill:#fff;font-family:Poppins;font-weight:700;font-size:12px">4 · Deep dive</text>
+          <text x="513" y="92" text-anchor="middle" style="fill:#EFE6FE;font-size:10px;font-family:Inter">10–15 min</text>
+        </g>
+        <g class="seq seq-5"><line x1="576" y1="75" x2="596" y2="75" class="svg-line svg-dash" style="stroke:#4338CA"/></g>
+        <g class="seq seq-5">
+          <rect x="599" y="40" width="126" height="70" rx="12" style="fill:#F59E0B"/>
+          <text x="662" y="70" text-anchor="middle" style="fill:#fff;font-family:Poppins;font-weight:700;font-size:12px">5 · Bottlenecks</text>
+          <text x="662" y="92" text-anchor="middle" style="fill:#FDEDD3;font-size:10px;font-family:Inter">5–10 min</text>
+        </g>
+      </svg>
+      <p class="diagram-caption">Budget your 45 minutes deliberately — running out of time in step 3 is the most common failure.</p>
+    </div>
+
+    <div class="steps">
+      <div class="step-item"><div class="step-num">1</div><div><strong>Requirements — ask before you build</strong><p><em>Functional:</em> what must it do? (shorten URLs, redirect, custom aliases?) <em>Non-functional:</em> how well? (scale, latency targets, availability vs consistency, durability). Explicitly scope things OUT: "I'll skip analytics for now — fair?" Interviewers love hearing what you're <em>not</em> building.</p></div></div>
+      <div class="step-item"><div class="step-num">2</div><div><strong>Capacity estimation — napkin math</strong><p>DAU → QPS (recall: 1M/day ≈ 12 QPS), read:write ratio, storage per year, bandwidth. The output isn't the number — it's the decisions it triggers: "600 reads/sec means caching matters more than write scaling."</p></div></div>
+      <div class="step-item"><div class="step-num">3</div><div><strong>High-level design — boxes and arrows</strong><p>Client → DNS/CDN → LB → app servers → cache → DB → queue → workers. Draw the simple, correct skeleton first and trace one request through it aloud. Don't gold-plate yet.</p></div></div>
+      <div class="step-item"><div class="step-num">4</div><div><strong>Deep dive — pick your battlefield</strong><p>The interviewer (or you) picks 1–2 components: DB schema and shard key, the API contract, the core algorithm, the cache strategy. This is where Topics 06–08 knowledge gets spent.</p></div></div>
+      <div class="step-item"><div class="step-num">5</div><div><strong>Bottlenecks &amp; trade-offs — what breaks at 10×?</strong><p>Single points of failure, hot shards, cache stampedes, the DB write ceiling. Name each, propose the fix, state its cost. Closing strong here is the difference between "solid" and "senior."</p></div></div>
+    </div>
+
+    <p><strong>Patterns to have loaded in cache:</strong> horizontal scaling + LB (05), CDN for static (04), cache-aside with Redis (06), read replicas → sharding (07), async via queues (08), and stateless services so any server handles any request (09). Most questions are these six blocks rearranged.</p>
+  </section>
+
+  <!-- ============ EXAMPLE 1 ============ -->
+  <section class="section-block reveal" id="worked-examples">
+    <h2>Worked Example 1: URL Shortener (TinyURL)</h2>
+    <p><strong>Requirements.</strong> Shorten a long URL to ~7 characters; redirect fast; links live for years; optional custom aliases. Non-functional: redirects must be very fast (&lt;50&nbsp;ms) and highly available — a broken redirect is a broken link on someone else's site. Read-heavy: assume 100:1 reads to writes.</p>
+    <p><strong>Estimates.</strong> 10M new URLs/month ≈ 4 writes/sec; 1B redirects/month ≈ 400 reads/sec. Storage: 10M/month × ~500 bytes ≈ 5&nbsp;GB/month — 60&nbsp;GB/year. Tiny! This is a <em>latency and availability</em> problem, not a big-data problem. Say that out loud; it's the key insight.</p>
+    <p><strong>The algorithm.</strong> Use a counter + <strong>base62 encoding</strong> (a–z, A–Z, 0–9). 62⁷ ≈ 3.5 <em>trillion</em> codes — enough forever. Avoid hashing the URL alone (collisions, and two users shortening the same URL get the same code — fine until one wants analytics).</p>
+    <pre class="code-block" data-lang="python"><code>ALPHABET = <span class="c-s">"abc…xyzABC…XYZ012…789"</span>  <span class="c-c"># 62 chars</span>
+
+<span class="c-k">def</span> encode(n):                      <span class="c-c"># 125 → "cb"</span>
+    s = <span class="c-s">""</span>
+    <span class="c-k">while</span> n:
+        s = ALPHABET[n % <span class="c-n">62</span>] + s
+        n //= <span class="c-n">62</span>
+    <span class="c-k">return</span> s <span class="c-k">or</span> <span class="c-s">"a"</span>
+
+<span class="c-c"># DB: urls(id BIGINT PK, short_code CHAR(7) UNIQUE,</span>
+<span class="c-c">#          long_url TEXT, created_at, expires_at)</span></code></pre>
+    <p><strong>Design.</strong> <code>POST /shorten</code> → app server gets a unique ID (a DB sequence, or pre-allocated ID <em>ranges</em> per server to avoid a single counter bottleneck — Flickr's ticket-server trick), encodes it, stores the row. <code>GET /{code}</code> → check Redis (cache-aside; hot links are wildly skewed) → on miss, read DB, fill cache, reply <code>301</code> (or <code>302</code> if you want analytics on every hit).</p>
+    <p><strong>Scale &amp; trade-offs.</strong> Cache absorbs ~90% of redirects; replicate the DB for reads and availability; CDN/edge can even serve redirects. Mention abuse (rate-limit creation, blocklist malicious domains) and expiry cleanup as a background job (08).</p>
+  </section>
+
+  <!-- ============ EXAMPLE 2 ============ -->
+  <section class="section-block reveal">
+    <h2>Worked Example 2: Twitter Timeline</h2>
+    <p><strong>The crux.</strong> Home timeline = merged recent tweets from everyone you follow. Two opposite strategies:</p>
+    <div class="two-col">
+      <div class="mini-card"><span class="mc-icon">📤</span><h4>Fan-out on write (push)</h4><p>When Alice tweets, <em>push</em> the tweet ID into every follower's pre-computed timeline list (Redis). Reading your timeline is one cheap fetch. But a celebrity with 100M followers triggers 100M writes per tweet. 🔥</p></div>
+      <div class="mini-card"><span class="mc-icon">📥</span><h4>Fan-out on read (pull)</h4><p>Store tweets once; when Bob opens the app, <em>pull</em> recent tweets from all 800 people he follows and merge. Writes are cheap; every timeline read is an 800-way merge. Slow for active readers.</p></div>
+    </div>
+    <div class="table-wrap">
+      <table class="compare-table">
+        <thead><tr><th></th><th>Fan-out on write</th><th>Fan-out on read</th><th>Hybrid</th></tr></thead>
+        <tbody>
+          <tr><td>Write cost</td><td>O(followers) per tweet</td><td>O(1)</td><td>O(followers), capped</td></tr>
+          <tr><td>Read cost</td><td>O(1) — precomputed</td><td>O(following) merge</td><td>O(1) + tiny celebrity merge</td></tr>
+          <tr><td>Celebrity tweet</td><td>💥 100M timeline writes</td><td>Fine</td><td>Merged at read time</td></tr>
+          <tr><td>Used by</td><td>Most users' tweets</td><td>Rarely alone</td><td>Twitter, Instagram</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p><strong>The hybrid (what Twitter actually did).</strong> Fan-out on write for the 99.9% of users with normal follower counts — timelines are pre-built and reads are instant. For <strong>celebrities</strong> (follower count above a threshold), don't fan out: instead, merge their fresh tweets in <em>at read time</em>. Each user's timeline = their pre-computed list + a live merge of the handful of celebrities they follow. Best of both; the threshold is a tunable knob.</p>
+    <p><strong>Supporting cast.</strong> Tweets in a sharded store keyed by tweet ID; timelines in Redis (lists capped to ~800 entries); the fan-out itself is async via queues (08) — a tweet appearing in followers' feeds 2 seconds late is invisible, which is eventual consistency (03) earning its keep. Media on a CDN (04).</p>
+    <div class="callout tip">
+      <span class="co-icon">💡</span>
+      <div><strong>Why interviewers love this question</strong>
+      <p>It has no right answer — it has a <em>spectrum</em>, and your job is to find the hybrid and justify the threshold. Say "read-heavy favors precomputation; extreme fan-out breaks it; so split users by fan-out cost" and you've demonstrated the entire skill being tested.</p></div>
+    </div>
+  </section>
+
+  <!-- ============ EXAMPLE 3 ============ -->
+  <section class="section-block reveal">
+    <h2>Worked Example 3: Rate Limiter</h2>
+    <p><strong>Requirements.</strong> Limit each API key to N requests per window (say 100/min); return <code>429</code> with <code>Retry-After</code> when exceeded; add &lt;5&nbsp;ms latency; work across a fleet of API servers (a per-server counter would let clients get N × servers requests).</p>
+    <p><strong>Algorithm: token bucket</strong> (11). Each key gets a bucket: capacity 100, refilling at 100/60 tokens per second. A request spends a token; an empty bucket means 429. Buckets allow honest bursts while capping the sustained rate — and need only two numbers stored per key: token count and last-refill timestamp.</p>
+    <p><strong>Distributed version.</strong> Centralize the buckets in <strong>Redis</strong> so all API servers share state. The check-and-decrement must be <strong>atomic</strong> — a Lua script (or Redis functions) does read-refill-spend in one step, eliminating the race between two servers reading "1 token left" simultaneously:</p>
+    <pre class="code-block" data-lang="lua"><code><span class="c-c">-- KEYS[1]=bucket key · ARGV: capacity, refill_rate, now</span>
+<span class="c-k">local</span> tokens = tonumber(redis.call(<span class="c-s">'HGET'</span>, KEYS[<span class="c-n">1</span>], <span class="c-s">'tokens'</span>) <span class="c-k">or</span> ARGV[<span class="c-n">1</span>])
+<span class="c-k">local</span> last   = tonumber(redis.call(<span class="c-s">'HGET'</span>, KEYS[<span class="c-n">1</span>], <span class="c-s">'ts'</span>) <span class="c-k">or</span> ARGV[<span class="c-n">3</span>])
+tokens = math.min(ARGV[<span class="c-n">1</span>], tokens + (ARGV[<span class="c-n">3</span>] - last) * ARGV[<span class="c-n">2</span>])
+<span class="c-k">if</span> tokens &lt; <span class="c-n">1</span> <span class="c-k">then return</span> <span class="c-n">0</span> <span class="c-k">end</span>   <span class="c-c">-- 429</span>
+redis.call(<span class="c-s">'HSET'</span>, KEYS[<span class="c-n">1</span>], <span class="c-s">'tokens'</span>, tokens - <span class="c-n">1</span>, <span class="c-s">'ts'</span>, ARGV[<span class="c-n">3</span>])
+<span class="c-k">return</span> <span class="c-n">1</span>                            <span class="c-c">-- allowed</span></code></pre>
+    <p><strong>Trade-offs to volunteer.</strong> Redis is now on the hot path — if it dies, do you <em>fail open</em> (allow everything; risk abuse) or <em>fail closed</em> (block everything; outage)? Most choose fail-open with alerts. At extreme scale, keep approximate local buckets that sync to Redis periodically — slightly leaky limits for much lower latency. Where to enforce? The API gateway (10) — one place, every service protected.</p>
+  </section>
+
+  <section class="section-block reveal">
+    <h2>Final Tips from Archie</h2>
+    <ul class="key-points">
+      <li><strong>Draw first, then explain.</strong> A diagram on the board is shared memory; words evaporate.</li>
+      <li><strong>Ask clarifying questions</strong> for a full five minutes. Jumping straight to Kafka is the #1 red flag.</li>
+      <li><strong>State assumptions numerically.</strong> "Assuming 10M DAU and 100:1 reads…" makes everything after it defensible.</li>
+      <li><strong>Think out loud.</strong> A wrong path reasoned clearly scores higher than a right answer delivered silently.</li>
+      <li><strong>Name every trade-off.</strong> "Cache gives us 10× reads at the cost of ≤5 min staleness" — that sentence shape, constantly.</li>
+      <li><strong>Start simple, scale on demand.</strong> Earn complexity: monolith → replicas → cache → shard → queue, each step justified by a number.</li>
+    </ul>
+    <div class="callout archie">
+      <span class="co-icon">🤖</span>
+      <div><strong>Archie's send-off</strong>
+      <p>You now have the whole toolbox: scale math (01), CAP instincts (02), consistency patterns (03), DNS &amp; CDNs (04), load balancing (05), caching (06), databases (07), queues (08), protocols (09), microservices (10), and security (11). System design isn't memorization — it's knowing which trade-off to reach for. Go build something beautiful. ⚡</p></div>
+    </div>
+  </section>
+
+  <section class="section-block reveal">
+    <div class="quiz">
+      <h3>🧠 Final Boss Question</h3>
+      <p class="quiz-q">Interviewer: "Design Instagram." What's the strongest possible first move?</p>
+      <div class="quiz-options">
+        <button class="quiz-option">Draw the microservices architecture you'd end up with</button>
+        <button class="quiz-option">Estimate storage for 2 billion photos</button>
+        <button class="quiz-option" data-correct="true">Ask: "Which features are in scope, and what scale are we targeting?"</button>
+        <button class="quiz-option">Choose between Cassandra and PostgreSQL</button>
+      </div>
+      <div class="quiz-feedback">✅ Always. Requirements before architecture — "Instagram" could mean photo upload, feed generation, stories, DMs, or explore. Scoping the problem IS the first demonstration of system design skill. (Estimation is the right <em>second</em> move.)</div>
+    </div>
+  </section>
+
+  <nav class="bottom-nav">
+    <a href="11-security.html"><span class="bn-dir">← Previous</span><span class="bn-title">Security Essentials</span></a>
+    <a class="next" href="../index.html"><span class="bn-dir">Finish 🎉</span><span class="bn-title">Back to Course Home</span></a>
+  </nav>
+</main>
+
+<footer class="footer">
+  <div class="footer-bottom">⚡ System Design Illustrated · Topic 12 of 12 · You made it! 🎓 Built with 💜 and vanilla web tech</div>
+</footer>
+
+<script src="../js/main.js"></script>
+</body>
+</html>

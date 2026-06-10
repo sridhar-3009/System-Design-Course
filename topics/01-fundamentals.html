@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fundamentals of Scale — System Design Illustrated</title>
+<meta name="description" content="Scalability, performance, latency vs throughput, availability nines, and back-of-envelope estimation — explained simply with animations.">
+<script>try{var t=localStorage.getItem('sdi-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body data-topic="01" style="--topic-color:#7C3AED">
+
+<div class="reading-progress"></div>
+
+<nav class="navbar">
+  <div class="nav-inner">
+    <a href="../index.html" class="logo"><span class="bolt">⚡</span><span class="logo-text">System Design Illustrated</span></a>
+    <div class="nav-links">
+      <a href="../index.html#topics">Topics</a>
+      <a href="../index.html#about">About</a>
+      <a href="12-interview-guide.html">Interview Guide</a>
+      <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">🌙</button>
+    </div>
+  </div>
+</nav>
+
+<header class="topic-header" style="--topic-color:#7C3AED">
+  <div class="topic-header-inner">
+    <div class="breadcrumb"><a href="../index.html">Home</a> / Topics / 01</div>
+    <div class="topic-num-big">TOPIC 01</div>
+    <h1>Fundamentals of Scale 📈</h1>
+    <p class="subtitle">Before you can design big systems, you need a vocabulary for "big." This topic gives you the core measurements — scaling, latency, throughput, and availability — plus the napkin math interviewers love.</p>
+    <div class="topic-meta"><span class="tag">🌱 Beginner</span><span class="tag">⏱ 25 min read</span><span class="tag">📐 8 concepts</span></div>
+  </div>
+</header>
+
+<main class="topic-body">
+
+  <!-- ============ SCALABILITY ============ -->
+  <section class="section-block reveal">
+    <h2>What Does "Scaling" Actually Mean?</h2>
+    <p>Your app is on one server, happily serving 100 users. Then it lands on the front page of Hacker News and 100,000 people show up. <strong>Scalability</strong> is the property that lets your system handle that growth — in users, data, or traffic — without falling over or requiring a rewrite.</p>
+    <p>There are exactly two directions you can grow, and the difference between them shapes almost every other decision in this course.</p>
+
+    <div class="diagram-box">
+      <svg viewBox="0 0 740 280" role="img" aria-label="Vertical scaling shows one server growing larger; horizontal scaling shows more servers being added">
+        <!-- Vertical scaling -->
+        <text x="180" y="28" text-anchor="middle" class="svg-label">Vertical Scaling (scale UP)</text>
+        <rect x="150" y="200" width="60" height="50" rx="8" class="svg-box-p"/>
+        <rect x="140" y="60" width="80" height="190" rx="10" class="grow-bar" style="fill:#7C3AED;opacity:.85"/>
+        <text x="180" y="160" text-anchor="middle" style="font-size:26px" class="seq seq-2">🖥️</text>
+        <text x="180" y="268" text-anchor="middle" class="svg-soft">one machine, more muscle</text>
+
+        <!-- divider -->
+        <line x1="370" y1="40" x2="370" y2="250" class="svg-line" style="stroke:var(--border)"/>
+
+        <!-- Horizontal scaling -->
+        <text x="555" y="28" text-anchor="middle" class="svg-label">Horizontal Scaling (scale OUT)</text>
+        <g class="seq seq-1"><rect x="420" y="170" width="70" height="80" rx="10" class="svg-box-p"/><text x="455" y="220" text-anchor="middle" style="font-size:22px">🖥️</text></g>
+        <g class="seq seq-2"><rect x="510" y="170" width="70" height="80" rx="10" class="svg-box-p"/><text x="545" y="220" text-anchor="middle" style="font-size:22px">🖥️</text></g>
+        <g class="seq seq-3"><rect x="600" y="170" width="70" height="80" rx="10" class="svg-box-p"/><text x="635" y="220" text-anchor="middle" style="font-size:22px">🖥️</text></g>
+        <g class="seq seq-4"><text x="700" y="218" class="svg-label" style="font-size:20px">…</text></g>
+        <text x="555" y="268" text-anchor="middle" class="svg-soft">many machines, shared load</text>
+      </svg>
+      <p class="diagram-caption">Vertical scaling makes one box bigger. Horizontal scaling adds more boxes.</p>
+    </div>
+
+    <div class="two-col">
+      <div class="mini-card">
+        <span class="mc-icon">⬆️</span>
+        <h4>Vertical scaling (scale up)</h4>
+        <p>Swap your server for a beefier one: more CPU cores, more RAM, faster disks. Zero code changes. But hardware has a ceiling, prices grow non-linearly at the high end, and you still have a single point of failure.</p>
+      </div>
+      <div class="mini-card">
+        <span class="mc-icon">➡️</span>
+        <h4>Horizontal scaling (scale out)</h4>
+        <p>Add more commodity machines and spread the work. Nearly unlimited headroom and built-in redundancy — but now you need load balancing, shared state, and you've officially entered distributed-systems territory.</p>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table class="compare-table">
+        <thead><tr><th></th><th>Vertical (Up)</th><th>Horizontal (Out)</th></tr></thead>
+        <tbody>
+          <tr><td>Complexity</td><td>Low — same code, bigger box</td><td>High — LBs, replication, partitioning</td></tr>
+          <tr><td>Ceiling</td><td>Hard hardware limit</td><td>Practically unbounded</td></tr>
+          <tr><td>Fault tolerance</td><td>Single point of failure</td><td>Survives individual machine deaths</td></tr>
+          <tr><td>Cost curve</td><td>Steep at the top end</td><td>Linear with commodity hardware</td></tr>
+          <tr><td>Best first move for</td><td>Databases, early-stage apps</td><td>Stateless web/API tiers</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout archie">
+      <span class="co-icon">🤖</span>
+      <div><strong>Archie says</strong>
+      <p>Real systems do both! Stack Overflow famously ran on a handful of very tall servers for years, while Google went wide with hundreds of thousands of cheap ones. Scale up until it hurts, then scale out where it counts.</p></div>
+    </div>
+  </section>
+
+  <!-- ============ PERFORMANCE VS SCALABILITY ============ -->
+  <section class="section-block reveal">
+    <h2>Performance vs Scalability</h2>
+    <p>These two words get used interchangeably, but they describe different problems:</p>
+    <ul>
+      <li>A <strong>performance</strong> problem: your system is slow <em>for a single user</em>. Even with one request in flight, it takes 4 seconds.</li>
+      <li>A <strong>scalability</strong> problem: your system is fast for one user but slow <em>under load</em>. One request takes 50&nbsp;ms; ten thousand concurrent requests take 30 seconds each.</li>
+    </ul>
+    <p>The fixes differ too. Performance problems call for better algorithms, indexes, or caching. Scalability problems call for more capacity and removing bottlenecks — the slowest shared resource (often the database) determines how far you can grow.</p>
+    <ul class="key-points">
+      <li>Fast but unscalable: great demo, terrible launch day.</li>
+      <li>Scalable but slow: handles a million users, annoys every single one.</li>
+      <li>You need both — measure each separately and fix the right one.</li>
+    </ul>
+  </section>
+
+  <!-- ============ LATENCY VS THROUGHPUT ============ -->
+  <section class="section-block reveal">
+    <h2>Latency vs Throughput</h2>
+    <p><strong>Latency</strong> is how long one request takes (measured in milliseconds). <strong>Throughput</strong> is how many requests you complete per unit of time (measured in requests per second, or QPS).</p>
+    <p>Think of a highway: latency is how long <em>your</em> car takes to get downtown; throughput is how many cars pass the toll booth per minute. Adding lanes (horizontal scaling) raises throughput but doesn't make any individual car faster. Raising the speed limit (performance work) lowers latency for everyone.</p>
+
+    <div class="diagram-box">
+      <svg viewBox="0 0 740 170" role="img" aria-label="A pipeline showing requests flowing from client to server, illustrating latency as time per request and throughput as requests per second">
+        <rect x="20" y="55" width="110" height="60" rx="12" class="svg-box"/>
+        <text x="75" y="90" text-anchor="middle" class="svg-label">Client</text>
+        <rect x="610" y="55" width="110" height="60" rx="12" class="svg-box-p"/>
+        <text x="665" y="90" text-anchor="middle" class="svg-label">Server</text>
+        <line x1="140" y1="85" x2="600" y2="85" class="svg-line svg-dash" style="stroke:#A78BFA"/>
+        <circle cx="180" cy="85" r="7" class="pkt pkt-1" style="fill:#7C3AED"/>
+        <circle cx="180" cy="85" r="7" class="pkt pkt-1" style="fill:#F59E0B;animation-delay:.8s"/>
+        <circle cx="180" cy="85" r="7" class="pkt pkt-1" style="fill:#10B981;animation-delay:1.6s"/>
+        <text x="370" y="40" text-anchor="middle" class="svg-soft">⏱ latency = time for ONE dot to cross</text>
+        <text x="370" y="150" text-anchor="middle" class="svg-soft">📦 throughput = dots arriving per second</text>
+      </svg>
+    </div>
+
+    <div class="callout info">
+      <span class="co-icon">💡</span>
+      <div><strong>Watch the percentiles, not the average</strong>
+      <p>Engineers quote latency as p50 / p95 / p99 — the time within which 50%, 95%, or 99% of requests finish. Averages hide pain: a 20&nbsp;ms average with a 3-second p99 means 1 in 100 users is having a miserable time. Amazon famously found that every 100&nbsp;ms of extra latency cost ~1% in sales.</p></div>
+    </div>
+  </section>
+
+  <!-- ============ AVAILABILITY ============ -->
+  <section class="section-block reveal">
+    <h2>Availability: Counting the Nines</h2>
+    <p><strong>Availability</strong> is the fraction of time your system is up and answering. It's quoted in "nines" — and each extra nine is roughly 10× harder (and more expensive) to achieve.</p>
+
+    <div class="table-wrap">
+      <table class="compare-table">
+        <thead><tr><th>Availability</th><th>Nickname</th><th>Downtime / year</th><th>Downtime / month</th></tr></thead>
+        <tbody>
+          <tr><td>99%</td><td>"two nines"</td><td>~87.6 hours (3.65 days)</td><td>~7.3 hours</td></tr>
+          <tr><td>99.9%</td><td>"three nines"</td><td>~8.77 hours</td><td>~43.8 minutes</td></tr>
+          <tr><td>99.99%</td><td>"four nines"</td><td>~52.6 minutes</td><td>~4.4 minutes</td></tr>
+          <tr><td>99.999%</td><td>"five nines"</td><td>~5.26 minutes</td><td>~26 seconds</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>Five nines means your <em>total</em> allowed outage for an entire year fits inside a coffee break — including deploys, hardware failures, and that one DNS change everyone regrets. This is why phone carriers and payment networks invest enormously in redundancy, while an internal dashboard happily lives at two nines.</p>
+
+    <div class="callout warn">
+      <span class="co-icon">⚠️</span>
+      <div><strong>Nines multiply (downward)</strong>
+      <p>If a request must pass through two services that are each 99.9% available, the path is only 99.9% × 99.9% ≈ <strong>99.8%</strong> available. Chains of dependencies quietly eat your nines — Topic 03 covers how to fight back with redundancy in parallel.</p></div>
+    </div>
+  </section>
+
+  <!-- ============ LATENCY NUMBERS ============ -->
+  <section class="section-block reveal">
+    <h2>Latency Numbers Worth Memorizing</h2>
+    <p>These rough magnitudes (popularized by Jeff Dean at Google) explain <em>why</em> system design patterns exist. Caching exists because RAM is ~100× faster than SSD. CDNs exist because cross-ocean round trips cost ~150&nbsp;ms no matter how good your code is.</p>
+
+    <div class="table-wrap">
+      <table class="compare-table">
+        <thead><tr><th>Operation</th><th>Approx. time</th><th>Scaled up (1 ns → 1 sec)</th></tr></thead>
+        <tbody>
+          <tr><td>L1 cache reference</td><td>~1 ns</td><td>1 second</td></tr>
+          <tr><td>L2 cache reference</td><td>~4 ns</td><td>4 seconds</td></tr>
+          <tr><td>Main memory (RAM) read</td><td>~100 ns</td><td>~2 minutes</td></tr>
+          <tr><td>SSD random read</td><td>~100 µs</td><td>~28 hours</td></tr>
+          <tr><td>Read 1 MB sequentially from SSD</td><td>~1 ms</td><td>~12 days</td></tr>
+          <tr><td>HDD seek</td><td>~10 ms</td><td>~4 months</td></tr>
+          <tr><td>Round trip within a datacenter</td><td>~0.5 ms</td><td>~6 days</td></tr>
+          <tr><td>Round trip US ↔ Europe</td><td>~150 ms</td><td>~5 years</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout tip">
+      <span class="co-icon">🎯</span>
+      <div><strong>The one-sentence takeaway</strong>
+      <p>Memory is fast, disk is slow, and the network across the world is glacial. Every caching layer, replica, and CDN in this course is just an attempt to move data up that table.</p></div>
+    </div>
+  </section>
+
+  <!-- ============ BACK OF ENVELOPE ============ -->
+  <section class="section-block reveal">
+    <h2>Back-of-Envelope Estimation</h2>
+    <p>Interviewers (and capacity planners) want quick, defensible estimates — not precision. The trick is a small set of conversions and aggressive rounding.</p>
+
+    <div class="steps">
+      <div class="step-item"><div class="step-num">1</div><div><strong>Start with users</strong><p>e.g. 10 million daily active users (DAU), each making ~10 requests per day → 100 million requests/day.</p></div></div>
+      <div class="step-item"><div class="step-num">2</div><div><strong>Convert to QPS</strong><p>A day has ~86,400 seconds — round to 100k. So 100M ÷ 100k ≈ <strong>1,000 QPS average</strong>. Peak traffic is typically 2–5× average → plan for ~3,000–5,000 QPS.</p></div></div>
+      <div class="step-item"><div class="step-num">3</div><div><strong>Estimate storage</strong><p>If 1% of requests write a 1&nbsp;KB record: 1M writes/day × 1&nbsp;KB = 1&nbsp;GB/day ≈ 365&nbsp;GB/year (before replication — multiply by 3 for safety copies).</p></div></div>
+      <div class="step-item"><div class="step-num">4</div><div><strong>Estimate bandwidth</strong><p>1,000 QPS × 100&nbsp;KB average response ≈ 100&nbsp;MB/s outbound. That's the number that tells you whether you need a CDN (you do).</p></div></div>
+    </div>
+
+    <pre class="code-block" data-lang="napkin"><code><span class="c-c"># Handy conversions to memorize</span>
+<span class="c-n">1 day</span>  ≈ <span class="c-n">100,000</span> seconds   <span class="c-c"># actually 86,400 — round it</span>
+<span class="c-n">1M</span> requests/day ≈ <span class="c-n">12</span> QPS  <span class="c-c"># so 100M/day ≈ 1,200 QPS</span>
+<span class="c-n">2^10</span> ≈ 1 thousand (KB)   <span class="c-n">2^20</span> ≈ 1 million (MB)
+<span class="c-n">2^30</span> ≈ 1 billion (GB)    <span class="c-n">2^40</span> ≈ 1 trillion (TB)</code></pre>
+
+    <div class="callout success">
+      <span class="co-icon">✅</span>
+      <div><strong>State your assumptions out loud</strong>
+      <p>"Assuming 10M DAU and a 5× peak factor…" is a sentence that wins interviews. The estimate matters less than showing you know which knobs exist.</p></div>
+    </div>
+  </section>
+
+  <!-- ============ QUIZ ============ -->
+  <section class="section-block reveal">
+    <div class="quiz">
+      <h3>🧠 Quick Check</h3>
+      <p class="quiz-q">Your API is blazing fast for one user but grinds to a halt during peak hours. What kind of problem is this?</p>
+      <div class="quiz-options">
+        <button class="quiz-option">A performance problem — optimize the algorithm</button>
+        <button class="quiz-option" data-correct="true">A scalability problem — the system degrades under load</button>
+        <button class="quiz-option">An availability problem — the system is down</button>
+        <button class="quiz-option">A latency problem — single requests are slow</button>
+      </div>
+      <div class="quiz-feedback">✅ Correct! Fast-for-one but slow-under-load is the textbook definition of a scalability problem. The fix is capacity and bottleneck removal, not faster code for a single request.</div>
+    </div>
+  </section>
+
+  <nav class="bottom-nav">
+    <a href="../index.html"><span class="bn-dir">← Previous</span><span class="bn-title">Course Home</span></a>
+    <a class="next" href="02-cap-theorem.html"><span class="bn-dir">Next →</span><span class="bn-title">CAP Theorem</span></a>
+  </nav>
+</main>
+
+<footer class="footer">
+  <div class="footer-bottom">⚡ System Design Illustrated · Topic 01 of 12 · Built with 💜 and vanilla web tech</div>
+</footer>
+
+<script src="../js/main.js"></script>
+</body>
+</html>

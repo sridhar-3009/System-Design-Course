@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Async Processing &amp; Messaging — System Design Illustrated</title>
+<meta name="description" content="Message queues, delivery guarantees, Kafka's event streaming model, task queues, back pressure, and RabbitMQ vs Kafka vs SQS.">
+<script>try{var t=localStorage.getItem('sdi-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body data-topic="08" style="--topic-color:#EA580C">
+
+<div class="reading-progress"></div>
+
+<nav class="navbar">
+  <div class="nav-inner">
+    <a href="../index.html" class="logo"><span class="bolt">⚡</span><span class="logo-text">System Design Illustrated</span></a>
+    <div class="nav-links">
+      <a href="../index.html#topics">Topics</a>
+      <a href="../index.html#about">About</a>
+      <a href="12-interview-guide.html">Interview Guide</a>
+      <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">🌙</button>
+    </div>
+  </div>
+</nav>
+
+<header class="topic-header" style="--topic-color:#EA580C">
+  <div class="topic-header-inner">
+    <div class="breadcrumb"><a href="../index.html">Home</a> / Topics / 08</div>
+    <div class="topic-num-big">TOPIC 08</div>
+    <h1>Async Processing &amp; Messaging 📬</h1>
+    <p class="subtitle">Not everything needs an answer right now. Queues let services hand off work, absorb traffic spikes like a shock absorber, and retry failures without anyone waiting on the line.</p>
+    <div class="topic-meta"><span class="tag">🌿 Intermediate</span><span class="tag">⏱ 30 min read</span><span class="tag">📐 10 concepts</span></div>
+  </div>
+</header>
+
+<main class="topic-body">
+
+  <section class="section-block reveal">
+    <h2>Why Go Asynchronous?</h2>
+    <p>When a user signs up, you might want to: create the account, send a welcome email, resize their avatar, update analytics, and notify the CRM. Doing all five synchronously means the user stares at a spinner while five systems (each with their own failure modes) hold their request hostage.</p>
+    <p>The async alternative: do the essential bit (create the account), drop messages onto a <strong>queue</strong> for everything else, and respond immediately. Three superpowers follow:</p>
+    <ul class="key-points">
+      <li><strong>Decoupling:</strong> the signup service doesn't know or care that an email service exists. Either can deploy, crash, or scale independently.</li>
+      <li><strong>Spike absorption:</strong> a traffic burst piles up in the queue instead of overwhelming workers — consumers drain it at their own sustainable pace.</li>
+      <li><strong>Reliability:</strong> failed work stays on the queue and gets retried. A flaky email provider becomes a delay, not an outage.</li>
+    </ul>
+
+    <div class="diagram-box">
+      <svg viewBox="0 0 740 250" role="img" aria-label="A producer pushes messages into a queue which fills up, while two consumers pull messages out and drain it">
+        <!-- producer -->
+        <rect x="20" y="90" width="120" height="64" rx="12" class="svg-box-p"/>
+        <text x="80" y="118" text-anchor="middle" class="svg-label">📨 Producer</text>
+        <text x="80" y="138" text-anchor="middle" class="svg-soft">fires &amp; forgets</text>
+        <!-- arrows in -->
+        <line x1="145" y1="122" x2="245" y2="122" class="svg-line svg-dash" style="stroke:#EA580C"/>
+        <circle cx="160" cy="122" r="6" class="pkt pkt-1" style="fill:#EA580C"/>
+        <circle cx="160" cy="122" r="6" class="pkt pkt-1" style="fill:#F59E0B;animation-delay:1.2s"/>
+        <!-- queue -->
+        <rect x="250" y="84" width="240" height="76" rx="12" class="svg-box" style="stroke:#EA580C;stroke-width:2"/>
+        <text x="370" y="74" text-anchor="middle" class="svg-label">📬 Queue</text>
+        <!-- messages inside queue, blinking to suggest fill/drain -->
+        <rect x="262" y="100" width="36" height="44" rx="6" style="fill:#EA580C" class="blink-slow"/>
+        <rect x="306" y="100" width="36" height="44" rx="6" style="fill:#F59E0B" class="blink-slow"/>
+        <rect x="350" y="100" width="36" height="44" rx="6" style="fill:#EA580C;opacity:.75" class="blink-slow"/>
+        <rect x="394" y="100" width="36" height="44" rx="6" style="fill:#F59E0B;opacity:.55" class="blink-slow"/>
+        <rect x="438" y="100" width="36" height="44" rx="6" style="fill:#EA580C;opacity:.35" class="blink-slow"/>
+        <!-- arrows out -->
+        <line x1="495" y1="105" x2="585" y2="60" class="svg-line svg-dash" style="stroke:#10B981"/>
+        <line x1="495" y1="140" x2="585" y2="190" class="svg-line svg-dash" style="stroke:#10B981"/>
+        <circle cx="510" cy="98" r="6" class="pkt pkt-1" style="fill:#10B981;animation-delay:.5s"/>
+        <circle cx="510" cy="146" r="6" class="pkt pkt-1" style="fill:#10B981;animation-delay:1.7s"/>
+        <!-- consumers -->
+        <rect x="590" y="28" width="130" height="60" rx="12" class="svg-box-p"/>
+        <text x="655" y="63" text-anchor="middle" class="svg-label">⚙️ Consumer 1</text>
+        <rect x="590" y="162" width="130" height="60" rx="12" class="svg-box-p"/>
+        <text x="655" y="197" text-anchor="middle" class="svg-label">⚙️ Consumer 2</text>
+      </svg>
+      <p class="diagram-caption">The queue is a buffer: producers burst, consumers drain steadily, nobody waits on anybody.</p>
+    </div>
+  </section>
+
+  <section class="section-block reveal">
+    <h2>Delivery Guarantees: Pick Your Poison</h2>
+    <p>Networks drop packets and consumers crash mid-task — so "the message arrives exactly once" is harder than it sounds. Every messaging system offers one of three contracts:</p>
+    <div class="steps">
+      <div class="step-item"><div class="step-num">1</div><div><strong>At-most-once</strong><p>Fire and forget — no retries. Messages can vanish, but never duplicate. Fine for metrics, logs, presence pings where the next data point supersedes the lost one anyway.</p></div></div>
+      <div class="step-item"><div class="step-num">2</div><div><strong>At-least-once</strong><p>Redeliver until the consumer <em>acknowledges</em>. Nothing is lost — but if a consumer finishes the work and crashes before acking, the message is delivered <em>again</em>. Duplicates are a fact of life. The industry default.</p></div></div>
+      <div class="step-item"><div class="step-num">3</div><div><strong>Exactly-once</strong><p>The unicorn. True exactly-once <em>delivery</em> is impossible over an unreliable network; what systems offer is exactly-once <em>processing</em> — at-least-once delivery plus deduplication or transactions. Kafka and SQS FIFO get close, with real overhead.</p></div></div>
+    </div>
+
+    <div class="callout tip">
+      <span class="co-icon">💡</span>
+      <div><strong>The practical answer: idempotency</strong>
+      <p>Design consumers so processing the same message twice is harmless. Use an idempotency key: "have I already processed payment <code>msg_8f3a</code>? Then ack and skip." At-least-once delivery + idempotent consumers gives you exactly-once <em>effects</em> — the pattern behind Stripe's API and most payment systems.</p></div>
+    </div>
+  </section>
+
+  <section class="section-block reveal">
+    <h2>Event Streaming: The Kafka Model</h2>
+    <p>A queue deletes a message once consumed. <strong>Kafka</strong> flips the model: it's a durable, append-only <strong>log</strong> that consumers read at their own pace.</p>
+    <ul>
+      <li><strong>Topics</strong> — named streams of events ("orders", "clicks").</li>
+      <li><strong>Partitions</strong> — each topic splits into N ordered logs, spread across brokers. Partitions are the unit of parallelism; events with the same key (e.g., one user) land in the same partition, preserving their order.</li>
+      <li><strong>Offsets</strong> — each consumer tracks its own position (offset) per partition. Consuming doesn't delete anything.</li>
+      <li><strong>Consumer groups</strong> — instances in a group split the partitions among themselves; separate groups each get the full stream. Analytics, search-indexing, and fraud teams can all read the same events independently.</li>
+      <li><strong>Retention &amp; replay</strong> — events persist for days or forever. Deployed a buggy consumer? Fix it, rewind the offset, and reprocess history. Queues can't do that.</li>
+    </ul>
+    <p>This makes Kafka the backbone for <strong>event sourcing</strong> (the log <em>is</em> the source of truth), audit trails, change-data-capture, and stream processing (Flink, Kafka Streams). LinkedIn built it to move trillions of events per day; Uber, Netflix and Airbnb run their nervous systems on it.</p>
+  </section>
+
+  <section class="section-block reveal">
+    <h2>Task Queues: Async for Application Code</h2>
+    <p>A <strong>task queue</strong> wraps a message broker in developer-friendly clothing: you enqueue <em>function calls</em>, and worker processes execute them with retries, scheduling, and result tracking built in.</p>
+    <pre class="code-block" data-lang="python"><code><span class="c-c"># Celery: this runs in a worker, not in the web request</span>
+<span class="c-k">@app.task</span>(max_retries=<span class="c-n">3</span>, retry_backoff=<span class="c-k">True</span>)
+<span class="c-k">def</span> send_welcome_email(user_id):
+    user = db.get_user(user_id)
+    mailer.send(<span class="c-s">"welcome"</span>, to=user.email)
+
+<span class="c-c"># In the request handler — returns instantly:</span>
+send_welcome_email.delay(user.id)</code></pre>
+    <p><strong>Ecosystem picks:</strong> Celery (Python), Sidekiq (Ruby), BullMQ (Node). <strong>Classic jobs:</strong> sending email, resizing images and video transcoding, generating PDFs and reports, syncing with third-party APIs — anything slower than ~100&nbsp;ms that the user doesn't need to wait for.</p>
+  </section>
+
+  <section class="section-block reveal">
+    <h2>Back Pressure: When the Queue Fights Back</h2>
+    <p>Queues hide overload — until they don't. If producers enqueue at 1,000/s and consumers drain at 600/s, the queue grows by 400/s forever. Latency balloons (messages wait hours), memory or disk fills, and the broker — your decoupling hero — becomes the outage.</p>
+    <p><strong>Back pressure</strong> means propagating "slow down!" signals upstream instead of buffering infinitely:</p>
+    <ul class="key-points">
+      <li><strong>Bound the queue</strong> — a full queue rejects new work fast, so producers get an error now rather than silence followed by collapse.</li>
+      <li><strong>Rate-limit producers</strong> — throttle at the source (HTTP 429, client backoff).</li>
+      <li><strong>Auto-scale consumers</strong> — alarm on queue depth / consumer lag and add workers before the backlog hurts.</li>
+      <li><strong>Shed load deliberately</strong> — drop low-value messages or short-circuit with a circuit breaker (Topic 10) and serve a degraded experience instead of dying.</li>
+    </ul>
+
+    <div class="callout warn">
+      <span class="co-icon">⚠️</span>
+      <div><strong>Monitor lag, not just errors</strong>
+      <p>A queue-based system can be "100% up" while every message waits 45 minutes. Queue depth and consumer lag are the heartbeat metrics of async systems — alert on them like you'd alert on 500s.</p></div>
+    </div>
+  </section>
+
+  <section class="section-block reveal">
+    <h2>Choosing a Tool</h2>
+    <div class="table-wrap">
+      <table class="compare-table">
+        <thead><tr><th></th><th>RabbitMQ</th><th>Kafka</th><th>AWS SQS</th><th>GCP Pub/Sub</th></tr></thead>
+        <tbody>
+          <tr><td>Model</td><td>Smart broker, routing exchanges</td><td>Distributed append-only log</td><td>Managed simple queue</td><td>Managed pub/sub stream</td></tr>
+          <tr><td>Replay old messages</td><td>No (consumed = gone)</td><td>Yes — rewind offsets</td><td>No</td><td>Limited (seek/retain)</td></tr>
+          <tr><td>Ordering</td><td>Per queue</td><td>Per partition</td><td>FIFO queues only</td><td>Per ordering key</td></tr>
+          <tr><td>Throughput</td><td>High</td><td>Extreme (millions/s)</td><td>High (auto-scales)</td><td>High (auto-scales)</td></tr>
+          <tr><td>Ops burden</td><td>Self-managed (or cloud)</td><td>Heaviest (or use managed)</td><td>Zero</td><td>Zero</td></tr>
+          <tr><td>Sweet spot</td><td>Task routing, RPC-ish work queues</td><td>Event streaming, event sourcing, analytics pipelines</td><td>Decoupling on AWS with no ops</td><td>Streaming on GCP with no ops</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout archie">
+      <span class="co-icon">🤖</span>
+      <div><strong>Archie says</strong>
+      <p>Rule of thumb for interviews: need <em>work done</em> (emails, thumbnails)? Say task queue / SQS / RabbitMQ. Need <em>facts recorded and shared</em> (events many systems consume, possibly re-read later)? Say Kafka. Saying "Kafka" for a simple email job is like buying a freight train to deliver a pizza.</p></div>
+    </div>
+  </section>
+
+  <section class="section-block reveal">
+    <div class="quiz">
+      <h3>🧠 Quick Check</h3>
+      <p class="quiz-q">Your payment consumer might receive the same "charge customer" message twice (at-least-once delivery). What's the right defense?</p>
+      <div class="quiz-options">
+        <button class="quiz-option">Switch to at-most-once delivery — no duplicates, problem solved</button>
+        <button class="quiz-option" data-correct="true">Make the consumer idempotent — track processed message IDs and skip repeats</button>
+        <button class="quiz-option">Add more consumers so duplicates are processed faster</button>
+        <button class="quiz-option">Reduce the queue's retention period</button>
+      </div>
+      <div class="quiz-feedback">✅ Right! At-most-once would risk silently losing charges — worse. Idempotent processing (dedupe by idempotency key) turns at-least-once delivery into exactly-once effects, which is how real payment systems work.</div>
+    </div>
+  </section>
+
+  <nav class="bottom-nav">
+    <a href="07-databases.html"><span class="bn-dir">← Previous</span><span class="bn-title">Databases Deep Dive</span></a>
+    <a class="next" href="09-communication.html"><span class="bn-dir">Next →</span><span class="bn-title">Communication Protocols</span></a>
+  </nav>
+</main>
+
+<footer class="footer">
+  <div class="footer-bottom">⚡ System Design Illustrated · Topic 08 of 12 · Built with 💜 and vanilla web tech</div>
+</footer>
+
+<script src="../js/main.js"></script>
+</body>
+</html>

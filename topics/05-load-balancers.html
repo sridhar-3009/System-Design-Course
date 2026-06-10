@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Load Balancers &amp; Reverse Proxies — System Design Illustrated</title>
+<meta name="description" content="L4 vs L7 load balancing, distribution algorithms, health checks, sticky sessions, and how reverse proxies differ — with animated diagrams.">
+<script>try{var t=localStorage.getItem('sdi-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body data-topic="05" style="--topic-color:#2563EB">
+
+<div class="reading-progress"></div>
+
+<nav class="navbar">
+  <div class="nav-inner">
+    <a href="../index.html" class="logo"><span class="bolt">⚡</span><span class="logo-text">System Design Illustrated</span></a>
+    <div class="nav-links">
+      <a href="../index.html#topics">Topics</a>
+      <a href="../index.html#about">About</a>
+      <a href="12-interview-guide.html">Interview Guide</a>
+      <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">🌙</button>
+    </div>
+  </div>
+</nav>
+
+<header class="topic-header" style="--topic-color:#2563EB">
+  <div class="topic-header-inner">
+    <div class="breadcrumb"><a href="../index.html">Home</a> / Topics / 05</div>
+    <div class="topic-num-big">TOPIC 05</div>
+    <h1>Load Balancers &amp; Reverse Proxies ⚖️</h1>
+    <p class="subtitle">Horizontal scaling gives you a fleet of servers. Something has to decide which one answers each request — and quietly remove the ones that are on fire.</p>
+    <div class="topic-meta"><span class="tag">🌿 Intermediate</span><span class="tag">⏱ 30 min read</span><span class="tag">📐 9 concepts</span></div>
+  </div>
+</header>
+
+<main class="topic-body">
+
+  <section class="section-block reveal">
+    <h2>What a Load Balancer Does</h2>
+    <p>A <strong>load balancer (LB)</strong> sits in front of your server fleet and spreads incoming requests across them. It's the traffic cop of horizontal scaling — and it does four jobs at once:</p>
+    <ul class="key-points">
+      <li><strong>Distribute</strong> requests so no single server drowns.</li>
+      <li><strong>Detect</strong> unhealthy servers and stop sending them traffic.</li>
+      <li><strong>Decouple</strong> clients from servers — you can add, remove, or replace servers invisibly.</li>
+      <li><strong>Defend</strong> — hide internal IPs, terminate TLS, absorb some abuse.</li>
+    </ul>
+
+    <div class="diagram-box">
+      <svg viewBox="0 0 740 300" role="img" aria-label="Requests flow into a load balancer which distributes them to three servers">
+        <!-- clients -->
+        <text x="55" y="90" text-anchor="middle" style="font-size:22px">👩‍💻</text>
+        <text x="55" y="155" text-anchor="middle" style="font-size:22px">🧑‍💻</text>
+        <text x="55" y="220" text-anchor="middle" style="font-size:22px">👨‍💻</text>
+        <!-- request packets -->
+        <line x1="85" y1="150" x2="280" y2="150" class="svg-line svg-dash" style="stroke:#93B4F8"/>
+        <circle cx="100" cy="150" r="6" class="pkt pkt-1" style="fill:#2563EB"/>
+        <circle cx="100" cy="150" r="6" class="pkt pkt-1" style="fill:#F59E0B;animation-delay:.8s"/>
+        <circle cx="100" cy="150" r="6" class="pkt pkt-1" style="fill:#10B981;animation-delay:1.6s"/>
+        <!-- LB -->
+        <rect x="285" y="110" width="120" height="80" rx="14" style="fill:#2563EB"/>
+        <text x="345" y="143" text-anchor="middle" style="fill:#fff;font-family:Poppins;font-weight:700;font-size:14px">⚖️ LB</text>
+        <text x="345" y="166" text-anchor="middle" style="fill:#DBE7FE;font-size:11px;font-family:Inter">round robin</text>
+        <!-- fan out lines -->
+        <line x1="410" y1="130" x2="560" y2="60" class="svg-line svg-dash" style="stroke:#93B4F8"/>
+        <line x1="410" y1="150" x2="560" y2="150" class="svg-line svg-dash" style="stroke:#93B4F8"/>
+        <line x1="410" y1="170" x2="560" y2="240" class="svg-line svg-dash" style="stroke:#93B4F8"/>
+        <!-- packets to servers -->
+        <circle cx="430" cy="121" r="6" class="pkt pkt-1" style="fill:#2563EB;animation-delay:.4s"/>
+        <circle cx="430" cy="150" r="6" class="pkt pkt-1" style="fill:#F59E0B;animation-delay:1.2s"/>
+        <circle cx="430" cy="180" r="6" class="pkt pkt-1" style="fill:#10B981;animation-delay:2s"/>
+        <!-- servers -->
+        <g class="bob"><rect x="565" y="30" width="130" height="58" rx="10" class="svg-box-p"/><text x="630" y="65" text-anchor="middle" class="svg-label">🖥️ Server 1</text></g>
+        <g class="bob" style="animation-delay:.5s"><rect x="565" y="121" width="130" height="58" rx="10" class="svg-box-p"/><text x="630" y="156" text-anchor="middle" class="svg-label">🖥️ Server 2</text></g>
+        <g class="bob" style="animation-delay:1s"><rect x="565" y="212" width="130" height="58" rx="10" class="svg-box-p"/><text x="630" y="247" text-anchor="middle" class="svg-label">🖥️ Server 3</text></g>
+      </svg>
+      <p class="diagram-caption">One front door, many workers: the LB fans requests out across the fleet.</p>
+    </div>
+  </section>
+
+  <section class="section-block reveal">
+    <h2>Layer 4 vs Layer 7</h2>
+    <p>The "layer" refers to the OSI network stack — and it determines what information the LB can see when routing.</p>
+    <div class="two-col">
+      <div class="mini-card">
+        <span class="mc-icon">🚄</span>
+        <h4>Layer 4 (transport)</h4>
+        <p>Sees only IPs and ports. Forwards TCP/UDP segments without reading the payload — basically high-speed network plumbing (often via NAT). Blazing fast, tiny CPU cost, but it can't tell <code>/images</code> from <code>/checkout</code>. Use for raw TCP/UDP services, databases, game servers, or as the outer tier at huge scale.</p>
+      </div>
+      <div class="mini-card">
+        <span class="mc-icon">🧠</span>
+        <h4>Layer 7 (application)</h4>
+        <p>Terminates the connection and reads the actual request: URL, headers, cookies, hostname. Can route <code>/api</code> to one pool and <code>/video</code> to another, do TLS termination, compression, and per-user stickiness. Slightly more latency and CPU — almost always worth it for web traffic.</p>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table class="compare-table">
+        <thead><tr><th></th><th>Layer 4</th><th>Layer 7</th></tr></thead>
+        <tbody>
+          <tr><td>Routes on</td><td>IP + port</td><td>URL, headers, cookies, method</td></tr>
+          <tr><td>Speed</td><td>Fastest</td><td>Fast (parses requests)</td></tr>
+          <tr><td>Content-based routing</td><td>No</td><td>Yes</td></tr>
+          <tr><td>TLS termination</td><td>Pass-through</td><td>Yes</td></tr>
+          <tr><td>Examples</td><td>AWS NLB, LVS, HAProxy (TCP mode)</td><td>AWS ALB, Nginx, HAProxy (HTTP mode), Envoy</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="section-block reveal">
+    <h2>Balancing Algorithms</h2>
+    <div class="steps">
+      <div class="step-item"><div class="step-num">1</div><div><strong>Round Robin</strong><p>Server 1, 2, 3, 1, 2, 3… Dead simple, great when servers and requests are uniform.</p></div></div>
+      <div class="step-item"><div class="step-num">2</div><div><strong>Weighted Round Robin</strong><p>Bigger servers get proportionally more turns — useful in mixed-hardware fleets or for canary deploys (send 5% to the new version).</p></div></div>
+      <div class="step-item"><div class="step-num">3</div><div><strong>Least Connections</strong><p>Send the next request to whichever server is handling the fewest right now. Shines when request durations vary wildly (some take 10 ms, some take 10 s).</p></div></div>
+      <div class="step-item"><div class="step-num">4</div><div><strong>IP Hash</strong><p>Hash the client IP to pick a server — the same client consistently lands on the same box. A poor man's sticky session; struggles when many users share one NAT IP.</p></div></div>
+      <div class="step-item"><div class="step-num">5</div><div><strong>Random with Two Choices</strong><p>Pick two servers at random, send to the less-loaded one. Sounds silly, is mathematically brilliant — avoids both the herd behavior of "least connections" (everyone dog-piles the same idle server) and the blindness of pure random. Used by Envoy and Nginx.</p></div></div>
+    </div>
+  </section>
+
+  <section class="section-block reveal">
+    <h2>Keeping the LB Itself Alive</h2>
+    <p>If one load balancer fronts your fleet, congratulations: you've moved your single point of failure, not removed it. Two standard cures:</p>
+    <h3>Active-passive LB pair</h3>
+    <p>Two LBs share a <strong>floating IP</strong> (via VRRP/keepalived). The active one holds the IP and serves; the passive one watches heartbeats. If the active dies, the passive claims the IP in seconds. Drawback: half your LB capacity sits idle.</p>
+    <h3>Active-active LB pair</h3>
+    <p>Both LBs serve simultaneously — DNS round-robin or an upstream router (ECMP/anycast) spreads clients across them. Full hardware utilization, but each LB must be sized to carry 100% of traffic alone if its twin fails.</p>
+
+    <h3>Health checks</h3>
+    <p>The LB probes each backend every few seconds — a TCP connect (L4) or an HTTP <code>GET /healthz</code> expecting a 200 (L7). Fail N consecutive probes → ejected from rotation; pass M probes → welcomed back. Good health endpoints check real dependencies (DB reachable?) but stay cheap.</p>
+
+    <div class="callout warn">
+      <span class="co-icon">⚠️</span>
+      <div><strong>Sticky sessions: convenient, then painful</strong>
+      <p>Session affinity (via cookie or IP hash) routes a user to the same server every time — handy if servers keep session state in local memory. But it skews load, and when that server dies its users get logged out. The cleaner fix: make servers stateless and park session state in Redis, so <em>any</em> server can answer <em>any</em> user.</p></div>
+    </div>
+  </section>
+
+  <section class="section-block reveal">
+    <h2>Reverse Proxies: The LB's Multitalented Sibling</h2>
+    <p>A <strong>reverse proxy</strong> is a server that accepts client requests on behalf of one or more backend servers — the mirror image of a forward proxy (which acts on behalf of <em>clients</em>). Even with a single backend, a reverse proxy earns its keep:</p>
+    <ul class="key-points">
+      <li><strong>TLS termination</strong> — handle certificates and crypto once, talk plain HTTP internally.</li>
+      <li><strong>Caching &amp; compression</strong> — serve repeated responses and gzip/brotli everything.</li>
+      <li><strong>Security &amp; anonymity</strong> — backends are never directly exposed; one place for WAF rules and rate limits.</li>
+      <li><strong>Static file serving</strong> — Nginx serves assets while proxying API calls to the app.</li>
+    </ul>
+
+    <h3>LB vs reverse proxy — what's actually the difference?</h3>
+    <p>Mostly intent. A load balancer's <em>purpose</em> is distributing across many servers; a reverse proxy's purpose is fronting servers with extra capabilities, useful even with one backend. In practice the same software (Nginx, HAProxy, Envoy, Traefik) plays both roles, often in the same config file. AWS splits the roles into products: NLB (pure L4 balancing) vs ALB (L7 with routing rules).</p>
+
+    <div class="callout archie">
+      <span class="co-icon">🤖</span>
+      <div><strong>Archie says</strong>
+      <p>Cloudflare is secretly "a reverse proxy for the whole internet" — CDN, WAF, TLS and DDoS protection are all reverse-proxy features at planetary scale. When an interviewer asks "where does TLS terminate?", the answer is almost always "at the L7 LB / reverse proxy."</p></div>
+    </div>
+  </section>
+
+  <section class="section-block reveal">
+    <div class="quiz">
+      <h3>🧠 Quick Check</h3>
+      <p class="quiz-q">You need to route <code>/api/*</code> to your API fleet and <code>/static/*</code> to a file server pool. What's the minimum you need?</p>
+      <div class="quiz-options">
+        <button class="quiz-option">A Layer 4 load balancer — routing is routing</button>
+        <button class="quiz-option" data-correct="true">A Layer 7 load balancer — it must read the URL path</button>
+        <button class="quiz-option">DNS round robin between the two pools</button>
+        <button class="quiz-option">Sticky sessions with IP hash</button>
+      </div>
+      <div class="quiz-feedback">✅ Correct! Path-based routing requires inspecting the HTTP request, which only an L7 balancer does. L4 sees just IPs and ports — it has no idea what a URL is.</div>
+    </div>
+  </section>
+
+  <nav class="bottom-nav">
+    <a href="04-dns-cdn.html"><span class="bn-dir">← Previous</span><span class="bn-title">DNS &amp; CDN</span></a>
+    <a class="next" href="06-caching.html"><span class="bn-dir">Next →</span><span class="bn-title">Caching Strategies</span></a>
+  </nav>
+</main>
+
+<footer class="footer">
+  <div class="footer-bottom">⚡ System Design Illustrated · Topic 05 of 12 · Built with 💜 and vanilla web tech</div>
+</footer>
+
+<script src="../js/main.js"></script>
+</body>
+</html>

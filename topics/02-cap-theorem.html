@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CAP Theorem — System Design Illustrated</title>
+<meta name="description" content="Consistency, Availability, Partition tolerance — why distributed systems can only pick two, with CP vs AP examples and the PACELC extension.">
+<script>try{var t=localStorage.getItem('sdi-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body data-topic="02" style="--topic-color:#DB2777">
+
+<div class="reading-progress"></div>
+
+<nav class="navbar">
+  <div class="nav-inner">
+    <a href="../index.html" class="logo"><span class="bolt">⚡</span><span class="logo-text">System Design Illustrated</span></a>
+    <div class="nav-links">
+      <a href="../index.html#topics">Topics</a>
+      <a href="../index.html#about">About</a>
+      <a href="12-interview-guide.html">Interview Guide</a>
+      <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">🌙</button>
+    </div>
+  </div>
+</nav>
+
+<header class="topic-header" style="--topic-color:#DB2777">
+  <div class="topic-header-inner">
+    <div class="breadcrumb"><a href="../index.html">Home</a> / Topics / 02</div>
+    <div class="topic-num-big">TOPIC 02</div>
+    <h1>CAP Theorem 🔺</h1>
+    <p class="subtitle">The most famous impossibility result in distributed systems: when the network splits, you must choose between giving every reader the truth and giving every reader an answer.</p>
+    <div class="topic-meta"><span class="tag">🌱 Beginner</span><span class="tag">⏱ 20 min read</span><span class="tag">📐 6 concepts</span></div>
+  </div>
+</header>
+
+<main class="topic-body">
+
+  <section class="section-block reveal">
+    <h2>The Three Properties</h2>
+    <p>In 2000, Eric Brewer conjectured (and Gilbert &amp; Lynch later proved) that a distributed data store can guarantee at most <strong>two</strong> of these three properties at the same time:</p>
+
+    <div class="cards-grid">
+      <div class="mini-card">
+        <span class="mc-icon">🎯</span>
+        <h4>C — Consistency</h4>
+        <p>Every read receives the most recent write (or an error). All nodes agree on one truth, as if there were a single copy of the data.</p>
+      </div>
+      <div class="mini-card">
+        <span class="mc-icon">🟢</span>
+        <h4>A — Availability</h4>
+        <p>Every request to a non-failed node receives a non-error response — without any guarantee that it contains the latest write.</p>
+      </div>
+      <div class="mini-card">
+        <span class="mc-icon">✂️</span>
+        <h4>P — Partition Tolerance</h4>
+        <p>The system keeps operating even when network messages between nodes are lost or delayed — i.e., when the cluster splits into islands.</p>
+      </div>
+    </div>
+
+    <div class="diagram-box">
+      <svg viewBox="0 0 740 360" role="img" aria-label="CAP triangle with Consistency, Availability and Partition tolerance at the vertices; the CP and AP edges alternate highlighting">
+        <!-- triangle edges -->
+        <line x1="370" y1="50" x2="170" y2="300" class="svg-line" style="stroke:var(--border);stroke-width:3"/>
+        <line x1="370" y1="50" x2="570" y2="300" class="svg-line" style="stroke:var(--border);stroke-width:3"/>
+        <line x1="170" y1="300" x2="570" y2="300" class="svg-line" style="stroke:var(--border);stroke-width:3"/>
+        <!-- animated highlight edges -->
+        <line x1="370" y1="50" x2="170" y2="300" style="stroke:#DB2777;stroke-width:4" class="svg-draw"/>
+        <line x1="370" y1="50" x2="570" y2="300" style="stroke:#F59E0B;stroke-width:4" class="svg-draw"/>
+        <!-- vertices -->
+        <circle cx="370" cy="50" r="30" class="svg-node" style="fill:#DB2777"/>
+        <text x="370" y="57" text-anchor="middle" style="fill:#fff;font-weight:700;font-size:18px;font-family:Poppins">P</text>
+        <circle cx="170" cy="300" r="30" class="svg-node" style="fill:#7C3AED;animation-delay:.4s"/>
+        <text x="170" y="307" text-anchor="middle" style="fill:#fff;font-weight:700;font-size:18px;font-family:Poppins">C</text>
+        <circle cx="570" cy="300" r="30" class="svg-node" style="fill:#10B981;animation-delay:.8s"/>
+        <text x="570" y="307" text-anchor="middle" style="fill:#fff;font-weight:700;font-size:18px;font-family:Poppins">A</text>
+        <!-- labels -->
+        <text x="370" y="14" text-anchor="middle" class="svg-label">Partition Tolerance</text>
+        <text x="150" y="345" text-anchor="middle" class="svg-label">Consistency</text>
+        <text x="590" y="345" text-anchor="middle" class="svg-label">Availability</text>
+        <text x="225" y="160" text-anchor="middle" class="svg-soft seq seq-3">CP systems</text>
+        <text x="520" y="160" text-anchor="middle" class="svg-soft seq seq-5">AP systems</text>
+        <text x="370" y="290" text-anchor="middle" class="svg-soft seq seq-7">CA = only on a single node 🙃</text>
+      </svg>
+      <p class="diagram-caption">Pick an edge that touches P — because in a real network, P is not optional.</p>
+    </div>
+  </section>
+
+  <section class="section-block reveal">
+    <h2>Why You Can Only Pick Two</h2>
+    <p>Imagine two database nodes, <strong>Node&nbsp;A</strong> in Virginia and <strong>Node&nbsp;B</strong> in Frankfurt, replicating to each other. A backhoe cuts the cable between them — a <strong>network partition</strong>. Now a client writes <code>balance = $500</code> to Node&nbsp;A, and another client reads the balance from Node&nbsp;B.</p>
+    <p>Node B has not received the update, and it can't reach Node A to check. It has exactly two choices:</p>
+    <div class="steps">
+      <div class="step-item"><div class="step-num">1</div><div><strong>Refuse to answer (choose C, sacrifice A)</strong><p>"I can't guarantee I'm up to date, so I'll return an error or block until the partition heals." Reads are always correct, but the system is partially unavailable.</p></div></div>
+      <div class="step-item"><div class="step-num">2</div><div><strong>Answer with stale data (choose A, sacrifice C)</strong><p>"Here's the last value I saw." Every request gets a response, but two clients can briefly see two different truths.</p></div></div>
+    </div>
+    <p>There is no third option. Answering correctly requires communication; the partition forbids communication. That's the whole theorem.</p>
+
+    <div class="callout warn">
+      <span class="co-icon">⚠️</span>
+      <div><strong>Partitions are not hypothetical</strong>
+      <p>Switch failures, garbage-collection pauses, overloaded NICs, fat-fingered firewall rules — anything that delays messages long enough behaves like a partition. In any system spanning more than one machine, you must tolerate P. So the real-world choice is always <strong>CP vs AP</strong>, never "CA."</p></div>
+    </div>
+  </section>
+
+  <section class="section-block reveal">
+    <h2>CP Systems: Correct, Sometimes Closed</h2>
+    <p>CP systems prefer to return errors (or wait) rather than serve stale data. They typically use quorums or a single leader: if a node can't confirm it has the latest state, it steps aside.</p>
+    <ul class="key-points">
+      <li><strong>ZooKeeper / etcd</strong> — coordination services; a wrong answer about "who holds the lock" is catastrophic, so they go read-only or unavailable in a minority partition.</li>
+      <li><strong>HBase</strong> — each region has one serving node; if it's unreachable, that data is briefly unavailable rather than inconsistent.</li>
+      <li><strong>MongoDB</strong> (with majority read/write concerns) — a primary that can't reach a majority steps down and stops accepting writes.</li>
+      <li><strong>Redis (single node)</strong> — trivially consistent; if the node is down, you simply get nothing.</li>
+    </ul>
+    <p><strong>Choose CP</strong> when wrong answers are worse than no answers: bank balances, inventory counts, distributed locks, leader election.</p>
+  </section>
+
+  <section class="section-block reveal">
+    <h2>AP Systems: Always On, Eventually Right</h2>
+    <p>AP systems keep accepting reads and writes on both sides of a partition, then reconcile afterwards using version vectors, last-writer-wins, or application-level merge logic.</p>
+    <ul class="key-points">
+      <li><strong>Cassandra</strong> — any replica accepts writes (tunable); divergent replicas heal via read repair and anti-entropy.</li>
+      <li><strong>DynamoDB</strong> — born from Amazon's insight that an unavailable shopping cart costs real money; stale carts can be merged later.</li>
+      <li><strong>CouchDB</strong> — built for multi-master, even offline-first replication with explicit conflict revisions.</li>
+      <li><strong>DNS</strong> — the world's largest AP system: resolvers serve cached (possibly stale) answers for hours, and nobody waits for global agreement.</li>
+    </ul>
+    <p><strong>Choose AP</strong> when availability is the product: social feeds, shopping carts, likes and view counters, presence indicators.</p>
+
+    <div class="table-wrap">
+      <table class="compare-table">
+        <thead><tr><th></th><th>CP (consistency first)</th><th>AP (availability first)</th></tr></thead>
+        <tbody>
+          <tr><td>During a partition</td><td>Errors / blocked requests on minority side</td><td>All nodes keep answering</td></tr>
+          <tr><td>Risk</td><td>Downtime</td><td>Stale reads, write conflicts</td></tr>
+          <tr><td>Conflict handling</td><td>Prevented up front (quorum/leader)</td><td>Resolved after the fact (merge, LWW)</td></tr>
+          <tr><td>Examples</td><td>ZooKeeper, etcd, HBase, MongoDB</td><td>Cassandra, DynamoDB, CouchDB, DNS</td></tr>
+          <tr><td>Great for</td><td>Money, locks, inventory</td><td>Feeds, carts, counters, sessions</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="section-block reveal">
+    <h2>PACELC: The Grown-Up Version</h2>
+    <p>CAP only talks about behavior <em>during</em> a partition — but partitions are rare. What about the other 99.99% of the time? Daniel Abadi's <strong>PACELC</strong> fills the gap:</p>
+    <p style="text-align:center;font-family:'Fira Code',monospace;font-size:1.02rem"><strong>P</strong>artition? → choose <strong>A</strong> or <strong>C</strong> &nbsp;·&nbsp; <strong>E</strong>lse → choose <strong>L</strong>atency or <strong>C</strong>onsistency</p>
+    <p>Even on a healthy network, strong consistency requires waiting for replicas to confirm — which costs latency. Skip the wait and you're fast but possibly stale. Every distributed database lives somewhere on this spectrum:</p>
+    <ul>
+      <li><strong>PA/EL</strong> (favor availability and latency): Cassandra, DynamoDB — fast and forgiving.</li>
+      <li><strong>PC/EC</strong> (favor consistency always): HBase, ZooKeeper, Google Spanner — correct and patient.</li>
+      <li><strong>PA/EC</strong> and hybrids: MongoDB and others let you tune per-query.</li>
+    </ul>
+
+    <div class="callout archie">
+      <span class="co-icon">🤖</span>
+      <div><strong>Archie says</strong>
+      <p>In an interview, don't just say "CAP theorem!" and stop. Say <em>which</em> letter you're sacrificing, <em>where</em>, and <em>why</em>: "The payment ledger is CP via quorum writes; the activity feed is AP with eventual consistency, because a stale like-count never hurt anyone."</p></div>
+    </div>
+  </section>
+
+  <section class="section-block reveal">
+    <div class="quiz">
+      <h3>🧠 Quick Check</h3>
+      <p class="quiz-q">During a network partition, a Cassandra replica happily serves a read that might be slightly out of date. Which trade-off is it making?</p>
+      <div class="quiz-options">
+        <button class="quiz-option">CP — sacrificing availability for consistency</button>
+        <button class="quiz-option" data-correct="true">AP — sacrificing consistency for availability</button>
+        <button class="quiz-option">CA — sacrificing partition tolerance</button>
+        <button class="quiz-option">It violates the CAP theorem</button>
+      </div>
+      <div class="quiz-feedback">✅ Right! Answering during a partition with possibly stale data is the AP choice — availability over consistency, with reconciliation later.</div>
+    </div>
+  </section>
+
+  <nav class="bottom-nav">
+    <a href="01-fundamentals.html"><span class="bn-dir">← Previous</span><span class="bn-title">Fundamentals of Scale</span></a>
+    <a class="next" href="03-consistency-availability.html"><span class="bn-dir">Next →</span><span class="bn-title">Consistency &amp; Availability Patterns</span></a>
+  </nav>
+</main>
+
+<footer class="footer">
+  <div class="footer-bottom">⚡ System Design Illustrated · Topic 02 of 12 · Built with 💜 and vanilla web tech</div>
+</footer>
+
+<script src="../js/main.js"></script>
+</body>
+</html>
