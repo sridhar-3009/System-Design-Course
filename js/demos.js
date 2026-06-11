@@ -1226,9 +1226,16 @@
       document.getElementById('cons-lag-stat').className = 'ds-val '+(lagMs<150?'green':lagMs<500?'amber':'red');
     });
 
+    var nW = 104, nH = 44;
+    /* layout: PRIMARY left-center, REPLICA right-center, CLIENT bottom-center */
+    function px() { return W*0.08; }
+    function rx() { return W*0.56; }
+    function cxC() { return W*0.32; }
+
     document.getElementById('cons-write').addEventListener('click', function(){
       primaryVal = '"hello"'; value = '"hello"'; replicaTimer = lagMs;
-      pkts.push({ x:W*0.22+50, y:H/2, tx:W*0.22, ty:H*0.28, t:0, color:'#34D399' });
+      /* client → primary */
+      pkts.push({ x:cxC()+nW/2, y:H*0.72, tx:px()+nW/2, ty:H*0.28+nH, t:0, color:'#34D399' });
     });
     document.getElementById('cons-read').addEventListener('click', function(){
       var mode = modeEl.value;
@@ -1242,7 +1249,8 @@
       }
       document.getElementById('cons-result').textContent = reading;
       flashes.push({ label: 'READ → ' + reading, color: replicaTimer>0?'#FCD34D':'#34D399', t: 80 });
-      pkts.push({ x:W*0.22+50, y:H/2, tx:W*0.75, ty:H*0.28, t:0, color:'#A78BFA' });
+      /* client → replica (reads go to replica) */
+      pkts.push({ x:cxC()+nW/2, y:H*0.72, tx:rx()+nW/2, ty:H*0.28+nH, t:0, color:'#A78BFA' });
     });
 
     var last = performance.now();
@@ -1253,23 +1261,41 @@
         if (replicaTimer <= 0) { replicaTimer = 0; replicaVal = primaryVal; }
       }
       ctx.clearRect(0,0,W,H); ctx.fillStyle='rgba(5,3,14,0.96)'; ctx.fillRect(0,0,W,H);
+
+      /* connector lines */
+      ctx.save(); ctx.strokeStyle='rgba(255,255,255,0.1)'; ctx.lineWidth=1; ctx.setLineDash([4,5]);
+      /* primary → replica replication line */
+      ctx.beginPath(); ctx.moveTo(px()+nW, H*0.28+nH/2); ctx.lineTo(rx(), H*0.28+nH/2);
+      if (replicaTimer>0) ctx.strokeStyle='rgba(245,158,11,0.5)';
+      ctx.stroke();
+      /* client → primary */
+      ctx.setLineDash([4,5]); ctx.strokeStyle='rgba(255,255,255,0.08)';
+      ctx.beginPath(); ctx.moveTo(cxC()+nW/2, H*0.72); ctx.lineTo(px()+nW/2, H*0.28+nH); ctx.stroke();
+      /* client → replica */
+      ctx.beginPath(); ctx.moveTo(cxC()+nW/2, H*0.72); ctx.lineTo(rx()+nW/2, H*0.28+nH); ctx.stroke();
+      ctx.restore();
+
       /* nodes */
-      drawNode(ctx, W*0.22, H*0.28, 96, 42, 'PRIMARY', 'v = '+primaryVal, '#7C3AED', 1, 0.1);
-      drawNode(ctx, W*0.62, H*0.28, 96, 42, 'REPLICA', replicaTimer>0?'propagating…':('v = '+replicaVal), '#10B981', 1, replicaTimer>0?0.3:0);
-      /* client */
-      ctx.save(); rrect(ctx, W*0.22, H*0.65, 96, 42, 6); ctx.strokeStyle='rgba(139,92,246,0.55)'; ctx.lineWidth=1.5; ctx.stroke();
-      ctx.fillStyle='rgba(124,58,237,0.1)'; ctx.fill();
-      ctx.fillStyle='#C4B5FD'; ctx.font='bold 9px monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
-      ctx.fillText('CLIENT', W*0.22+48, H*0.65+21); ctx.restore();
-      /* lag indicator */
+      drawNode(ctx, px(), H*0.18, nW, nH, 'PRIMARY', 'v = '+primaryVal, '#7C3AED', 1, 0.15);
+      drawNode(ctx, rx(), H*0.18, nW, nH, 'REPLICA', replicaTimer>0?'syncing…':('v = '+replicaVal), replicaTimer>0?'#F59E0B':'#10B981', 1, replicaTimer>0?0.4:0.05);
+
+      /* replication arrow label */
       if (replicaTimer > 0) {
         var prog = 1 - replicaTimer/lagMs;
-        ctx.save(); ctx.fillStyle='rgba(245,158,11,0.15)'; ctx.strokeStyle='rgba(245,158,11,0.35)'; ctx.lineWidth=1;
-        rrect(ctx,W*0.62,H*0.28+50,96,14,7); ctx.fill(); ctx.stroke();
-        ctx.fillStyle='#F59E0B'; rrect(ctx,W*0.62,H*0.28+50,96*prog,14,7); ctx.fill();
-        ctx.fillStyle='#FCD34D'; ctx.font='bold 8px monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
-        ctx.fillText('syncing…', W*0.62+48, H*0.28+57); ctx.restore();
+        var midX = px()+nW + (rx()-px()-nW)*prog;
+        ctx.save(); ctx.beginPath(); ctx.arc(midX, H*0.18+nH/2, 5, 0, Math.PI*2);
+        ctx.fillStyle='#F59E0B'; ctx.shadowBlur=8; ctx.shadowColor='#F59E0B'; ctx.fill(); ctx.restore();
+        ctx.save(); ctx.fillStyle='rgba(245,158,11,0.7)'; ctx.font='9px monospace'; ctx.textAlign='center';
+        ctx.fillText('replicating…', (px()+nW+rx())/2, H*0.18+nH+12); ctx.restore();
       }
+
+      /* client */
+      ctx.save(); rrect(ctx, cxC(), H*0.68, nW, nH, 6);
+      ctx.strokeStyle='rgba(139,92,246,0.55)'; ctx.lineWidth=1.5; ctx.stroke();
+      ctx.fillStyle='rgba(124,58,237,0.1)'; ctx.fill();
+      ctx.fillStyle='#C4B5FD'; ctx.font='bold 9px monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText('CLIENT', cxC()+nW/2, H*0.68+nH/2); ctx.restore();
+
       pkts = pkts.filter(function(p){
         p.t = Math.min(1, p.t+0.05);
         var x=lerp(p.x,p.tx,ease(p.t)), y=lerp(p.y,p.ty,ease(p.t));
@@ -1577,6 +1603,7 @@
     }
 
     function sendRequest() {
+      var midY = H/2;
       if (state === 'OPEN') {
         shortCircuited++;
         document.getElementById('cb-short').textContent = shortCircuited;
@@ -1588,18 +1615,18 @@
       if (failed) {
         failures++; failCount++;
         document.getElementById('cb-fails').textContent = failures;
-        flashes.push({ label:'✕ Request failed', color:'#F87171', t:70 });
-        pkts.push({ x:W*0.22+50, y:H/2, tx:W*0.66, ty:H/2, t:0, color:'#EF4444', fail:true });
+        flashes.push({ label:'✕ Request failed ('+errEl.value+'% error rate)', color:'#F87171', t:70 });
+        pkts.push({ x:sAx()+sNW, y:midY, tx:sBx(), ty:midY, t:0, color:'#EF4444' });
         if (failCount >= THRESHOLD) {
-          updateState('OPEN');
-          openTime = performance.now();
-          flashes.push({ label:'🔴 Circuit OPEN — blocking requests', color:'#EF4444', t:100 });
+          updateState('OPEN'); openTime = performance.now();
+          flashes.push({ label:'🔴 Circuit OPEN — fast-failing all requests', color:'#EF4444', t:120 });
         }
       } else {
-        successes++; if(state==='HALF_OPEN') { failCount=0; updateState('CLOSED'); }
+        successes++;
+        if(state==='HALF_OPEN') { failCount=0; updateState('CLOSED'); flashes.push({ label:'✓ Probe OK — circuit CLOSED', color:'#34D399', t:80 }); }
         document.getElementById('cb-ok').textContent = successes;
         flashes.push({ label:'✓ Request OK', color:'#34D399', t:60 });
-        pkts.push({ x:W*0.22+50, y:H/2, tx:W*0.66, ty:H/2, t:0, color:'#34D399', fail:false });
+        pkts.push({ x:sAx()+sNW, y:midY, tx:sBx(), ty:midY, t:0, color:'#34D399' });
       }
     }
 
@@ -1614,45 +1641,66 @@
     });
 
     var stateColors = { CLOSED:'#10B981', OPEN:'#EF4444', HALF_OPEN:'#F59E0B' };
+    /* layout helpers — recomputed each frame in case canvas resizes */
+    function sAx() { return W*0.05; }
+    function cbx() { return W*0.37; }
+    function sBx() { return W*0.70; }
+    var sNW=110, sNH=52, cbW=100, cbH=56;
 
     function tick(now) {
       if (state === 'OPEN' && now - openTime > HALF_OPEN_AFTER) { updateState('HALF_OPEN'); }
       ctx.clearRect(0,0,W,H); ctx.fillStyle='rgba(5,3,14,0.96)'; ctx.fillRect(0,0,W,H);
 
-      /* Service A */
-      drawNode(ctx, W*0.06, H/2-22, 80, 44, 'SERVICE A', 'caller', '#7C3AED', 1, 0.1);
-      /* Circuit breaker box */
-      var bx=W*0.38, by=H/2-24, bw=80, bh=48;
-      ctx.save(); rrect(ctx,bx,by,bw,bh,8);
-      ctx.fillStyle=stateColors[state]+'22'; ctx.fill();
-      ctx.strokeStyle=stateColors[state]+'77'; ctx.lineWidth=2; ctx.stroke();
-      ctx.fillStyle=stateColors[state]; ctx.font='bold 9px monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
-      ctx.fillText('CIRCUIT', bx+bw/2, by+bh/2-7);
-      ctx.fillText(state, bx+bw/2, by+bh/2+7); ctx.restore();
-      /* failure bar */
-      if (state==='CLOSED'||state==='HALF_OPEN') {
-        ctx.save(); rrect(ctx,bx,by+bh+4,bw,6,3); ctx.strokeStyle='rgba(239,68,68,0.3)'; ctx.lineWidth=1; ctx.stroke();
-        var fp=Math.min(1,failCount/THRESHOLD);
-        rrect(ctx,bx,by+bh+4,bw*fp,6,3); ctx.fillStyle='#EF4444'; ctx.fill(); ctx.restore();
-      }
-      /* Service B */
-      drawNode(ctx, W*0.74, H/2-22, 80, 44, 'SERVICE B', 'dependency', '#3B82F6', state==='OPEN'?0.35:1, 0.05);
-
+      var midY = H/2;
       /* connection lines */
-      ctx.save(); ctx.strokeStyle='rgba(255,255,255,0.08)'; ctx.lineWidth=1; ctx.setLineDash([4,4]);
-      ctx.beginPath(); ctx.moveTo(W*0.06+80,H/2); ctx.lineTo(bx,H/2); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(bx+bw,H/2); ctx.lineTo(W*0.74,H/2);
-      if(state==='OPEN') ctx.strokeStyle='rgba(239,68,68,0.3)';
-      ctx.stroke(); ctx.restore();
+      ctx.save(); ctx.lineWidth=1.5; ctx.setLineDash([5,4]);
+      ctx.strokeStyle='rgba(255,255,255,0.12)';
+      ctx.beginPath(); ctx.moveTo(sAx()+sNW, midY); ctx.lineTo(cbx(), midY); ctx.stroke();
+      ctx.strokeStyle = state==='OPEN' ? 'rgba(239,68,68,0.25)' : 'rgba(255,255,255,0.12)';
+      ctx.beginPath(); ctx.moveTo(cbx()+cbW, midY); ctx.lineTo(sBx(), midY); ctx.stroke();
+      ctx.restore();
+
+      /* Service A */
+      drawNode(ctx, sAx(), midY-sNH/2, sNW, sNH, 'SERVICE A', 'caller', '#7C3AED', 1, 0.12);
+
+      /* Circuit breaker box */
+      var bx=cbx(), by=midY-cbH/2, bw=cbW, bh=cbH;
+      ctx.save(); rrect(ctx,bx,by,bw,bh,10);
+      ctx.fillStyle=stateColors[state]+'1A'; ctx.fill();
+      ctx.strokeStyle=stateColors[state]+'99'; ctx.lineWidth=2; ctx.stroke();
+      ctx.fillStyle=stateColors[state]; ctx.font='bold 8px monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText('CIRCUIT', bx+bw/2, by+bh/2-10);
+      ctx.font='bold 13px monospace';
+      ctx.fillText(state, bx+bw/2, by+bh/2+6); ctx.restore();
+      /* failure progress bar */
+      if (state==='CLOSED'||state==='HALF_OPEN') {
+        ctx.save(); rrect(ctx,bx+6,by+bh+6,bw-12,7,3.5); ctx.strokeStyle='rgba(239,68,68,0.25)'; ctx.lineWidth=1; ctx.stroke();
+        var fp=Math.min(1,failCount/THRESHOLD);
+        if (fp>0) { rrect(ctx,bx+6,by+bh+6,(bw-12)*fp,7,3.5); ctx.fillStyle='#EF4444'; ctx.fill(); }
+        ctx.fillStyle='rgba(239,68,68,0.5)'; ctx.font='8px monospace'; ctx.textAlign='center';
+        ctx.fillText('fail '+failCount+'/'+THRESHOLD, bx+bw/2, by+bh+20); ctx.restore();
+      }
+
+      /* Service B */
+      drawNode(ctx, sBx(), midY-sNH/2, sNW, sNH, 'SERVICE B', 'dependency', '#3B82F6', state==='OPEN'?0.3:1, 0.06);
+
+      /* State label above circuit box */
+      if (state === 'OPEN') {
+        ctx.save(); ctx.fillStyle='rgba(239,68,68,0.7)'; ctx.font='9px monospace'; ctx.textAlign='center';
+        ctx.fillText('blocking all requests', bx+bw/2, by-8); ctx.restore();
+      } else if (state === 'HALF_OPEN') {
+        ctx.save(); ctx.fillStyle='rgba(245,158,11,0.7)'; ctx.font='9px monospace'; ctx.textAlign='center';
+        ctx.fillText('probing…', bx+bw/2, by-8); ctx.restore();
+      }
 
       pkts = pkts.filter(function(p){
         p.t = Math.min(1, p.t+0.04);
         var x=lerp(p.x,p.tx,ease(p.t)), y=lerp(p.y,p.ty,ease(p.t));
-        ctx.save(); ctx.beginPath(); ctx.arc(x,y,5,0,Math.PI*2);
-        ctx.fillStyle=p.color; ctx.shadowBlur=10; ctx.shadowColor=p.color; ctx.fill(); ctx.restore();
+        ctx.save(); ctx.beginPath(); ctx.arc(x,y,6,0,Math.PI*2);
+        ctx.fillStyle=p.color; ctx.shadowBlur=12; ctx.shadowColor=p.color; ctx.fill(); ctx.restore();
         return p.t<1;
       });
-      flashes.forEach(function(f){ ctx.save(); ctx.globalAlpha=Math.min(1,f.t/20); ctx.font='bold 12px monospace'; ctx.fillStyle=f.color; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(f.label,W/2,H-20); ctx.restore(); f.t--; });
+      flashes.forEach(function(f){ ctx.save(); ctx.globalAlpha=Math.min(1,f.t/20); ctx.font='bold 13px monospace'; ctx.fillStyle=f.color; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(f.label,W/2,H-22); ctx.restore(); f.t--; });
       flashes=flashes.filter(function(f){ return f.t>0; });
       raf(tick);
     }
@@ -1784,14 +1832,26 @@
         ctx.fillText(lane.label, 76, lane.y+(LANE_H-2)/2); ctx.restore();
       });
 
+      /* empty state hint */
+      if (lanes.length === 0) {
+        ctx.save();
+        ctx.fillStyle='rgba(139,92,246,0.18)'; ctx.strokeStyle='rgba(139,92,246,0.35)'; ctx.lineWidth=1;
+        ctx.setLineDash([5,4]);
+        rrect(ctx, W/2-170, H/2-28, 340, 56, 10); ctx.fill(); ctx.stroke();
+        ctx.fillStyle='rgba(196,181,253,0.85)'; ctx.font='bold 13px monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
+        ctx.fillText('← Click "HTTP REST Request" to start', W/2, H/2-8);
+        ctx.font='10px monospace'; ctx.fillStyle='rgba(196,181,253,0.5)';
+        ctx.fillText('Each REST call = new TCP+TLS handshake overhead', W/2, H/2+12);
+        ctx.restore();
+      }
+
       /* WS persistent indicator */
       if (wsOpen) {
-        ctx.save(); ctx.fillStyle='rgba(16,185,129,0.1)'; ctx.strokeStyle='rgba(16,185,129,0.4)'; ctx.lineWidth=1;
+        ctx.save(); ctx.fillStyle='rgba(16,185,129,0.07)'; ctx.strokeStyle='rgba(16,185,129,0.35)'; ctx.lineWidth=1;
         ctx.setLineDash([4,3]);
-        ctx.beginPath(); ctx.rect(80, 0, W-80, H-20); ctx.stroke();
-        ctx.fillStyle='rgba(16,185,129,0.12)'; ctx.fill();
+        ctx.beginPath(); ctx.rect(80, 0, W-80, H-20); ctx.stroke(); ctx.fill();
         ctx.fillStyle='#10B981'; ctx.font='bold 9px monospace'; ctx.textAlign='right';
-        ctx.fillText('WS OPEN', W-4, 12); ctx.restore();
+        ctx.fillText('WS OPEN — persistent connection', W-4, 12); ctx.restore();
       }
       raf(tick);
     }
