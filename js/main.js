@@ -11,7 +11,7 @@
 
   /* ---------- Theme toggle ---------- */
   function getTheme() {
-    try { return localStorage.getItem(THEME_KEY) || 'light'; } catch (e) { return 'light'; }
+    try { return localStorage.getItem(THEME_KEY) || 'dark'; } catch (e) { return 'dark'; }
   }
 
   function applyTheme(theme) {
@@ -215,10 +215,10 @@
       if (moon) moon.style.display = theme === 'dark' ? 'none' : 'block';
       if (sun)  sun.style.display  = theme === 'dark' ? 'block' : 'none';
     }
-    syncIcons(document.documentElement.getAttribute('data-theme') || 'light');
+    syncIcons(document.documentElement.getAttribute('data-theme') || 'dark');
     btn.addEventListener('click', function () {
       setTimeout(function () {
-        syncIcons(document.documentElement.getAttribute('data-theme') || 'light');
+        syncIcons(document.documentElement.getAttribute('data-theme') || 'dark');
       }, 0);
     });
   }
