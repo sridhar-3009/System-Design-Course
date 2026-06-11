@@ -465,6 +465,14 @@ DELETE /users/42 <span class="c-c"># remove user 42</span></code></pre>
  </div>
  </section>
 
+ <!-- ============ INTERACTIVE DEMO ============ -->
+ <section class="section-block reveal">
+ <div class="section-badge">Try It</div>
+ <h2>Interactive: REST vs WebSocket Overhead</h2>
+ <p>Send HTTP REST requests and watch the TCP+TLS handshake overhead on every call. Then open a WebSocket — pay the connection cost once, and see subsequent frames arrive in ~2ms instead of 120ms+.</p>
+ <div id="demo-protocol"></div>
+ </section>
+
  <nav class="bottom-nav">
  <a href="08-async-messaging.html"><span class="bn-dir">← Previous</span><span class="bn-title">Async Processing &amp; Messaging</span></a>
  <a class="next" href="10-microservices.html"><span class="bn-dir">Next →</span><span class="bn-title">Microservices Architecture</span></a>
@@ -476,5 +484,6 @@ DELETE /users/42 <span class="c-c"># remove user 42</span></code></pre>
 </footer>
 
 <script src="../js/main.js"></script>
+<script src="../js/demos.js"></script>
 </body>
 </html>

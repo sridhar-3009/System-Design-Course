@@ -1019,6 +1019,895 @@
     raf(tick);
   }
 
+  /* ============================================================
+     CAP Theorem Demo — #demo-cap
+     ============================================================ */
+  function initCAPDemo() {
+    var wrap = document.getElementById('demo-cap');
+    if (!wrap) return;
+    wrap.innerHTML =
+      '<div class="demo-shell">' +
+        '<div class="demo-header"><span class="demo-label">INTERACTIVE DEMO</span>' +
+        '<span class="demo-title">CAP Theorem: Partition Simulator</span></div>' +
+        '<canvas id="demo-cap-canvas" class="demo-canvas" style="height:260px"></canvas>' +
+        '<div class="demo-controls">' +
+          '<div class="demo-ctrl">' +
+            '<span class="ctrl-label">When partitioned, prioritise:</span>' +
+            '<select id="cap-mode" class="ctrl-select">' +
+              '<option value="cp">Consistency (CP) — reject stale reads</option>' +
+              '<option value="ap">Availability (AP) — return stale data</option>' +
+            '</select>' +
+          '</div>' +
+          '<div class="demo-ctrl" style="gap:8px">' +
+            '<button id="cap-write" class="demo-btn accent">Write "v2"</button>' +
+            '<button id="cap-read" class="demo-btn">Read</button>' +
+            '<button id="cap-partition" class="demo-btn red">✂ Trigger Partition</button>' +
+            '<button id="cap-heal" class="demo-btn" style="display:none">↺ Heal Network</button>' +
+          '</div>' +
+          '<div class="demo-stats">' +
+            '<div class="demo-stat"><span class="ds-label">Writes</span><span id="cap-writes" class="ds-val green">0</span></div>' +
+            '<div class="demo-stat"><span class="ds-label">Reads OK</span><span id="cap-reads-ok" class="ds-val green">0</span></div>' +
+            '<div class="demo-stat"><span class="ds-label">Errors / Stale</span><span id="cap-errors" class="ds-val red">0</span></div>' +
+            '<div class="demo-stat"><span class="ds-label">State</span><span id="cap-state" class="ds-val purple">Healthy</span></div>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+
+    var canvas = document.getElementById('demo-cap-canvas');
+    var sd = setupHiDPI(canvas); var ctx = sd.ctx, W = sd.w, H = sd.h;
+
+    var partitioned = false, version = 1, staleReplicas = false;
+    var writes = 0, readsOk = 0, errors = 0;
+    var pkts = [], flashes = [];
+    var modeEl = document.getElementById('cap-mode');
+    var stateEl = document.getElementById('cap-state');
+
+    function updateStats() {
+      document.getElementById('cap-writes').textContent = writes;
+      document.getElementById('cap-reads-ok').textContent = readsOk;
+      document.getElementById('cap-errors').textContent = errors;
+    }
+
+    document.getElementById('cap-write').addEventListener('click', function() {
+      version++; writes++; updateStats(); staleReplicas = partitioned;
+      flashes.push({ label: 'WRITE v' + version, color: '#34D399', t: 60 });
+      /* packet: client → node A */
+      var cX=W*0.12, cY=H/2, n1X=W*0.38, n1Y=H*0.28;
+      pkts.push({ x:cX+20, y:cY, tx:n1X, ty:n1Y+22, t:0, color:'#34D399', label:'write' });
+      if (!partitioned) pkts.push({ x:n1X, y:n1Y+22, tx:W*0.62, ty:H*0.28+22, t:0, color:'#34D399', label:'sync' });
+    });
+
+    document.getElementById('cap-read').addEventListener('click', function() {
+      var cp = modeEl.value === 'cp';
+      if (partitioned && staleReplicas) {
+        if (cp) { errors++; flashes.push({ label: 'ERROR: Consistency > Availability', color: '#F87171', t: 80 }); }
+        else     { readsOk++; flashes.push({ label: 'STALE READ v'+(version-1)+' returned', color: '#FCD34D', t: 80 }); }
+      } else {
+        readsOk++;
+        flashes.push({ label: 'READ v' + version + ' OK', color: '#34D399', t: 60 });
+      }
+      updateStats();
+      pkts.push({ x:W*0.12+20, y:H/2, tx:W*0.62, ty:H*0.72+22, t:0, color:'#A78BFA', label:'read' });
+    });
+
+    document.getElementById('cap-partition').addEventListener('click', function() {
+      partitioned = true; staleReplicas = false;
+      this.style.display = 'none';
+      document.getElementById('cap-heal').style.display = '';
+      stateEl.textContent = 'PARTITIONED'; stateEl.className = 'ds-val red';
+      flashes.push({ label: '✂ Network partition!', color: '#F87171', t: 90 });
+    });
+    document.getElementById('cap-heal').addEventListener('click', function() {
+      partitioned = false; staleReplicas = false;
+      this.style.display = 'none';
+      document.getElementById('cap-partition').style.display = '';
+      stateEl.textContent = 'Healthy'; stateEl.className = 'ds-val green';
+      flashes.push({ label: '↺ Network healed', color: '#34D399', t: 60 });
+    });
+
+    var nodes = [
+      { id:'leader', label:'NODE A', sub:'Leader', x:0.38, y:0.28, color:'#7C3AED' },
+      { id:'r1',     label:'NODE B', sub:'Replica', x:0.62, y:0.28, color:'#10B981' },
+      { id:'r2',     label:'NODE C', sub:'Replica', x:0.62, y:0.68, color:'#10B981' }
+    ];
+    var nW = 90, nH = 42;
+
+    function tick() {
+      ctx.clearRect(0,0,W,H);
+      ctx.fillStyle='rgba(5,3,14,0.96)'; ctx.fillRect(0,0,W,H);
+      /* partition line */
+      if (partitioned) {
+        ctx.save(); ctx.strokeStyle='rgba(239,68,68,0.5)'; ctx.lineWidth=2;
+        ctx.setLineDash([8,5]); ctx.beginPath();
+        ctx.moveTo(W*0.54, H*0.05); ctx.lineTo(W*0.54, H*0.95);
+        ctx.stroke(); ctx.restore();
+        ctx.save(); ctx.font='bold 10px monospace'; ctx.fillStyle='rgba(239,68,68,0.7)'; ctx.textAlign='center';
+        ctx.fillText('PARTITION', W*0.54, H*0.05+10); ctx.restore();
+      }
+      /* edges */
+      nodes.forEach(function(a,ai) {
+        nodes.forEach(function(b,bi) {
+          if (bi<=ai) return;
+          var cutA = partitioned && ((a.x < 0.54 && b.x >= 0.54) || (a.x >= 0.54 && b.x < 0.54));
+          ctx.save(); ctx.beginPath();
+          ctx.moveTo(a.x*W + nW/2, a.y*H + nH/2);
+          ctx.lineTo(b.x*W + nW/2, b.y*H + nH/2);
+          ctx.strokeStyle = cutA ? 'rgba(239,68,68,0.25)' : 'rgba(255,255,255,0.12)';
+          ctx.lineWidth = cutA ? 1 : 1.5;
+          if (cutA) ctx.setLineDash([4,4]);
+          ctx.stroke(); ctx.restore();
+        });
+      });
+      /* nodes */
+      nodes.forEach(function(n) {
+        var stale = n.id !== 'leader' && partitioned && staleReplicas;
+        drawNode(ctx, n.x*W, n.y*H, nW, nH, n.label, stale ? 'STALE v'+(version-1) : n.sub + ' v'+version, stale ? '#F59E0B' : n.color, 1, 0);
+      });
+      /* client */
+      ctx.save(); rrect(ctx, W*0.03, H/2-21, 60, 42, 6); ctx.strokeStyle='rgba(139,92,246,0.6)'; ctx.lineWidth=1.5; ctx.stroke();
+      ctx.fillStyle='rgba(124,58,237,0.12)'; ctx.fill();
+      ctx.fillStyle='#C4B5FD'; ctx.font='bold 9px monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText('CLIENT', W*0.03+30, H/2); ctx.restore();
+      /* version badge */
+      ctx.save(); ctx.fillStyle='rgba(52,211,153,0.15)'; ctx.strokeStyle='rgba(52,211,153,0.35)'; ctx.lineWidth=1;
+      rrect(ctx, W-70, 8, 60, 24, 12); ctx.fill(); ctx.stroke();
+      ctx.fillStyle='#34D399'; ctx.font='bold 10px monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText('ver = v'+version, W-40, 20); ctx.restore();
+      /* packets */
+      pkts = pkts.filter(function(p) {
+        p.t = Math.min(1, p.t + 0.045);
+        var ex=ease(p.t), x=lerp(p.x,p.tx,ex), y=lerp(p.y,p.ty,ex);
+        ctx.save(); ctx.beginPath(); ctx.arc(x,y,5,0,Math.PI*2);
+        ctx.fillStyle=p.color; ctx.shadowBlur=10; ctx.shadowColor=p.color; ctx.fill(); ctx.restore();
+        return p.t < 1;
+      });
+      /* flashes */
+      flashes.forEach(function(f,i) {
+        ctx.save(); ctx.globalAlpha = Math.min(1, f.t/20);
+        ctx.font='bold 13px monospace'; ctx.fillStyle=f.color; ctx.textAlign='center'; ctx.textBaseline='middle';
+        ctx.fillText(f.label, W/2, H-22); ctx.restore();
+        f.t--;
+      });
+      flashes = flashes.filter(function(f){ return f.t > 0; });
+      raf(tick);
+    }
+    raf(tick);
+  }
+
+  /* ============================================================
+     Consistency Models Demo — #demo-consistency
+     ============================================================ */
+  function initConsistencyDemo() {
+    var wrap = document.getElementById('demo-consistency');
+    if (!wrap) return;
+    wrap.innerHTML =
+      '<div class="demo-shell">' +
+        '<div class="demo-header"><span class="demo-label">INTERACTIVE DEMO</span>' +
+        '<span class="demo-title">Consistency Models: Read Behaviour</span></div>' +
+        '<canvas id="demo-cons-canvas" class="demo-canvas" style="height:240px"></canvas>' +
+        '<div class="demo-controls">' +
+          '<div class="demo-ctrl">' +
+            '<span class="ctrl-label">Replication lag</span>' +
+            '<input id="cons-lag" class="ctrl-slider" type="range" min="50" max="1200" value="300">' +
+            '<span id="cons-lag-val" class="ctrl-val">300ms</span>' +
+          '</div>' +
+          '<div class="demo-ctrl">' +
+            '<span class="ctrl-label">Model</span>' +
+            '<select id="cons-mode" class="ctrl-select">' +
+              '<option value="strong">Strong Consistency</option>' +
+              '<option value="eventual" selected>Eventual Consistency</option>' +
+              '<option value="read-your-writes">Read-Your-Writes</option>' +
+            '</select>' +
+          '</div>' +
+          '<div class="demo-ctrl" style="gap:8px">' +
+            '<button id="cons-write" class="demo-btn accent">Write "hello"</button>' +
+            '<button id="cons-read" class="demo-btn">Read</button>' +
+          '</div>' +
+          '<div class="demo-stats">' +
+            '<div class="demo-stat"><span class="ds-label">Lag</span><span id="cons-lag-stat" class="ds-val amber">300ms</span></div>' +
+            '<div class="demo-stat"><span class="ds-label">Last Read</span><span id="cons-result" class="ds-val purple">—</span></div>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+
+    var canvas = document.getElementById('demo-cons-canvas');
+    var sd = setupHiDPI(canvas); var ctx = sd.ctx, W = sd.w, H = sd.h;
+
+    var lagMs = 300, value = 'null', primaryVal = 'null', replicaVal = 'null';
+    var pkts = [], flashes = [], replicaTimer = 0;
+    var lagEl = document.getElementById('cons-lag');
+    var lagValEl = document.getElementById('cons-lag-val');
+    var modeEl = document.getElementById('cons-mode');
+
+    lagEl.addEventListener('input', function(){
+      lagMs = +lagEl.value;
+      lagValEl.textContent = lagMs+'ms';
+      document.getElementById('cons-lag-stat').textContent = lagMs+'ms';
+      document.getElementById('cons-lag-stat').className = 'ds-val '+(lagMs<150?'green':lagMs<500?'amber':'red');
+    });
+
+    document.getElementById('cons-write').addEventListener('click', function(){
+      primaryVal = '"hello"'; value = '"hello"'; replicaTimer = lagMs;
+      pkts.push({ x:W*0.22+50, y:H/2, tx:W*0.22, ty:H*0.28, t:0, color:'#34D399' });
+    });
+    document.getElementById('cons-read').addEventListener('click', function(){
+      var mode = modeEl.value;
+      var reading;
+      if (mode === 'strong') {
+        reading = primaryVal === '"hello"' ? '"hello" ✓ fresh' : 'null — blocked for sync';
+      } else if (mode === 'eventual') {
+        reading = replicaTimer > 0 ? 'null — still propagating' : replicaVal === primaryVal ? primaryVal : 'stale data';
+      } else {
+        reading = value;
+      }
+      document.getElementById('cons-result').textContent = reading;
+      flashes.push({ label: 'READ → ' + reading, color: replicaTimer>0?'#FCD34D':'#34D399', t: 80 });
+      pkts.push({ x:W*0.22+50, y:H/2, tx:W*0.75, ty:H*0.28, t:0, color:'#A78BFA' });
+    });
+
+    var last = performance.now();
+    function tick(now) {
+      var dt = Math.min(60, now - last); last = now;
+      if (replicaTimer > 0) {
+        replicaTimer -= dt;
+        if (replicaTimer <= 0) { replicaTimer = 0; replicaVal = primaryVal; }
+      }
+      ctx.clearRect(0,0,W,H); ctx.fillStyle='rgba(5,3,14,0.96)'; ctx.fillRect(0,0,W,H);
+      /* nodes */
+      drawNode(ctx, W*0.22, H*0.28, 96, 42, 'PRIMARY', 'v = '+primaryVal, '#7C3AED', 1, 0.1);
+      drawNode(ctx, W*0.62, H*0.28, 96, 42, 'REPLICA', replicaTimer>0?'propagating…':('v = '+replicaVal), '#10B981', 1, replicaTimer>0?0.3:0);
+      /* client */
+      ctx.save(); rrect(ctx, W*0.22, H*0.65, 96, 42, 6); ctx.strokeStyle='rgba(139,92,246,0.55)'; ctx.lineWidth=1.5; ctx.stroke();
+      ctx.fillStyle='rgba(124,58,237,0.1)'; ctx.fill();
+      ctx.fillStyle='#C4B5FD'; ctx.font='bold 9px monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText('CLIENT', W*0.22+48, H*0.65+21); ctx.restore();
+      /* lag indicator */
+      if (replicaTimer > 0) {
+        var prog = 1 - replicaTimer/lagMs;
+        ctx.save(); ctx.fillStyle='rgba(245,158,11,0.15)'; ctx.strokeStyle='rgba(245,158,11,0.35)'; ctx.lineWidth=1;
+        rrect(ctx,W*0.62,H*0.28+50,96,14,7); ctx.fill(); ctx.stroke();
+        ctx.fillStyle='#F59E0B'; rrect(ctx,W*0.62,H*0.28+50,96*prog,14,7); ctx.fill();
+        ctx.fillStyle='#FCD34D'; ctx.font='bold 8px monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
+        ctx.fillText('syncing…', W*0.62+48, H*0.28+57); ctx.restore();
+      }
+      pkts = pkts.filter(function(p){
+        p.t = Math.min(1, p.t+0.05);
+        var x=lerp(p.x,p.tx,ease(p.t)), y=lerp(p.y,p.ty,ease(p.t));
+        ctx.save(); ctx.beginPath(); ctx.arc(x,y,5,0,Math.PI*2);
+        ctx.fillStyle=p.color; ctx.shadowBlur=8; ctx.shadowColor=p.color; ctx.fill(); ctx.restore();
+        return p.t<1;
+      });
+      flashes.forEach(function(f){ ctx.save(); ctx.globalAlpha=Math.min(1,f.t/20); ctx.font='bold 12px monospace'; ctx.fillStyle=f.color; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(f.label,W/2,H-20); ctx.restore(); f.t--; });
+      flashes = flashes.filter(function(f){ return f.t>0; });
+      raf(tick);
+    }
+    raf(tick);
+  }
+
+  /* ============================================================
+     CDN Demo — #demo-cdn
+     ============================================================ */
+  function initCDNDemo() {
+    var wrap = document.getElementById('demo-cdn');
+    if (!wrap) return;
+    wrap.innerHTML =
+      '<div class="demo-shell">' +
+        '<div class="demo-header"><span class="demo-label">INTERACTIVE DEMO</span>' +
+        '<span class="demo-title">CDN: Edge Cache Routing</span></div>' +
+        '<canvas id="demo-cdn-canvas" class="demo-canvas" style="height:260px"></canvas>' +
+        '<div class="demo-controls">' +
+          '<div class="demo-ctrl">' +
+            '<span class="ctrl-label">User region</span>' +
+            '<select id="cdn-region" class="ctrl-select">' +
+              '<option value="0">US-West (San Francisco)</option>' +
+              '<option value="1">US-East (New York)</option>' +
+              '<option value="2">Europe (London)</option>' +
+              '<option value="3">Asia (Singapore)</option>' +
+              '<option value="4">South America (São Paulo)</option>' +
+            '</select>' +
+          '</div>' +
+          '<div class="demo-ctrl" style="gap:8px">' +
+            '<button id="cdn-fetch" class="demo-btn accent">Fetch /image.jpg</button>' +
+            '<button id="cdn-purge" class="demo-btn red">Purge Cache</button>' +
+          '</div>' +
+          '<div class="demo-stats">' +
+            '<div class="demo-stat"><span class="ds-label">Last latency</span><span id="cdn-lat" class="ds-val green">—</span></div>' +
+            '<div class="demo-stat"><span class="ds-label">Served from</span><span id="cdn-from" class="ds-val purple">—</span></div>' +
+            '<div class="demo-stat"><span class="ds-label">Edge hits</span><span id="cdn-hits" class="ds-val green">0</span></div>' +
+            '<div class="demo-stat"><span class="ds-label">Origin fetches</span><span id="cdn-origin" class="ds-val amber">0</span></div>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+
+    var canvas = document.getElementById('demo-cdn-canvas');
+    var sd = setupHiDPI(canvas); var ctx = sd.ctx, W = sd.w, H = sd.h;
+
+    var pops = [
+      { label:'US-W', x:0.12, y:0.42, ms:18, cached:false, color:'#7C3AED' },
+      { label:'US-E', x:0.28, y:0.28, ms:22, cached:false, color:'#7C3AED' },
+      { label:'EU',   x:0.50, y:0.22, ms:35, cached:false, color:'#7C3AED' },
+      { label:'ASIA', x:0.78, y:0.38, ms:28, cached:false, color:'#7C3AED' },
+      { label:'BR',   x:0.30, y:0.70, ms:45, cached:false, color:'#7C3AED' }
+    ];
+    var origin = { x:0.50, y:0.55 };
+    var pkts = [], flashes = [], edgeHits = 0, originFetches = 0;
+    var regionEl = document.getElementById('cdn-region');
+
+    document.getElementById('cdn-purge').addEventListener('click', function(){
+      pops.forEach(function(p){ p.cached = false; });
+      flashes.push({ label:'Cache purged — next request hits origin', color:'#F87171', t:80 });
+    });
+
+    document.getElementById('cdn-fetch').addEventListener('click', function(){
+      var ri = +regionEl.value;
+      var pop = pops[ri];
+      if (pop.cached) {
+        edgeHits++;
+        document.getElementById('cdn-hits').textContent = edgeHits;
+        document.getElementById('cdn-lat').textContent = pop.ms + 'ms';
+        document.getElementById('cdn-lat').className = 'ds-val green';
+        document.getElementById('cdn-from').textContent = pop.label + ' EDGE HIT';
+        flashes.push({ label:'HIT at ' + pop.label + ' edge — ' + pop.ms + 'ms', color:'#34D399', t:80 });
+        pkts.push({ x:W*(pop.x-0.06), y:H*pop.y, tx:W*(pop.x-0.06)-20, ty:H*pop.y-15, t:0, color:'#34D399' });
+      } else {
+        pop.cached = true;
+        originFetches++;
+        document.getElementById('cdn-origin').textContent = originFetches;
+        var totalMs = pop.ms + 120;
+        document.getElementById('cdn-lat').textContent = totalMs + 'ms';
+        document.getElementById('cdn-lat').className = 'ds-val amber';
+        document.getElementById('cdn-from').textContent = 'ORIGIN (miss at ' + pop.label + ')';
+        flashes.push({ label:'MISS at ' + pop.label + ' — fetching origin (' + totalMs + 'ms)', color:'#FCD34D', t:90 });
+        pkts.push({ x:W*pop.x+30, y:H*pop.y+18, tx:W*origin.x+30, ty:H*origin.y+18, t:0, color:'#F59E0B' });
+        setTimeout(function(){
+          pkts.push({ x:W*origin.x+30, y:H*origin.y+18, tx:W*pop.x+30, ty:H*pop.y+18, t:0, color:'#34D399' });
+        }, 600);
+      }
+    });
+
+    function tick() {
+      ctx.clearRect(0,0,W,H); ctx.fillStyle='rgba(5,3,14,0.96)'; ctx.fillRect(0,0,W,H);
+      /* lines from pops to origin */
+      pops.forEach(function(p){
+        ctx.save(); ctx.beginPath();
+        ctx.moveTo(W*p.x+30, H*p.y+18);
+        ctx.lineTo(W*origin.x+30, H*origin.y+18);
+        ctx.strokeStyle='rgba(255,255,255,0.07)'; ctx.lineWidth=1;
+        ctx.setLineDash([4,6]); ctx.stroke(); ctx.restore();
+      });
+      /* origin */
+      drawNode(ctx, W*origin.x, H*origin.y, 70, 36, 'ORIGIN', 'server', '#EF4444', 1, 0.05);
+      /* PoPs */
+      var ri = +regionEl.value;
+      pops.forEach(function(p, i){
+        var active = i===ri;
+        var col = p.cached ? '#10B981' : '#7C3AED';
+        drawNode(ctx, W*p.x, H*p.y, 60, 36, p.label, p.cached?'CACHED':'EMPTY', col, 1, active?0.5:0.1);
+      });
+      pkts = pkts.filter(function(p){
+        p.t = Math.min(1, p.t+0.04);
+        var x=lerp(p.x,p.tx,ease(p.t)), y=lerp(p.y,p.ty,ease(p.t));
+        ctx.save(); ctx.beginPath(); ctx.arc(x,y,5,0,Math.PI*2);
+        ctx.fillStyle=p.color; ctx.shadowBlur=10; ctx.shadowColor=p.color; ctx.fill(); ctx.restore();
+        return p.t<1;
+      });
+      flashes.forEach(function(f){ ctx.save(); ctx.globalAlpha=Math.min(1,f.t/20); ctx.font='bold 12px monospace'; ctx.fillStyle=f.color; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(f.label,W/2,H-20); ctx.restore(); f.t--; });
+      flashes = flashes.filter(function(f){ return f.t>0; });
+      raf(tick);
+    }
+    raf(tick);
+  }
+
+  /* ============================================================
+     Message Queue Demo — #demo-queue
+     ============================================================ */
+  function initQueueDemo() {
+    var wrap = document.getElementById('demo-queue');
+    if (!wrap) return;
+    wrap.innerHTML =
+      '<div class="demo-shell">' +
+        '<div class="demo-header"><span class="demo-label">INTERACTIVE DEMO</span>' +
+        '<span class="demo-title">Message Queue: Producer / Consumer</span></div>' +
+        '<canvas id="demo-queue-canvas" class="demo-canvas" style="height:240px"></canvas>' +
+        '<div class="demo-controls">' +
+          '<div class="demo-ctrl">' +
+            '<span class="ctrl-label">Consumer speed</span>' +
+            '<input id="q-speed" class="ctrl-slider" type="range" min="1" max="10" value="3">' +
+            '<span id="q-speed-val" class="ctrl-val">3/s</span>' +
+          '</div>' +
+          '<div class="demo-ctrl" style="gap:8px">' +
+            '<button id="q-produce" class="demo-btn accent">Produce 1</button>' +
+            '<button id="q-burst" class="demo-btn">Burst ×10</button>' +
+            '<button id="q-flood" class="demo-btn red">Flood ×50</button>' +
+          '</div>' +
+          '<div class="demo-stats">' +
+            '<div class="demo-stat"><span class="ds-label">Queue depth</span><span id="q-depth" class="ds-val purple">0</span></div>' +
+            '<div class="demo-stat"><span class="ds-label">Produced</span><span id="q-prod-count" class="ds-val green">0</span></div>' +
+            '<div class="demo-stat"><span class="ds-label">Consumed</span><span id="q-cons-count" class="ds-val green">0</span></div>' +
+            '<div class="demo-stat"><span class="ds-label">Status</span><span id="q-status" class="ds-val green">Healthy</span></div>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+
+    var canvas = document.getElementById('demo-queue-canvas');
+    var sd = setupHiDPI(canvas); var ctx = sd.ctx, W = sd.w, H = sd.h;
+
+    var queue = [], produced = 0, consumed = 0, consumeSpeed = 3;
+    var MAX_QUEUE = 40;
+    var speedEl = document.getElementById('q-speed');
+    var lastConsume = 0;
+    var pkts = [], flashes = [];
+
+    speedEl.addEventListener('input', function(){
+      consumeSpeed = +speedEl.value;
+      document.getElementById('q-speed-val').textContent = consumeSpeed + '/s';
+    });
+
+    function produce(n) {
+      for (var i=0;i<n;i++) {
+        if (queue.length < MAX_QUEUE) {
+          queue.push({ id: ++produced, color: ['#7C3AED','#10B981','#3B82F6','#F59E0B'][produced%4] });
+        }
+      }
+      document.getElementById('q-prod-count').textContent = produced;
+      updateStats();
+    }
+
+    function updateStats() {
+      document.getElementById('q-depth').textContent = queue.length;
+      document.getElementById('q-depth').className = 'ds-val ' + (queue.length>MAX_QUEUE*0.7?'red':queue.length>MAX_QUEUE*0.4?'amber':'green');
+      var status = queue.length > MAX_QUEUE * 0.8 ? 'BACKPRESSURE' : queue.length > MAX_QUEUE * 0.4 ? 'High load' : 'Healthy';
+      document.getElementById('q-status').textContent = status;
+      document.getElementById('q-status').className = 'ds-val '+(queue.length>MAX_QUEUE*0.8?'red':queue.length>MAX_QUEUE*0.4?'amber':'green');
+    }
+
+    document.getElementById('q-produce').addEventListener('click', function(){ produce(1); });
+    document.getElementById('q-burst').addEventListener('click', function(){ produce(10); });
+    document.getElementById('q-flood').addEventListener('click', function(){ produce(50); });
+
+    var last = performance.now();
+    function tick(now) {
+      var dt = Math.min(60, now - last); last = now;
+      lastConsume += dt;
+      var consumeInterval = 1000 / consumeSpeed;
+      if (lastConsume >= consumeInterval && queue.length > 0) {
+        lastConsume = 0;
+        var msg = queue.shift();
+        consumed++;
+        document.getElementById('q-cons-count').textContent = consumed;
+        updateStats();
+        var cX=W*0.8, cY=H/2;
+        pkts.push({ x:W*0.6, y:H/2, tx:cX, ty:cY, t:0, color:msg.color });
+      }
+
+      ctx.clearRect(0,0,W,H); ctx.fillStyle='rgba(5,3,14,0.96)'; ctx.fillRect(0,0,W,H);
+
+      /* Producer */
+      drawNode(ctx, W*0.04, H/2-20, 72, 40, 'PRODUCER', 'publisher', '#7C3AED', 1, 0.05);
+      /* Consumer */
+      drawNode(ctx, W*0.78, H/2-20, 72, 40, 'CONSUMER', consumed+' done', '#10B981', 1, 0.05);
+
+      /* Queue box */
+      var qx=W*0.24, qy=H*0.2, qW=W*0.46, qH=H*0.6;
+      ctx.save(); rrect(ctx,qx,qy,qW,qH,8); ctx.strokeStyle='rgba(255,255,255,0.12)'; ctx.lineWidth=1.5; ctx.stroke();
+      ctx.fillStyle='rgba(255,255,255,0.02)'; ctx.fill();
+      ctx.fillStyle='rgba(255,255,255,0.35)'; ctx.font='bold 8px monospace'; ctx.textAlign='center';
+      ctx.fillText('MESSAGE QUEUE (FIFO)', qx+qW/2, qy-10); ctx.restore();
+
+      /* Messages in queue */
+      var cols = Math.min(8, Math.ceil(Math.sqrt(MAX_QUEUE)));
+      var mW=Math.floor((qW-20)/cols)-2, mH=18;
+      queue.forEach(function(m,i) {
+        var col=i%cols, row=Math.floor(i/cols);
+        var mx=qx+10+col*(mW+2), my=qy+10+row*(mH+2);
+        if (my+mH > qy+qH-5) return;
+        ctx.save(); rrect(ctx,mx,my,mW,mH,3); ctx.fillStyle=m.color+'33'; ctx.fill();
+        ctx.strokeStyle=m.color+'88'; ctx.lineWidth=1; ctx.stroke(); ctx.restore();
+      });
+
+      /* Fill level bar */
+      var fillPct = queue.length / MAX_QUEUE;
+      ctx.save();
+      rrect(ctx,qx,qy+qH+4,qW,6,3); ctx.strokeStyle='rgba(255,255,255,0.1)'; ctx.lineWidth=1; ctx.stroke();
+      rrect(ctx,qx,qy+qH+4,qW*fillPct,6,3);
+      ctx.fillStyle = fillPct>0.8?'#EF4444':fillPct>0.5?'#F59E0B':'#10B981'; ctx.fill();
+      ctx.restore();
+
+      pkts = pkts.filter(function(p){
+        p.t = Math.min(1, p.t+0.06);
+        var x=lerp(p.x,p.tx,ease(p.t)), y=lerp(p.y,p.ty,ease(p.t));
+        ctx.save(); ctx.beginPath(); ctx.arc(x,y,5,0,Math.PI*2);
+        ctx.fillStyle=p.color; ctx.shadowBlur=8; ctx.shadowColor=p.color; ctx.fill(); ctx.restore();
+        return p.t<1;
+      });
+
+      raf(tick);
+    }
+    raf(tick);
+  }
+
+  /* ============================================================
+     Circuit Breaker Demo — #demo-circuit
+     ============================================================ */
+  function initCircuitBreakerDemo() {
+    var wrap = document.getElementById('demo-circuit');
+    if (!wrap) return;
+    wrap.innerHTML =
+      '<div class="demo-shell">' +
+        '<div class="demo-header"><span class="demo-label">INTERACTIVE DEMO</span>' +
+        '<span class="demo-title">Circuit Breaker Pattern</span></div>' +
+        '<canvas id="demo-circuit-canvas" class="demo-canvas" style="height:240px"></canvas>' +
+        '<div class="demo-controls">' +
+          '<div class="demo-ctrl">' +
+            '<span class="ctrl-label">Service B error rate</span>' +
+            '<input id="cb-err" class="ctrl-slider" type="range" min="0" max="100" value="0">' +
+            '<span id="cb-err-val" class="ctrl-val">0%</span>' +
+          '</div>' +
+          '<div class="demo-ctrl" style="gap:8px">' +
+            '<button id="cb-call" class="demo-btn accent">Send Request</button>' +
+            '<button id="cb-burst" class="demo-btn">Burst ×5</button>' +
+            '<button id="cb-reset" class="demo-btn muted">Reset</button>' +
+          '</div>' +
+          '<div class="demo-stats">' +
+            '<div class="demo-stat"><span class="ds-label">Circuit</span><span id="cb-state" class="ds-val green">CLOSED</span></div>' +
+            '<div class="demo-stat"><span class="ds-label">Failures</span><span id="cb-fails" class="ds-val red">0</span></div>' +
+            '<div class="demo-stat"><span class="ds-label">Success</span><span id="cb-ok" class="ds-val green">0</span></div>' +
+            '<div class="demo-stat"><span class="ds-label">Short-circuit</span><span id="cb-short" class="ds-val amber">0</span></div>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+
+    var canvas = document.getElementById('demo-circuit-canvas');
+    var sd = setupHiDPI(canvas); var ctx = sd.ctx, W = sd.w, H = sd.h;
+
+    var THRESHOLD = 3, HALF_OPEN_AFTER = 3000;
+    var state = 'CLOSED'; /* CLOSED, OPEN, HALF_OPEN */
+    var failCount = 0, successes = 0, failures = 0, shortCircuited = 0;
+    var openTime = 0;
+    var pkts = [], flashes = [];
+    var errEl = document.getElementById('cb-err');
+
+    errEl.addEventListener('input', function(){ document.getElementById('cb-err-val').textContent = errEl.value+'%'; });
+
+    function updateState(s) {
+      state = s;
+      var el = document.getElementById('cb-state');
+      el.textContent = s;
+      el.className = 'ds-val ' + (s==='CLOSED'?'green':s==='OPEN'?'red':'amber');
+    }
+
+    function sendRequest() {
+      if (state === 'OPEN') {
+        shortCircuited++;
+        document.getElementById('cb-short').textContent = shortCircuited;
+        flashes.push({ label:'⚡ Short-circuited — fast fail', color:'#F59E0B', t:70 });
+        return;
+      }
+      var errRate = +errEl.value / 100;
+      var failed = Math.random() < errRate;
+      if (failed) {
+        failures++; failCount++;
+        document.getElementById('cb-fails').textContent = failures;
+        flashes.push({ label:'✕ Request failed', color:'#F87171', t:70 });
+        pkts.push({ x:W*0.22+50, y:H/2, tx:W*0.66, ty:H/2, t:0, color:'#EF4444', fail:true });
+        if (failCount >= THRESHOLD) {
+          updateState('OPEN');
+          openTime = performance.now();
+          flashes.push({ label:'🔴 Circuit OPEN — blocking requests', color:'#EF4444', t:100 });
+        }
+      } else {
+        successes++; if(state==='HALF_OPEN') { failCount=0; updateState('CLOSED'); }
+        document.getElementById('cb-ok').textContent = successes;
+        flashes.push({ label:'✓ Request OK', color:'#34D399', t:60 });
+        pkts.push({ x:W*0.22+50, y:H/2, tx:W*0.66, ty:H/2, t:0, color:'#34D399', fail:false });
+      }
+    }
+
+    document.getElementById('cb-call').addEventListener('click', sendRequest);
+    document.getElementById('cb-burst').addEventListener('click', function(){ for(var i=0;i<5;i++) setTimeout(sendRequest,i*150); });
+    document.getElementById('cb-reset').addEventListener('click', function(){
+      state='CLOSED'; failCount=0; successes=0; failures=0; shortCircuited=0;
+      updateState('CLOSED');
+      document.getElementById('cb-fails').textContent='0';
+      document.getElementById('cb-ok').textContent='0';
+      document.getElementById('cb-short').textContent='0';
+    });
+
+    var stateColors = { CLOSED:'#10B981', OPEN:'#EF4444', HALF_OPEN:'#F59E0B' };
+
+    function tick(now) {
+      if (state === 'OPEN' && now - openTime > HALF_OPEN_AFTER) { updateState('HALF_OPEN'); }
+      ctx.clearRect(0,0,W,H); ctx.fillStyle='rgba(5,3,14,0.96)'; ctx.fillRect(0,0,W,H);
+
+      /* Service A */
+      drawNode(ctx, W*0.06, H/2-22, 80, 44, 'SERVICE A', 'caller', '#7C3AED', 1, 0.1);
+      /* Circuit breaker box */
+      var bx=W*0.38, by=H/2-24, bw=80, bh=48;
+      ctx.save(); rrect(ctx,bx,by,bw,bh,8);
+      ctx.fillStyle=stateColors[state]+'22'; ctx.fill();
+      ctx.strokeStyle=stateColors[state]+'77'; ctx.lineWidth=2; ctx.stroke();
+      ctx.fillStyle=stateColors[state]; ctx.font='bold 9px monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText('CIRCUIT', bx+bw/2, by+bh/2-7);
+      ctx.fillText(state, bx+bw/2, by+bh/2+7); ctx.restore();
+      /* failure bar */
+      if (state==='CLOSED'||state==='HALF_OPEN') {
+        ctx.save(); rrect(ctx,bx,by+bh+4,bw,6,3); ctx.strokeStyle='rgba(239,68,68,0.3)'; ctx.lineWidth=1; ctx.stroke();
+        var fp=Math.min(1,failCount/THRESHOLD);
+        rrect(ctx,bx,by+bh+4,bw*fp,6,3); ctx.fillStyle='#EF4444'; ctx.fill(); ctx.restore();
+      }
+      /* Service B */
+      drawNode(ctx, W*0.74, H/2-22, 80, 44, 'SERVICE B', 'dependency', '#3B82F6', state==='OPEN'?0.35:1, 0.05);
+
+      /* connection lines */
+      ctx.save(); ctx.strokeStyle='rgba(255,255,255,0.08)'; ctx.lineWidth=1; ctx.setLineDash([4,4]);
+      ctx.beginPath(); ctx.moveTo(W*0.06+80,H/2); ctx.lineTo(bx,H/2); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(bx+bw,H/2); ctx.lineTo(W*0.74,H/2);
+      if(state==='OPEN') ctx.strokeStyle='rgba(239,68,68,0.3)';
+      ctx.stroke(); ctx.restore();
+
+      pkts = pkts.filter(function(p){
+        p.t = Math.min(1, p.t+0.04);
+        var x=lerp(p.x,p.tx,ease(p.t)), y=lerp(p.y,p.ty,ease(p.t));
+        ctx.save(); ctx.beginPath(); ctx.arc(x,y,5,0,Math.PI*2);
+        ctx.fillStyle=p.color; ctx.shadowBlur=10; ctx.shadowColor=p.color; ctx.fill(); ctx.restore();
+        return p.t<1;
+      });
+      flashes.forEach(function(f){ ctx.save(); ctx.globalAlpha=Math.min(1,f.t/20); ctx.font='bold 12px monospace'; ctx.fillStyle=f.color; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(f.label,W/2,H-20); ctx.restore(); f.t--; });
+      flashes=flashes.filter(function(f){ return f.t>0; });
+      raf(tick);
+    }
+    raf(tick);
+  }
+
+  /* ============================================================
+     Protocol Comparison Demo — #demo-protocol
+     ============================================================ */
+  function initProtocolDemo() {
+    var wrap = document.getElementById('demo-protocol');
+    if (!wrap) return;
+    wrap.innerHTML =
+      '<div class="demo-shell">' +
+        '<div class="demo-header"><span class="demo-label">INTERACTIVE DEMO</span>' +
+        '<span class="demo-title">REST vs WebSocket: Connection Overhead</span></div>' +
+        '<canvas id="demo-proto-canvas" class="demo-canvas" style="height:240px"></canvas>' +
+        '<div class="demo-controls">' +
+          '<div class="demo-ctrl" style="gap:8px">' +
+            '<button id="proto-rest" class="demo-btn accent">HTTP REST Request</button>' +
+            '<button id="proto-ws-connect" class="demo-btn" id="proto-ws-connect">Open WebSocket</button>' +
+            '<button id="proto-ws-send" class="demo-btn" disabled>Send WS Frame</button>' +
+          '</div>' +
+          '<div class="demo-stats">' +
+            '<div class="demo-stat"><span class="ds-label">REST avg latency</span><span id="proto-rest-lat" class="ds-val amber">—</span></div>' +
+            '<div class="demo-stat"><span class="ds-label">WS frame latency</span><span id="proto-ws-lat" class="ds-val green">—</span></div>' +
+            '<div class="demo-stat"><span class="ds-label">REST requests</span><span id="proto-rest-n" class="ds-val purple">0</span></div>' +
+            '<div class="demo-stat"><span class="ds-label">WS frames sent</span><span id="proto-ws-n" class="ds-val purple">0</span></div>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+
+    var canvas = document.getElementById('demo-proto-canvas');
+    var sd = setupHiDPI(canvas); var ctx = sd.ctx, W = sd.w, H = sd.h;
+
+    var wsOpen = false, restN = 0, wsN = 0;
+    var lanes = []; /* { label, segments, color, y } timeline lanes */
+    var LANE_H = 22, laneY = 30;
+
+    function addLane(label, color, segments) {
+      lanes.push({ label: label, color: color, segments: segments, y: laneY, anim: 0 });
+      laneY += LANE_H + 8;
+      if (laneY > H - 30) { lanes.shift(); laneY -= LANE_H + 8; }
+    }
+
+    document.getElementById('proto-rest').addEventListener('click', function(){
+      restN++;
+      document.getElementById('proto-rest-n').textContent = restN;
+      /* segments: TCP handshake, TLS, Request, Response */
+      var segs = [
+        { label:'TCP', ms:35, color:'#F59E0B' },
+        { label:'TLS', ms:45, color:'#EF4444' },
+        { label:'REQ', ms:20, color:'#7C3AED' },
+        { label:'RES', ms:18, color:'#10B981' }
+      ];
+      var total = segs.reduce(function(a,s){ return a+s.ms; },0);
+      document.getElementById('proto-rest-lat').textContent = total + 'ms';
+      document.getElementById('proto-rest-lat').className = 'ds-val ' + (total<100?'amber':'red');
+      addLane('REST #'+restN, '#7C3AED', segs);
+    });
+
+    var wsConnBtn = document.getElementById('proto-ws-connect');
+    var wsSendBtn = document.getElementById('proto-ws-send');
+
+    wsConnBtn.addEventListener('click', function(){
+      if (!wsOpen) {
+        wsOpen = true;
+        wsConnBtn.textContent = 'Close WebSocket';
+        wsSendBtn.disabled = false;
+        var segs = [
+          { label:'TCP', ms:35, color:'#F59E0B' },
+          { label:'Upgrade', ms:25, color:'#3B82F6' },
+          { label:'OPEN', ms:5, color:'#10B981' }
+        ];
+        addLane('WS Handshake', '#10B981', segs);
+      } else {
+        wsOpen = false;
+        wsConnBtn.textContent = 'Open WebSocket';
+        wsSendBtn.disabled = true;
+        addLane('WS CLOSE', '#EF4444', [{ label:'FIN', ms:8, color:'#EF4444' }]);
+      }
+    });
+
+    wsSendBtn.addEventListener('click', function(){
+      if (!wsOpen) return;
+      wsN++;
+      document.getElementById('proto-ws-n').textContent = wsN;
+      document.getElementById('proto-ws-lat').textContent = '2ms';
+      var segs = [{ label:'FRAME', ms:2, color:'#10B981' }];
+      addLane('WS msg #'+wsN, '#10B981', segs);
+    });
+
+    function tick() {
+      ctx.clearRect(0,0,W,H); ctx.fillStyle='rgba(5,3,14,0.96)'; ctx.fillRect(0,0,W,H);
+
+      /* timeline grid */
+      ctx.save(); ctx.strokeStyle='rgba(255,255,255,0.06)'; ctx.lineWidth=1;
+      for (var x=80; x<W; x+=40) {
+        ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke();
+      }
+      ctx.restore();
+
+      /* scale label */
+      ctx.save(); ctx.fillStyle='rgba(255,255,255,0.2)'; ctx.font='9px monospace'; ctx.textAlign='left';
+      for (var xi=80, t=0; xi<W; xi+=40, t+=25) {
+        ctx.fillText(t+'ms', xi+2, H-6);
+      }
+      ctx.restore();
+
+      lanes.forEach(function(lane) {
+        lane.anim = Math.min(1, lane.anim + 0.04);
+        var maxW = (W-90)*lane.anim;
+        var totalMs = lane.segments.reduce(function(a,s){ return a+s.ms; },0);
+        var x = 80;
+        lane.segments.forEach(function(seg) {
+          var segW = (seg.ms/totalMs)*maxW * (totalMs/200);
+          segW = Math.max(4, segW);
+          ctx.save(); rrect(ctx,x,lane.y,segW,LANE_H-2,3);
+          ctx.fillStyle=seg.color+'44'; ctx.fill();
+          ctx.strokeStyle=seg.color; ctx.lineWidth=1; ctx.stroke();
+          if (segW > 20) {
+            ctx.fillStyle=seg.color; ctx.font='bold 8px monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
+            ctx.fillText(seg.label, x+segW/2, lane.y+(LANE_H-2)/2);
+          }
+          ctx.restore();
+          x += segW + 1;
+        });
+        ctx.save(); ctx.fillStyle='rgba(255,255,255,0.55)'; ctx.font='9px monospace'; ctx.textAlign='right'; ctx.textBaseline='middle';
+        ctx.fillText(lane.label, 76, lane.y+(LANE_H-2)/2); ctx.restore();
+      });
+
+      /* WS persistent indicator */
+      if (wsOpen) {
+        ctx.save(); ctx.fillStyle='rgba(16,185,129,0.1)'; ctx.strokeStyle='rgba(16,185,129,0.4)'; ctx.lineWidth=1;
+        ctx.setLineDash([4,3]);
+        ctx.beginPath(); ctx.rect(80, 0, W-80, H-20); ctx.stroke();
+        ctx.fillStyle='rgba(16,185,129,0.12)'; ctx.fill();
+        ctx.fillStyle='#10B981'; ctx.font='bold 9px monospace'; ctx.textAlign='right';
+        ctx.fillText('WS OPEN', W-4, 12); ctx.restore();
+      }
+      raf(tick);
+    }
+    raf(tick);
+  }
+
+  /* ============================================================
+     Capacity Estimator Demo — #demo-capacity
+     ============================================================ */
+  function initCapacityDemo() {
+    var wrap = document.getElementById('demo-capacity');
+    if (!wrap) return;
+    wrap.innerHTML =
+      '<div class="demo-shell">' +
+        '<div class="demo-header"><span class="demo-label">INTERACTIVE DEMO</span>' +
+        '<span class="demo-title">Back-of-Envelope Capacity Estimator</span></div>' +
+        '<canvas id="demo-cap2-canvas" class="demo-canvas" style="height:260px"></canvas>' +
+        '<div class="demo-controls">' +
+          '<div class="demo-ctrl">' +
+            '<span class="ctrl-label">Daily active users</span>' +
+            '<input id="cap-dau" class="ctrl-slider" type="range" min="1" max="7" value="4">' +
+            '<span id="cap-dau-val" class="ctrl-val">10M</span>' +
+          '</div>' +
+          '<div class="demo-ctrl">' +
+            '<span class="ctrl-label">Requests per user/day</span>' +
+            '<input id="cap-rpd" class="ctrl-slider" type="range" min="1" max="6" value="3">' +
+            '<span id="cap-rpd-val" class="ctrl-val">10</span>' +
+          '</div>' +
+          '<div class="demo-ctrl">' +
+            '<span class="ctrl-label">Avg response size</span>' +
+            '<input id="cap-size" class="ctrl-slider" type="range" min="1" max="5" value="2">' +
+            '<span id="cap-size-val" class="ctrl-val">50 KB</span>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+
+    var canvas = document.getElementById('demo-cap2-canvas');
+    var sd = setupHiDPI(canvas); var ctx = sd.ctx, W = sd.w, H = sd.h;
+
+    var DAU_VALS = [100e3, 1e6, 5e6, 10e6, 50e6, 100e6, 1e9];
+    var RPD_VALS = [1, 3, 5, 10, 50, 100];
+    var SIZE_VALS = [1e3, 50e3, 200e3, 1e6, 10e6];
+    var SIZE_LBLS = ['1 KB','50 KB','200 KB','1 MB','10 MB'];
+    var dauEl=document.getElementById('cap-dau'), rpdEl=document.getElementById('cap-rpd'), sizeEl=document.getElementById('cap-size');
+
+    function fmt(n, unit) {
+      if (n >= 1e12) return (n/1e12).toFixed(1) + ' T' + unit;
+      if (n >= 1e9)  return (n/1e9).toFixed(1)  + ' G' + unit;
+      if (n >= 1e6)  return (n/1e6).toFixed(1)  + ' M' + unit;
+      if (n >= 1e3)  return (n/1e3).toFixed(1)  + ' K' + unit;
+      return Math.round(n) + ' ' + unit;
+    }
+    function fmtDAU(v) {
+      if(v>=1e9) return (v/1e9).toFixed(0)+'B'; if(v>=1e6) return (v/1e6).toFixed(0)+'M'; return (v/1e3).toFixed(0)+'K';
+    }
+
+    function calc() {
+      var dau = DAU_VALS[+dauEl.value-1];
+      var rpd = RPD_VALS[+rpdEl.value-1];
+      var sz  = SIZE_VALS[+sizeEl.value-1];
+      document.getElementById('cap-dau-val').textContent = fmtDAU(dau);
+      document.getElementById('cap-rpd-val').textContent = rpd;
+      document.getElementById('cap-size-val').textContent = SIZE_LBLS[+sizeEl.value-1];
+      return {
+        dau: dau, rpd: rpd, sz: sz,
+        rps:  dau * rpd / 86400,
+        bwDay: dau * rpd * sz,
+        bwSec: dau * rpd * sz / 86400,
+        storDay: dau * rpd * sz,
+        storYear: dau * rpd * sz * 365,
+        servers: Math.ceil(dau * rpd / 86400 / 1000)
+      };
+    }
+
+    dauEl.addEventListener('input', calc);
+    rpdEl.addEventListener('input', calc);
+    sizeEl.addEventListener('input', calc);
+
+    var ROW_H = 34;
+    function tick() {
+      var r = calc();
+      ctx.clearRect(0,0,W,H); ctx.fillStyle='rgba(5,3,14,0.96)'; ctx.fillRect(0,0,W,H);
+
+      var rows = [
+        { label:'Requests/sec',    val: fmt(r.rps,'RPS'),       bar: Math.min(1,r.rps/100000),   color:'#7C3AED' },
+        { label:'Bandwidth/sec',   val: fmt(r.bwSec,'B/s'),     bar: Math.min(1,r.bwSec/1e10),  color:'#3B82F6' },
+        { label:'Storage/day',     val: fmt(r.storDay,'B'),     bar: Math.min(1,r.storDay/1e12), color:'#10B981' },
+        { label:'Storage/year',    val: fmt(r.storYear,'B'),    bar: Math.min(1,r.storYear/1e14),color:'#F59E0B' },
+        { label:'App servers est.',val: r.servers+' × 1k RPS',  bar: Math.min(1,r.servers/1000), color:'#EC4899' }
+      ];
+
+      ctx.save(); ctx.fillStyle='rgba(255,255,255,0.35)'; ctx.font='bold 9px monospace';
+      ctx.fillText('DAU: '+fmtDAU(r.dau)+'  ×  '+r.rpd+' req/day  ×  '+SIZE_LBLS[+sizeEl.value-1]+'/req', 16, 16);
+      ctx.restore();
+
+      rows.forEach(function(row, i) {
+        var y = 30 + i*(ROW_H+4);
+        var barMaxW = W - 200;
+        /* label */
+        ctx.save(); ctx.fillStyle='rgba(255,255,255,0.5)'; ctx.font='10px monospace'; ctx.textAlign='left'; ctx.textBaseline='middle';
+        ctx.fillText(row.label, 12, y+ROW_H/2); ctx.restore();
+        /* bar bg */
+        ctx.save(); rrect(ctx, 140, y, barMaxW, ROW_H-4, 4); ctx.fillStyle='rgba(255,255,255,0.04)'; ctx.fill(); ctx.restore();
+        /* bar fill */
+        ctx.save(); rrect(ctx, 140, y, Math.max(4, barMaxW*row.bar), ROW_H-4, 4);
+        ctx.fillStyle=row.color+'44'; ctx.fill();
+        ctx.strokeStyle=row.color+'88'; ctx.lineWidth=1; ctx.stroke(); ctx.restore();
+        /* value */
+        ctx.save(); ctx.fillStyle=row.color; ctx.font='bold 11px monospace'; ctx.textAlign='left'; ctx.textBaseline='middle';
+        ctx.fillText(row.val, 148, y+ROW_H/2); ctx.restore();
+      });
+      raf(tick);
+    }
+    raf(tick);
+  }
+
   /* ── Bootstrap all demos ────────────────────────────────── */
   function init() {
     initScaleSimulator();
@@ -1026,6 +1915,13 @@
     initCacheDemo();
     initReplicationDemo();
     initRateLimiterDemo();
+    initCAPDemo();
+    initConsistencyDemo();
+    initCDNDemo();
+    initQueueDemo();
+    initCircuitBreakerDemo();
+    initProtocolDemo();
+    initCapacityDemo();
   }
 
   if (document.readyState === 'loading') {

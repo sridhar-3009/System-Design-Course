@@ -357,6 +357,14 @@
  </div>
  </section>
 
+ <!-- ============ INTERACTIVE DEMO ============ -->
+ <section class="section-block reveal">
+ <div class="section-badge">Try It</div>
+ <h2>Interactive: Circuit Breaker Simulator</h2>
+ <p>Raise the error rate on Service B and send requests. After 3 consecutive failures the circuit OPENS and stops forwarding — protecting Service A from the cascade. Wait 3 seconds for half-open probe mode.</p>
+ <div id="demo-circuit"></div>
+ </section>
+
  <nav class="bottom-nav">
  <a href="09-communication.html"><span class="bn-dir">← Previous</span><span class="bn-title">Communication Protocols</span></a>
  <a class="next" href="11-security.html"><span class="bn-dir">Next →</span><span class="bn-title">Security Essentials</span></a>
@@ -368,5 +376,6 @@
 </footer>
 
 <script src="../js/main.js"></script>
+<script src="../js/demos.js"></script>
 </body>
 </html>

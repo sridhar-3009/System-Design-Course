@@ -425,6 +425,14 @@
  </div>
  </section>
 
+ <!-- ============ INTERACTIVE DEMO ============ -->
+ <section class="section-block reveal">
+ <div class="section-badge">Try It</div>
+ <h2>Interactive: CDN Edge Cache Routing</h2>
+ <p>Pick a user region and fetch a resource. The first request hits origin (cache MISS). Every repeat request is served from the nearest edge (cache HIT) at a fraction of the latency. Purge the cache to reset.</p>
+ <div id="demo-cdn"></div>
+ </section>
+
  <nav class="bottom-nav">
  <a href="03-consistency-availability.html"><span class="bn-dir">← Previous</span><span class="bn-title">Consistency &amp; Availability Patterns</span></a>
  <a class="next" href="05-load-balancers.html"><span class="bn-dir">Next →</span><span class="bn-title">Load Balancers &amp; Reverse Proxies</span></a>
@@ -436,5 +444,6 @@
 </footer>
 
 <script src="../js/main.js"></script>
+<script src="../js/demos.js"></script>
 </body>
 </html>

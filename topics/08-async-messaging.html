@@ -488,6 +488,14 @@ send_welcome_email.delay(user.id)</code></pre>
  </div>
  </section>
 
+ <!-- ============ INTERACTIVE DEMO ============ -->
+ <section class="section-block reveal">
+ <div class="section-badge">Try It</div>
+ <h2>Interactive: Message Queue Visualiser</h2>
+ <p>Produce messages and watch the queue fill up. Drag the consumer speed slider to see backpressure build when production outpaces consumption. Flood the queue to trigger the high-load warning.</p>
+ <div id="demo-queue"></div>
+ </section>
+
  <nav class="bottom-nav">
  <a href="07-databases.html"><span class="bn-dir">← Previous</span><span class="bn-title">Databases Deep Dive</span></a>
  <a class="next" href="09-communication.html"><span class="bn-dir">Next →</span><span class="bn-title">Communication Protocols</span></a>
@@ -499,5 +507,6 @@ send_welcome_email.delay(user.id)</code></pre>
 </footer>
 
 <script src="../js/main.js"></script>
+<script src="../js/demos.js"></script>
 </body>
 </html>
