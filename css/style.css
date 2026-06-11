@@ -87,11 +87,12 @@ table { border-collapse: collapse; width: 100%; }
 .reading-progress {
   position: fixed;
   top: 0; left: 0;
-  height: 4px;
+  height: 3px;
   width: 0%;
   background: linear-gradient(90deg, var(--primary), var(--secondary));
   z-index: 1001;
-  border-radius: 0 4px 4px 0;
+  border-radius: 0 2px 2px 0;
+  box-shadow: 0 0 12px var(--primary), 0 0 24px rgba(124,58,237,0.35);
   transition: width 0.1s linear;
 }
 
@@ -702,8 +703,8 @@ table { border-collapse: collapse; width: 100%; }
 .svg-draw  { stroke-dasharray: 320; stroke-dashoffset: 320; animation: drawPath 2.6s ease forwards infinite alternate; }
 
 .pkt { transform-box: fill-box; transform-origin: center; }
-.pkt-1 { animation: pkt1 2.4s linear infinite; }
-.pkt-2 { animation: pkt2 2.4s linear infinite; animation-delay: 1.2s; }
+/* Packet animation is handled by JS (initDiagramPackets) — CSS provides fallback opacity */
+.pkt-1, .pkt-2 { opacity: 0; }
 
 .grow-bar { transform-box: fill-box; transform-origin: bottom; animation: fillUp 2.2s ease-in-out infinite alternate; }
 .seq { opacity: 0; animation: seqIn 0.7s ease forwards; }
@@ -928,8 +929,8 @@ table { border-collapse: collapse; width: 100%; }
 /* ---------- Scroll reveal ---------- */
 .reveal {
   opacity: 0;
-  transform: translateY(30px);
-  transition: opacity 0.7s ease, transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  transform: translateY(44px);
+  transition: opacity 0.9s ease, transform 0.9s cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 .reveal.visible { opacity: 1; transform: translateY(0); }
 
@@ -967,18 +968,7 @@ table { border-collapse: collapse; width: 100%; }
 @keyframes drawPath {
   to { stroke-dashoffset: 0; }
 }
-@keyframes pkt1 {
-  0%   { transform: translateX(0); opacity: 0; }
-  8%   { opacity: 1; }
-  92%  { opacity: 1; }
-  100% { transform: translateX(180px); opacity: 0; }
-}
-@keyframes pkt2 {
-  0%   { transform: translateX(0); opacity: 0; }
-  8%   { opacity: 1; }
-  92%  { opacity: 1; }
-  100% { transform: translateX(-180px); opacity: 0; }
-}
+/* pkt1/pkt2 keyframes removed — JS handles packet animation via cx/cy interpolation */
 @keyframes antennaBlink {
   0%, 100% { opacity: 1; box-shadow: 0 0 12px var(--secondary); }
   50%      { opacity: 0.35; box-shadow: 0 0 2px var(--secondary); }
@@ -1780,49 +1770,11 @@ a,
     0 20px 48px rgba(0,0,0,0.38) !important;
 }
 
-.diagram-box svg,
-.hero-svg {
-  filter: grayscale(1) contrast(1.08) !important;
-}
-
-.diagram-box svg [style*="stroke:#"],
-.hero-svg [style*="stroke:#"],
-.diagram-box svg [style*="stroke:rgba"],
-.hero-svg [style*="stroke:rgba"],
-.diagram-box svg .svg-line,
-.hero-svg .svg-line {
-  stroke: currentColor !important;
-}
-
-.diagram-box svg [style*="fill:#"],
-.hero-svg [style*="fill:#"],
-.diagram-box svg [style*="fill:rgba"],
-.hero-svg [style*="fill:rgba"] {
-  fill: var(--surface-2) !important;
-}
-
-.diagram-box svg .svg-node,
-.hero-svg .svg-node,
-.diagram-box svg .pkt,
-.hero-svg .pkt {
-  fill: currentColor !important;
-}
-
+/* SVG diagrams — preserve inline colors, only override text */
 .diagram-box svg text,
-.hero-svg text {
-  fill: currentColor !important;
-}
-
-.diagram-box svg [style*="fill:#fff"],
-.diagram-box svg [style*="fill:#FFF"],
-.hero-svg [style*="fill:#fff"],
-.hero-svg [style*="fill:#FFF"] {
-  fill: #ffffff !important;
-}
-
-[data-theme="dark"] .diagram-box svg [style*="fill:#fff"],
-[data-theme="dark"] .diagram-box svg [style*="fill:#FFF"] {
-  fill: #000000 !important;
+.hero-svg text,
+.svg-label {
+  fill: var(--text);
 }
 
 .svg-box,
@@ -1976,7 +1928,7 @@ a,
 
 .hero-svg {
   filter: none !important;
-  opacity: 0.5 !important;
+  opacity: 0.88 !important;
 }
 
 .system-3d {
@@ -2075,6 +2027,7 @@ a,
 .callout.warn { background: color-mix(in srgb, var(--secondary) 11%, var(--surface)) !important; border-color: color-mix(in srgb, var(--secondary) 40%, transparent) !important; }
 .callout.archie { background: color-mix(in srgb, var(--primary) 8%, var(--surface)) !important; border-color: color-mix(in srgb, var(--primary) 35%, transparent) !important; }
 
+/* SVG diagrams — restore vibrant inline colors */
 .diagram-box svg,
 .hero-svg {
   filter: none !important;
@@ -2085,28 +2038,13 @@ a,
   stroke: var(--primary) !important;
 }
 
-.diagram-box svg [style*="stroke:#"],
-.hero-svg [style*="stroke:#"],
-.diagram-box svg [style*="stroke:rgba"],
-.hero-svg [style*="stroke:rgba"] {
-  stroke: color-mix(in srgb, var(--topic-color, var(--primary)) 76%, var(--primary-soft)) !important;
+/* Nodes keep their inline fill colors; pkt elements keep their inline colors */
+.diagram-box svg .svg-node {
+  filter: drop-shadow(0 0 5px currentColor);
 }
 
-.diagram-box svg [style*="fill:#"],
-.hero-svg [style*="fill:#"],
-.diagram-box svg [style*="fill:rgba"],
-.hero-svg [style*="fill:rgba"] {
-  fill: color-mix(in srgb, var(--topic-color, var(--primary)) 82%, white) !important;
-}
-
-.diagram-box svg .svg-node,
 .hero-svg .svg-node {
-  fill: var(--topic-color, var(--primary)) !important;
-}
-
-.diagram-box svg .pkt,
-.hero-svg .pkt {
-  fill: var(--secondary) !important;
+  filter: drop-shadow(0 0 8px currentColor);
 }
 
 .diagram-box svg text,
@@ -2157,4 +2095,139 @@ a,
 
 .footer h4 {
   color: #fff !important;
+}
+
+/* ============================================================
+   Animation Quality Pack — glow, scroll cue, stagger, hero canvas
+   ============================================================ */
+
+/* Hero scroll cue */
+.hero-scroll-cue {
+  position: absolute;
+  bottom: 36px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  z-index: 3;
+  pointer-events: none;
+}
+.hero-scroll-cue .sc-text {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.38);
+  font-weight: 400;
+}
+.hero-scroll-cue .sc-line {
+  width: 1px;
+  height: 44px;
+  background: linear-gradient(180deg, rgba(167, 139, 250, 0.9), transparent);
+  animation: scrollPulse 2.2s ease-in-out infinite;
+  transform-origin: top center;
+}
+@keyframes scrollPulse {
+  0%, 100% { opacity: 0.3; transform: scaleY(1); }
+  50%       { opacity: 1;   transform: scaleY(1.18); }
+}
+
+/* Hero canvas */
+.system-3d {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  z-index: 1 !important;
+  pointer-events: none !important;
+  opacity: 1 !important;
+}
+
+/* Node glow — applied by JS via SVG filter, this is the CSS fallback */
+.svg-node {
+  filter: drop-shadow(0 0 5px currentColor);
+}
+
+/* Staggered reveal for grid children */
+.topics-grid .reveal:nth-child(1)  { transition-delay: 0.05s; }
+.topics-grid .reveal:nth-child(2)  { transition-delay: 0.10s; }
+.topics-grid .reveal:nth-child(3)  { transition-delay: 0.15s; }
+.topics-grid .reveal:nth-child(4)  { transition-delay: 0.20s; }
+.topics-grid .reveal:nth-child(5)  { transition-delay: 0.25s; }
+.topics-grid .reveal:nth-child(6)  { transition-delay: 0.30s; }
+.topics-grid .reveal:nth-child(7)  { transition-delay: 0.35s; }
+.topics-grid .reveal:nth-child(8)  { transition-delay: 0.40s; }
+.topics-grid .reveal:nth-child(9)  { transition-delay: 0.45s; }
+.topics-grid .reveal:nth-child(10) { transition-delay: 0.50s; }
+.topics-grid .reveal:nth-child(11) { transition-delay: 0.55s; }
+.topics-grid .reveal:nth-child(12) { transition-delay: 0.60s; }
+
+/* Topic card hover glow using card color */
+.topic-card:hover {
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--card-color, var(--primary)) 40%, transparent),
+    0 8px 20px rgba(0, 0, 0, 0.08),
+    0 20px 48px color-mix(in srgb, var(--card-color, var(--primary)) 22%, transparent),
+    0 36px 72px color-mix(in srgb, var(--card-color, var(--primary)) 12%, transparent) !important;
+}
+
+/* Diagram box node glow on hover */
+.diagram-box:hover .svg-node {
+  filter: drop-shadow(0 0 8px currentColor);
+  transition: filter 0.3s ease;
+}
+
+/* SVG dash lines — more visible */
+.svg-dash {
+  stroke-dasharray: 8 5;
+  animation: dashMove 1.4s linear infinite;
+  opacity: 0.65;
+}
+
+/* QA accordion — smoother open */
+.qa-answer {
+  transition: max-height 0.4s cubic-bezier(0.2, 0.7, 0.2, 1), padding 0.4s ease !important;
+}
+
+/* Section block step-in animation */
+.section-block.reveal {
+  transform: translateY(32px);
+}
+
+/* At-a-glance glow accent */
+.at-a-glance {
+  box-shadow:
+    0 0 0 1px var(--border),
+    0 4px 12px rgba(124, 58, 237, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5) !important;
+}
+[data-theme="dark"] .at-a-glance {
+  box-shadow:
+    0 0 0 1px var(--border),
+    0 4px 12px rgba(124, 58, 237, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
+}
+
+/* Mini card hover lift */
+.mini-card {
+  transition: transform 0.25s cubic-bezier(0.2, 0.7, 0.2, 1),
+              box-shadow 0.25s ease !important;
+}
+.mini-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 32px rgba(124, 58, 237, 0.12) !important;
+}
+
+/* Reading link card hover */
+.reading-link-card {
+  transition: transform 0.25s cubic-bezier(0.2, 0.7, 0.2, 1),
+              box-shadow 0.25s ease,
+              border-color 0.25s ease !important;
+}
+.reading-link-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--primary) !important;
+  box-shadow: 0 8px 24px rgba(124, 58, 237, 0.14) !important;
 }
