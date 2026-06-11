@@ -13,426 +13,426 @@
 <div class="reading-progress"></div>
 
 <nav class="navbar">
-  <div class="nav-inner">
-    <a href="../index.html" class="logo"><span class="bolt"></span><span class="logo-text">System Design Illustrated</span></a>
-    <div class="nav-links">
-      <a href="../index.html#topics">Topics</a>
-      <a href="../index.html#about">About</a>
-      <a href="12-interview-guide.html">Interview Guide</a>
-      <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode"></button>
-    </div>
-  </div>
+ <div class="nav-inner">
+ <a href="../index.html" class="logo"><span class="logo-text">System Design Illustrated</span></a>
+ <div class="nav-links">
+ <a href="../index.html#topics">Topics</a>
+ <a href="../index.html#about">About</a>
+ <a href="12-interview-guide.html">Interview Guide</a>
+ <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode"></button>
+ </div>
+ </div>
 </nav>
 
 <header class="topic-header" style="--topic-color:#059669">
-  <div class="topic-header-inner">
-    <div class="breadcrumb"><a href="../index.html">Home</a> / Topics / 04</div>
-    <div class="topic-num-big">TOPIC 04</div>
-    <h1>DNS &amp; Content Delivery Networks </h1>
-    <p class="subtitle">Two systems make the web feel instant: one translates names into addresses, the other moves the bytes themselves to the edge of the planet — close to your users.</p>
-    <div class="topic-meta"><span class="tag"> Beginner</span><span class="tag"> 25 min read</span><span class="tag"> 8 concepts</span></div>
-  </div>
+ <div class="topic-header-inner">
+ <div class="breadcrumb"><a href="../index.html">Home</a> / Topics / 04</div>
+ <div class="topic-num-big">TOPIC 04</div>
+ <h1>DNS &amp; Content Delivery Networks </h1>
+ <p class="subtitle">Two systems make the web feel instant: one translates names into addresses, the other moves the bytes themselves to the edge of the planet — close to your users.</p>
+ <div class="topic-meta"><span class="tag"> Beginner</span><span class="tag"> 25 min read</span><span class="tag"> 8 concepts</span></div>
+ </div>
 </header>
 
 <main class="topic-body">
 
-  <!-- ============ AT A GLANCE ============ -->
-  <div class="at-a-glance">
-    <h3> At a Glance</h3>
-    <ul>
-      <li><strong>DNS</strong> maps names → IPs via a cached hierarchy: resolver → root → TLD → authoritative.</li>
-      <li><strong>TTL</strong> is the freshness dial: short = fast failover but more queries; long = cheap but slow to change.</li>
-      <li>DNS is also a <strong>traffic manager</strong>: weighted, latency-based, geo, and failover routing (Route 53), plus Anycast.</li>
-      <li><strong>CDNs</strong> copy content to hundreds of edge PoPs; cache hits never touch your origin.</li>
-      <li><strong>Push CDN</strong> = pre-load the edges; <strong>Pull CDN</strong> = edges fetch on first miss.</li>
-      <li>CDNs also buy you <strong>DDoS absorption, WAF, bot management, and TLS termination</strong> at the edge.</li>
-    </ul>
-  </div>
+ <!-- ============ AT A GLANCE ============ -->
+ <div class="at-a-glance">
+ <h3> At a Glance</h3>
+ <ul>
+ <li><strong>DNS</strong> maps names → IPs via a cached hierarchy: resolver → root → TLD → authoritative.</li>
+ <li><strong>TTL</strong> is the freshness dial: short = fast failover but more queries; long = cheap but slow to change.</li>
+ <li>DNS is also a <strong>traffic manager</strong>: weighted, latency-based, geo, and failover routing (Route 53), plus Anycast.</li>
+ <li><strong>CDNs</strong> copy content to hundreds of edge PoPs; cache hits never touch your origin.</li>
+ <li><strong>Push CDN</strong> = pre-load the edges; <strong>Pull CDN</strong> = edges fetch on first miss.</li>
+ <li>CDNs also buy you <strong>DDoS absorption, WAF, bot management, and TLS termination</strong> at the edge.</li>
+ </ul>
+ </div>
 
-  <section class="section-block reveal">
-    <h2>DNS: The Internet's Phone Book</h2>
-    <p>Computers route packets to IP addresses like <code>142.250.72.14</code>, but humans remember names like <code>google.com</code>. The <strong>Domain Name System</strong> is the globally distributed, heavily cached directory that maps one to the other. It might be the most successful distributed system ever built: billions of lookups per hour, running since 1983, and you only notice it when it breaks.</p>
+ <section class="section-block reveal">
+ <h2>DNS: The Internet's Phone Book</h2>
+ <p>Computers route packets to IP addresses like <code>142.250.72.14</code>, but humans remember names like <code>google.com</code>. The <strong>Domain Name System</strong> is the globally distributed, heavily cached directory that maps one to the other. It might be the most successful distributed system ever built: billions of lookups per hour, running since 1983, and you only notice it when it breaks.</p>
 
-    <h3>The resolution journey, step by step</h3>
-    <div class="diagram-box">
-      <svg viewBox="0 0 740 330" role="img" aria-label="Six step DNS resolution: browser, OS cache, recursive resolver, root nameserver, TLD nameserver, authoritative nameserver">
-        <!-- Browser -->
-        <g class="seq seq-1">
-          <rect x="20" y="130" width="120" height="56" rx="10" class="svg-box-p"/>
-          <text x="80" y="153" text-anchor="middle" class="svg-label">💻 Browser</text>
-          <text x="80" y="172" text-anchor="middle" class="svg-soft">"shop.dev?"</text>
-        </g>
-        <!-- arrow 1 -->
-        <g class="seq seq-2">
-          <line x1="145" y1="158" x2="240" y2="158" class="svg-line svg-dash" style="stroke:#059669"/>
-          <text x="192" y="148" text-anchor="middle" class="svg-mono">1</text>
-        </g>
-        <!-- Resolver -->
-        <g class="seq seq-2">
-          <rect x="245" y="120" width="150" height="76" rx="10" class="svg-box-p"/>
-          <text x="320" y="148" text-anchor="middle" class="svg-label">🔁 Recursive</text>
-          <text x="320" y="166" text-anchor="middle" class="svg-label">Resolver (ISP/8.8.8.8)</text>
-          <text x="320" y="186" text-anchor="middle" class="svg-soft">checks cache first</text>
-        </g>
-        <!-- Root -->
-        <g class="seq seq-3">
-          <line x1="370" y1="118" x2="500" y2="56" class="svg-line svg-dash" style="stroke:#10B981"/>
-          <text x="430" y="72" text-anchor="middle" class="svg-mono">2 "ask .dev"</text>
-          <rect x="505" y="22" width="200" height="50" rx="10" class="svg-box"/>
-          <text x="605" y="52" text-anchor="middle" class="svg-label">🌐 Root nameserver (.)</text>
-        </g>
-        <!-- TLD -->
-        <g class="seq seq-4">
-          <line x1="395" y1="158" x2="500" y2="158" class="svg-line svg-dash" style="stroke:#10B981"/>
-          <text x="447" y="148" text-anchor="middle" class="svg-mono">3 "ask shop.dev's NS"</text>
-          <rect x="505" y="132" width="200" height="50" rx="10" class="svg-box"/>
-          <text x="605" y="162" text-anchor="middle" class="svg-label">🏷️ TLD nameserver (.dev)</text>
-        </g>
-        <!-- Authoritative -->
-        <g class="seq seq-5">
-          <line x1="370" y1="198" x2="500" y2="252" class="svg-line svg-dash" style="stroke:#10B981"/>
-          <text x="437" y="240" text-anchor="middle" class="svg-mono">4 "93.184.216.34!"</text>
-          <rect x="505" y="240" width="200" height="50" rx="10" class="svg-box"/>
-          <text x="605" y="262" text-anchor="middle" class="svg-label">👑 Authoritative NS</text>
-          <text x="605" y="280" text-anchor="middle" class="svg-soft">holds the real records</text>
-        </g>
-        <!-- answer back -->
-        <g class="seq seq-6">
-          <line x1="240" y1="180" x2="145" y2="180" class="svg-line svg-dash" style="stroke:#F59E0B"/>
-          <text x="192" y="200" text-anchor="middle" class="svg-mono">5 cached &amp; returned</text>
-          <text x="80" y="225" text-anchor="middle" class="svg-soft">6 browser connects to IP 🎉</text>
-        </g>
-      </svg>
-      <p class="diagram-caption">A cold lookup walks the hierarchy: root → TLD → authoritative. Caches make the warm path one hop.</p>
-    </div>
+ <h3>The resolution journey, step by step</h3>
+ <div class="diagram-box">
+ <svg viewBox="0 0 740 330" role="img" aria-label="Six step DNS resolution: browser, OS cache, recursive resolver, root nameserver, TLD nameserver, authoritative nameserver">
+ <!-- Browser -->
+ <g class="seq seq-1">
+ <rect x="20" y="130" width="120" height="56" rx="10" class="svg-box-p"/>
+ <text x="80" y="153" text-anchor="middle" class="svg-label"> Browser</text>
+ <text x="80" y="172" text-anchor="middle" class="svg-soft">"shop.dev?"</text>
+ </g>
+ <!-- arrow 1 -->
+ <g class="seq seq-2">
+ <line x1="145" y1="158" x2="240" y2="158" class="svg-line svg-dash" style="stroke:#059669"/>
+ <text x="192" y="148" text-anchor="middle" class="svg-mono">1</text>
+ </g>
+ <!-- Resolver -->
+ <g class="seq seq-2">
+ <rect x="245" y="120" width="150" height="76" rx="10" class="svg-box-p"/>
+ <text x="320" y="148" text-anchor="middle" class="svg-label">Recursive</text>
+ <text x="320" y="166" text-anchor="middle" class="svg-label">Resolver (ISP/8.8.8.8)</text>
+ <text x="320" y="186" text-anchor="middle" class="svg-soft">checks cache first</text>
+ </g>
+ <!-- Root -->
+ <g class="seq seq-3">
+ <line x1="370" y1="118" x2="500" y2="56" class="svg-line svg-dash" style="stroke:#10B981"/>
+ <text x="430" y="72" text-anchor="middle" class="svg-mono">2 "ask .dev"</text>
+ <rect x="505" y="22" width="200" height="50" rx="10" class="svg-box"/>
+ <text x="605" y="52" text-anchor="middle" class="svg-label">Root nameserver (.)</text>
+ </g>
+ <!-- TLD -->
+ <g class="seq seq-4">
+ <line x1="395" y1="158" x2="500" y2="158" class="svg-line svg-dash" style="stroke:#10B981"/>
+ <text x="447" y="148" text-anchor="middle" class="svg-mono">3 "ask shop.dev's NS"</text>
+ <rect x="505" y="132" width="200" height="50" rx="10" class="svg-box"/>
+ <text x="605" y="162" text-anchor="middle" class="svg-label"> TLD nameserver (.dev)</text>
+ </g>
+ <!-- Authoritative -->
+ <g class="seq seq-5">
+ <line x1="370" y1="198" x2="500" y2="252" class="svg-line svg-dash" style="stroke:#10B981"/>
+ <text x="437" y="240" text-anchor="middle" class="svg-mono">4 "93.184.216.34!"</text>
+ <rect x="505" y="240" width="200" height="50" rx="10" class="svg-box"/>
+ <text x="605" y="262" text-anchor="middle" class="svg-label"> Authoritative NS</text>
+ <text x="605" y="280" text-anchor="middle" class="svg-soft">holds the real records</text>
+ </g>
+ <!-- answer back -->
+ <g class="seq seq-6">
+ <line x1="240" y1="180" x2="145" y2="180" class="svg-line svg-dash" style="stroke:#F59E0B"/>
+ <text x="192" y="200" text-anchor="middle" class="svg-mono">5 cached &amp; returned</text>
+ <text x="80" y="225" text-anchor="middle" class="svg-soft">6 browser connects to IP </text>
+ </g>
+ </svg>
+ <p class="diagram-caption">A cold lookup walks the hierarchy: root → TLD → authoritative. Caches make the warm path one hop.</p>
+ </div>
 
-    <div class="steps">
-      <div class="step-item"><div class="step-num">1</div><div><strong>Browser &amp; OS cache</strong><p>Seen this domain recently? Use the cached IP and skip everything below. Most lookups end here.</p></div></div>
-      <div class="step-item"><div class="step-num">2</div><div><strong>Recursive resolver</strong><p>Your ISP's resolver (or 8.8.8.8 / 1.1.1.1) takes over the hunt on your behalf — also checking its own giant cache.</p></div></div>
-      <div class="step-item"><div class="step-num">3</div><div><strong>Root nameserver</strong><p>13 logical root clusters know one thing: who runs each top-level domain. "<code>.dev</code>? Ask these servers."</p></div></div>
-      <div class="step-item"><div class="step-num">4</div><div><strong>TLD nameserver</strong><p>The <code>.dev</code> registry replies with the authoritative nameservers for <code>shop.dev</code>.</p></div></div>
-      <div class="step-item"><div class="step-num">5</div><div><strong>Authoritative nameserver</strong><p>The source of truth (Route 53, Cloudflare DNS, etc.) returns the actual record: <code>A 93.184.216.34</code>.</p></div></div>
-      <div class="step-item"><div class="step-num">6</div><div><strong>Answer flows back</strong><p>The resolver caches it for the record's TTL and hands it to your browser, which finally opens a TCP connection.</p></div></div>
-    </div>
+ <div class="steps">
+ <div class="step-item"><div class="step-num">1</div><div><strong>Browser &amp; OS cache</strong><p>Seen this domain recently? Use the cached IP and skip everything below. Most lookups end here.</p></div></div>
+ <div class="step-item"><div class="step-num">2</div><div><strong>Recursive resolver</strong><p>Your ISP's resolver (or 8.8.8.8 / 1.1.1.1) takes over the hunt on your behalf — also checking its own giant cache.</p></div></div>
+ <div class="step-item"><div class="step-num">3</div><div><strong>Root nameserver</strong><p>13 logical root clusters know one thing: who runs each top-level domain. "<code>.dev</code>? Ask these servers."</p></div></div>
+ <div class="step-item"><div class="step-num">4</div><div><strong>TLD nameserver</strong><p>The <code>.dev</code> registry replies with the authoritative nameservers for <code>shop.dev</code>.</p></div></div>
+ <div class="step-item"><div class="step-num">5</div><div><strong>Authoritative nameserver</strong><p>The source of truth (Route 53, Cloudflare DNS, etc.) returns the actual record: <code>A 93.184.216.34</code>.</p></div></div>
+ <div class="step-item"><div class="step-num">6</div><div><strong>Answer flows back</strong><p>The resolver caches it for the record's TTL and hands it to your browser, which finally opens a TCP connection.</p></div></div>
+ </div>
 
-    <h3>Record types you'll actually use</h3>
-    <div class="table-wrap">
-      <table class="compare-table">
-        <thead><tr><th>Record</th><th>Maps</th><th>Example use</th></tr></thead>
-        <tbody>
-          <tr><td>A</td><td>name → IPv4 address</td><td><code>api.shop.dev → 93.184.216.34</code></td></tr>
-          <tr><td>AAAA</td><td>name → IPv6 address</td><td><code>api.shop.dev → 2606:2800::1</code></td></tr>
-          <tr><td>CNAME</td><td>name → another name (alias)</td><td><code>www.shop.dev → shop.dev</code>, CDN hostnames</td></tr>
-          <tr><td>MX</td><td>domain → mail servers (with priority)</td><td>Route email to Google Workspace</td></tr>
-          <tr><td>NS</td><td>domain → its authoritative nameservers</td><td>Delegate a subdomain to another provider</td></tr>
-          <tr><td>TXT</td><td>name → arbitrary text</td><td>Domain verification, SPF/DKIM anti-spoofing</td></tr>
-        </tbody>
-      </table>
-    </div>
+ <h3>Record types you'll actually use</h3>
+ <div class="table-wrap">
+ <table class="compare-table">
+ <thead><tr><th>Record</th><th>Maps</th><th>Example use</th></tr></thead>
+ <tbody>
+ <tr><td>A</td><td>name → IPv4 address</td><td><code>api.shop.dev → 93.184.216.34</code></td></tr>
+ <tr><td>AAAA</td><td>name → IPv6 address</td><td><code>api.shop.dev → 2606:2800::1</code></td></tr>
+ <tr><td>CNAME</td><td>name → another name (alias)</td><td><code>www.shop.dev → shop.dev</code>, CDN hostnames</td></tr>
+ <tr><td>MX</td><td>domain → mail servers (with priority)</td><td>Route email to Google Workspace</td></tr>
+ <tr><td>NS</td><td>domain → its authoritative nameservers</td><td>Delegate a subdomain to another provider</td></tr>
+ <tr><td>TXT</td><td>name → arbitrary text</td><td>Domain verification, SPF/DKIM anti-spoofing</td></tr>
+ </tbody>
+ </table>
+ </div>
 
-    <h3>TTL: the freshness dial</h3>
-    <p>Every record carries a <strong>TTL</strong> (time to live) — how long resolvers may cache it. A 24-hour TTL means almost no load on your nameservers, but a botched IP change takes a day to heal worldwide. A 60-second TTL gives you fast failover at the cost of constant queries. Common play: keep TTLs long normally, drop them to 60s a day <em>before</em> a planned migration.</p>
+ <h3>TTL: the freshness dial</h3>
+ <p>Every record carries a <strong>TTL</strong> (time to live) — how long resolvers may cache it. A 24-hour TTL means almost no load on your nameservers, but a botched IP change takes a day to heal worldwide. A 60-second TTL gives you fast failover at the cost of constant queries. Common play: keep TTLs long normally, drop them to 60s a day <em>before</em> a planned migration.</p>
 
-    <div class="callout warn">
-      <span class="co-icon"></span>
-      <div><strong>DNS pain points</strong>
-      <p>Propagation delay (caches everywhere obey old TTLs), it's a juicy DDoS target (the 2016 Dyn attack took down Twitter, Spotify and GitHub simultaneously), and its slow cache convergence makes it a clumsy failover mechanism — load balancers handle instant failover much better.</p></div>
-    </div>
-  </section>
+ <div class="callout warn">
+ <span class="co-icon">&#9733;</span>
+ <div><strong>DNS pain points</strong>
+ <p>Propagation delay (caches everywhere obey old TTLs), it's a juicy DDoS target (the 2016 Dyn attack took down Twitter, Spotify and GitHub simultaneously), and its slow cache convergence makes it a clumsy failover mechanism — load balancers handle instant failover much better.</p></div>
+ </div>
+ </section>
 
-  <!-- ============ DNS RECORD TYPES CHEAT SHEET ============ -->
-  <section class="section-block reveal">
-    <h2>DNS Record Types — The Full Cheat Sheet</h2>
-    <p>The quick table above covers the daily drivers; here's the complete reference with the records you'll meet in real zone files (including the one everyone forgets — SOA):</p>
-    <div class="table-wrap">
-      <table class="compare-table">
-        <thead><tr><th>Record</th><th>What it maps</th><th>Example</th><th>Notes</th></tr></thead>
-        <tbody>
-          <tr><td><strong>A</strong></td><td>hostname → IPv4 address</td><td><code>example.com → 93.184.216.34</code></td><td>The workhorse — the final answer of most lookups</td></tr>
-          <tr><td><strong>AAAA</strong></td><td>hostname → IPv6 address</td><td><code>example.com → 2606:2800:220:1::1</code></td><td>"Quad-A" — same as A, but for IPv6</td></tr>
-          <tr><td><strong>CNAME</strong></td><td>alias → another hostname</td><td><code>www.example.com → example.com</code></td><td>Chains resolve until an A/AAAA is found; can't live at the zone apex</td></tr>
-          <tr><td><strong>MX</strong></td><td>domain → mail exchange server</td><td><code>example.com → mail.example.com (prio 10)</code></td><td>Priority number picks the preferred server; lower wins</td></tr>
-          <tr><td><strong>NS</strong></td><td>domain → its nameservers</td><td><code>example.com → ns1.dnsprovider.com</code></td><td>Declares which DNS server is authoritative for the zone</td></tr>
-          <tr><td><strong>TXT</strong></td><td>name → arbitrary text</td><td><code>"v=spf1 include:_spf.google.com ~all"</code></td><td>SPF/DKIM email auth, domain ownership verification (Google, Netlify)</td></tr>
-          <tr><td><strong>SOA</strong></td><td>zone → its admin metadata</td><td><code>ns1.example.com admin.example.com …</code></td><td>Start of Authority: TTL defaults, serial number, contact email for the zone admin</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </section>
+ <!-- ============ DNS RECORD TYPES CHEAT SHEET ============ -->
+ <section class="section-block reveal">
+ <h2>DNS Record Types — The Full Cheat Sheet</h2>
+ <p>The quick table above covers the daily drivers; here's the complete reference with the records you'll meet in real zone files (including the one everyone forgets — SOA):</p>
+ <div class="table-wrap">
+ <table class="compare-table">
+ <thead><tr><th>Record</th><th>What it maps</th><th>Example</th><th>Notes</th></tr></thead>
+ <tbody>
+ <tr><td><strong>A</strong></td><td>hostname → IPv4 address</td><td><code>example.com → 93.184.216.34</code></td><td>The workhorse — the final answer of most lookups</td></tr>
+ <tr><td><strong>AAAA</strong></td><td>hostname → IPv6 address</td><td><code>example.com → 2606:2800:220:1::1</code></td><td>"Quad-A" — same as A, but for IPv6</td></tr>
+ <tr><td><strong>CNAME</strong></td><td>alias → another hostname</td><td><code>www.example.com → example.com</code></td><td>Chains resolve until an A/AAAA is found; can't live at the zone apex</td></tr>
+ <tr><td><strong>MX</strong></td><td>domain → mail exchange server</td><td><code>example.com → mail.example.com (prio 10)</code></td><td>Priority number picks the preferred server; lower wins</td></tr>
+ <tr><td><strong>NS</strong></td><td>domain → its nameservers</td><td><code>example.com → ns1.dnsprovider.com</code></td><td>Declares which DNS server is authoritative for the zone</td></tr>
+ <tr><td><strong>TXT</strong></td><td>name → arbitrary text</td><td><code>"v=spf1 include:_spf.google.com ~all"</code></td><td>SPF/DKIM email auth, domain ownership verification (Google, Netlify)</td></tr>
+ <tr><td><strong>SOA</strong></td><td>zone → its admin metadata</td><td><code>ns1.example.com admin.example.com …</code></td><td>Start of Authority: TTL defaults, serial number, contact email for the zone admin</td></tr>
+ </tbody>
+ </table>
+ </div>
+ </section>
 
-  <!-- ============ DNS TRAFFIC MANAGEMENT ============ -->
-  <section class="section-block reveal">
-    <h2>DNS-Based Traffic Management</h2>
-    <p>Because DNS answers the question "which IP should I talk to?", it's also a control point for steering traffic — before a single packet reaches your servers. AWS Route 53 exposes this as <strong>routing policies</strong>:</p>
-    <div class="table-wrap">
-      <table class="compare-table">
-        <thead><tr><th>Policy</th><th>How it routes</th><th>Use case</th></tr></thead>
-        <tbody>
-          <tr><td><strong>Simple</strong></td><td>One IP, every time</td><td>No intelligence — small single-region apps</td></tr>
-          <tr><td><strong>Weighted</strong></td><td>Send 90% to v1, 10% to v2</td><td>Canary deployments! Shift weights gradually</td></tr>
-          <tr><td><strong>Latency-based</strong></td><td>Resolve to the region with lowest latency for that user</td><td>Global apps with multiple regions</td></tr>
-          <tr><td><strong>Failover</strong></td><td>Primary + standby; switch on health-check failure</td><td>Disaster recovery</td></tr>
-          <tr><td><strong>Geolocation</strong></td><td>European users → EU region, US users → US-East</td><td>Data residency (GDPR), localized content</td></tr>
-          <tr><td><strong>Geoproximity</strong></td><td>Like geolocation, but with tunable bias weights</td><td>Gradually shifting traffic between nearby regions</td></tr>
-        </tbody>
-      </table>
-    </div>
-    <div class="callout info">
-      <span class="co-icon">📡</span>
-      <div><strong>Anycast: one IP, many places</strong>
-      <p>The same IP address is advertised from multiple PoPs, and BGP routes each packet to the nearest one. Cloudflare's <code>1.1.1.1</code> and Google's <code>8.8.8.8</code> are both Anycast IPs — you and someone in Tokyo hit "the same address" but land on completely different machines.</p></div>
-    </div>
-  </section>
+ <!-- ============ DNS TRAFFIC MANAGEMENT ============ -->
+ <section class="section-block reveal">
+ <h2>DNS-Based Traffic Management</h2>
+ <p>Because DNS answers the question "which IP should I talk to?", it's also a control point for steering traffic — before a single packet reaches your servers. AWS Route 53 exposes this as <strong>routing policies</strong>:</p>
+ <div class="table-wrap">
+ <table class="compare-table">
+ <thead><tr><th>Policy</th><th>How it routes</th><th>Use case</th></tr></thead>
+ <tbody>
+ <tr><td><strong>Simple</strong></td><td>One IP, every time</td><td>No intelligence — small single-region apps</td></tr>
+ <tr><td><strong>Weighted</strong></td><td>Send 90% to v1, 10% to v2</td><td>Canary deployments! Shift weights gradually</td></tr>
+ <tr><td><strong>Latency-based</strong></td><td>Resolve to the region with lowest latency for that user</td><td>Global apps with multiple regions</td></tr>
+ <tr><td><strong>Failover</strong></td><td>Primary + standby; switch on health-check failure</td><td>Disaster recovery</td></tr>
+ <tr><td><strong>Geolocation</strong></td><td>European users → EU region, US users → US-East</td><td>Data residency (GDPR), localized content</td></tr>
+ <tr><td><strong>Geoproximity</strong></td><td>Like geolocation, but with tunable bias weights</td><td>Gradually shifting traffic between nearby regions</td></tr>
+ </tbody>
+ </table>
+ </div>
+ <div class="callout info">
+ <span class="co-icon"></span>
+ <div><strong>Anycast: one IP, many places</strong>
+ <p>The same IP address is advertised from multiple PoPs, and BGP routes each packet to the nearest one. Cloudflare's <code>1.1.1.1</code> and Google's <code>8.8.8.8</code> are both Anycast IPs — you and someone in Tokyo hit "the same address" but land on completely different machines.</p></div>
+ </div>
+ </section>
 
-  <!-- ============ TTL TRADE-OFF ============ -->
-  <section class="section-block reveal">
-    <h2>TTL and the Propagation Delay Trade-Off</h2>
-    <p>The TTL — how long resolvers may cache the answer — is the single most consequential number in your zone file:</p>
-    <div class="two-col">
-      <div class="mini-card">
-        <span class="mc-icon"></span>
-        <h4>Short TTL (60–300s)</h4>
-        <p>Changes propagate fast — great for failovers and migrations. Cost: every cache expires constantly, so resolvers re-query → more load on your authoritative servers.</p>
-      </div>
-      <div class="mini-card">
-        <span class="mc-icon">🐢</span>
-        <h4>Long TTL (86,400s = 1 day)</h4>
-        <p>Fewer queries, faster resolution from cache, lighter nameserver load. Cost: changing IPs is painful — the old answer lives in caches worldwide for up to a day.</p>
-      </div>
-    </div>
-    <div class="callout tip">
-      <span class="co-icon"></span>
-      <div><strong>The migration playbook</strong>
-      <p>Lower the TTL to ~60s a day <em>before</em> a planned migration (so existing long-TTL caches drain out), then change the IP, then restore the long TTL once the migration is stable. Doing it in the other order means waiting out the old TTL while traffic splits unpredictably.</p></div>
-    </div>
-    <div class="callout warn">
-      <span class="co-icon"></span>
-      <div><strong>Real incident: Fastly, June 2021</strong>
-      <p>A latent bug triggered by one customer's config change took down roughly a third of the visible internet — Reddit, Amazon, gov.uk — for nearly an hour. Caching and DNS TTLs meant many users stayed stuck even after Fastly fixed the root cause within minutes. Lesson: your recovery time includes everyone else's caches, not just your fix.</p></div>
-    </div>
-  </section>
+ <!-- ============ TTL TRADE-OFF ============ -->
+ <section class="section-block reveal">
+ <h2>TTL and the Propagation Delay Trade-Off</h2>
+ <p>The TTL — how long resolvers may cache the answer — is the single most consequential number in your zone file:</p>
+ <div class="two-col">
+ <div class="mini-card">
+ <span class="mc-icon"></span>
+ <h4>Short TTL (60–300s)</h4>
+ <p>Changes propagate fast — great for failovers and migrations. Cost: every cache expires constantly, so resolvers re-query → more load on your authoritative servers.</p>
+ </div>
+ <div class="mini-card">
+ <span class="mc-icon"></span>
+ <h4>Long TTL (86,400s = 1 day)</h4>
+ <p>Fewer queries, faster resolution from cache, lighter nameserver load. Cost: changing IPs is painful — the old answer lives in caches worldwide for up to a day.</p>
+ </div>
+ </div>
+ <div class="callout tip">
+ <span class="co-icon">&#9733;</span>
+ <div><strong>The migration playbook</strong>
+ <p>Lower the TTL to ~60s a day <em>before</em> a planned migration (so existing long-TTL caches drain out), then change the IP, then restore the long TTL once the migration is stable. Doing it in the other order means waiting out the old TTL while traffic splits unpredictably.</p></div>
+ </div>
+ <div class="callout warn">
+ <span class="co-icon">&#9733;</span>
+ <div><strong>Real incident: Fastly, June 2021</strong>
+ <p>A latent bug triggered by one customer's config change took down roughly a third of the visible internet — Reddit, Amazon, gov.uk — for nearly an hour. Caching and DNS TTLs meant many users stayed stuck even after Fastly fixed the root cause within minutes. Lesson: your recovery time includes everyone else's caches, not just your fix.</p></div>
+ </div>
+ </section>
 
-  <section class="section-block reveal">
-    <h2>CDN: Moving Bytes to the Edge</h2>
-    <p>Physics is undefeated: a request from Sydney to a server in Virginia spends ~200&nbsp;ms just traveling. A <strong>Content Delivery Network</strong> defeats distance by copying your content to hundreds of <strong>PoPs</strong> (points of presence) around the world. Each PoP is a cluster of <strong>edge servers</strong>; users are routed (via anycast or DNS) to the nearest one.</p>
-    <p>The flow: the user hits the closest edge. Cache hit → served in ~20&nbsp;ms. Cache miss → the edge fetches from your <strong>origin</strong> server once, caches it, and every later visitor in that region gets the fast path.</p>
+ <section class="section-block reveal">
+ <h2>CDN: Moving Bytes to the Edge</h2>
+ <p>Physics is undefeated: a request from Sydney to a server in Virginia spends ~200&nbsp;ms just traveling. A <strong>Content Delivery Network</strong> defeats distance by copying your content to hundreds of <strong>PoPs</strong> (points of presence) around the world. Each PoP is a cluster of <strong>edge servers</strong>; users are routed (via anycast or DNS) to the nearest one.</p>
+ <p>The flow: the user hits the closest edge. Cache hit → served in ~20&nbsp;ms. Cache miss → the edge fetches from your <strong>origin</strong> server once, caches it, and every later visitor in that region gets the fast path.</p>
 
-    <h3>Push vs Pull CDNs</h3>
-    <div class="two-col">
-      <div class="mini-card">
-        <span class="mc-icon">📤</span>
-        <h4>Push CDN</h4>
-        <p>You proactively upload content to the edges whenever it changes. Full control, zero first-visitor misses — but you own the upload pipeline and pay for storage. Best for sites with <strong>small, infrequently changing</strong> assets (downloads, video libraries, low-traffic sites where a miss matters).</p>
-      </div>
-      <div class="mini-card">
-        <span class="mc-icon">📥</span>
-        <h4>Pull CDN</h4>
-        <p>Edges fetch from origin lazily on the first miss, then cache per TTL. Minimal setup — point a CNAME and go. First visitor per region eats a slow request, and redundant pulls can happen around expiry. Best for <strong>heavy-traffic sites</strong>: the popular stuff stays naturally hot. This is the Cloudflare/CloudFront default model.</p>
-      </div>
-    </div>
+ <h3>Push vs Pull CDNs</h3>
+ <div class="two-col">
+ <div class="mini-card">
+ <span class="mc-icon">FW</span>
+ <h4>Push CDN</h4>
+ <p>You proactively upload content to the edges whenever it changes. Full control, zero first-visitor misses — but you own the upload pipeline and pay for storage. Best for sites with <strong>small, infrequently changing</strong> assets (downloads, video libraries, low-traffic sites where a miss matters).</p>
+ </div>
+ <div class="mini-card">
+ <span class="mc-icon">FR</span>
+ <h4>Pull CDN</h4>
+ <p>Edges fetch from origin lazily on the first miss, then cache per TTL. Minimal setup — point a CNAME and go. First visitor per region eats a slow request, and redundant pulls can happen around expiry. Best for <strong>heavy-traffic sites</strong>: the popular stuff stays naturally hot. This is the Cloudflare/CloudFront default model.</p>
+ </div>
+ </div>
 
-    <div class="table-wrap">
-      <table class="compare-table">
-        <thead><tr><th></th><th>Push CDN</th><th>Pull CDN</th></tr></thead>
-        <tbody>
-          <tr><td>Who fills the edge</td><td>You, ahead of time</td><td>The edge, on first miss</td></tr>
-          <tr><td>First request in region</td><td>Fast (already there)</td><td>Slow (origin fetch)</td></tr>
-          <tr><td>Maintenance</td><td>You manage uploads &amp; invalidation</td><td>TTL handles refresh</td></tr>
-          <tr><td>Best for</td><td>Static, rarely-changing content</td><td>High traffic, frequently-changing content</td></tr>
-        </tbody>
-      </table>
-    </div>
+ <div class="table-wrap">
+ <table class="compare-table">
+ <thead><tr><th></th><th>Push CDN</th><th>Pull CDN</th></tr></thead>
+ <tbody>
+ <tr><td>Who fills the edge</td><td>You, ahead of time</td><td>The edge, on first miss</td></tr>
+ <tr><td>First request in region</td><td>Fast (already there)</td><td>Slow (origin fetch)</td></tr>
+ <tr><td>Maintenance</td><td>You manage uploads &amp; invalidation</td><td>TTL handles refresh</td></tr>
+ <tr><td>Best for</td><td>Static, rarely-changing content</td><td>High traffic, frequently-changing content</td></tr>
+ </tbody>
+ </table>
+ </div>
 
-    <h3>What a CDN buys you</h3>
-    <ul class="key-points">
-      <li><strong>Latency:</strong> content served from ~50 km away instead of ~10,000 km.</li>
-      <li><strong>Origin offload:</strong> 90%+ of requests never touch your servers — your origin handles only misses and dynamic calls.</li>
-      <li><strong>DDoS absorption:</strong> the CDN's enormous edge capacity soaks up attack traffic before it reaches you.</li>
-      <li><strong>Availability:</strong> if the origin hiccups, many CDNs keep serving stale cached copies ("serve-stale-on-error").</li>
-    </ul>
+ <h3>What a CDN buys you</h3>
+ <ul class="key-points">
+ <li><strong>Latency:</strong> content served from ~50 km away instead of ~10,000 km.</li>
+ <li><strong>Origin offload:</strong> 90%+ of requests never touch your servers — your origin handles only misses and dynamic calls.</li>
+ <li><strong>DDoS absorption:</strong> the CDN's enormous edge capacity soaks up attack traffic before it reaches you.</li>
+ <li><strong>Availability:</strong> if the origin hiccups, many CDNs keep serving stale cached copies ("serve-stale-on-error").</li>
+ </ul>
 
-    <div class="callout info">
-      <span class="co-icon"></span>
-      <div><strong>Real-world receipts</strong>
-      <p>Netflix went further than renting a CDN — it built <em>Open Connect</em>, placing its own caching appliances inside ISP datacenters so most streams never cross the public internet. Cloudflare, Akamai, Fastly and AWS CloudFront power much of everything else; Fastly's instant purge is why news sites that change content constantly love it.</p></div>
-    </div>
+ <div class="callout info">
+ <span class="co-icon">&#9733;</span>
+ <div><strong>Real-world receipts</strong>
+ <p>Netflix went further than renting a CDN — it built <em>Open Connect</em>, placing its own caching appliances inside ISP datacenters so most streams never cross the public internet. Cloudflare, Akamai, Fastly and AWS CloudFront power much of everything else; Fastly's instant purge is why news sites that change content constantly love it.</p></div>
+ </div>
 
-    <div class="callout archie">
-      <span class="co-icon"></span>
-      <div><strong>Archie says</strong>
-      <p>In interviews, the CDN is your free first move: "static assets — images, JS, CSS, video — go behind a CDN" instantly removes most bandwidth from your design, and lets you spend your complexity budget on the interesting parts.</p></div>
-    </div>
-  </section>
+ <div class="callout archie">
+ <span class="co-icon">&#9733;</span>
+ <div><strong>Archie says</strong>
+ <p>In interviews, the CDN is your free first move: "static assets — images, JS, CSS, video — go behind a CDN" instantly removes most bandwidth from your design, and lets you spend your complexity budget on the interesting parts.</p></div>
+ </div>
+ </section>
 
-  <!-- ============ CDN ARCHITECTURE DEEP DIVE ============ -->
-  <section class="section-block reveal">
-    <h2>CDN Architecture Deep Dive</h2>
-    <p>Under the hood, a CDN is a hierarchy of caches with a routing layer in front:</p>
-    <ul class="key-points">
-      <li><strong>PoP (Point of Presence):</strong> a datacenter full of edge servers. Cloudflare runs 300+ PoPs; Akamai has 4,000+ deployments.</li>
-      <li><strong>Edge → Regional → Origin hierarchy:</strong> a miss at the edge checks a regional cache before falling all the way back to your origin; hits serve from the nearest layer.</li>
-      <li><strong>Cache key:</strong> usually just the URL — but it can include query params, cookies, or headers. The <code>Vary</code> header controls which request headers split the cache.</li>
-    </ul>
+ <!-- ============ CDN ARCHITECTURE DEEP DIVE ============ -->
+ <section class="section-block reveal">
+ <h2>CDN Architecture Deep Dive</h2>
+ <p>Under the hood, a CDN is a hierarchy of caches with a routing layer in front:</p>
+ <ul class="key-points">
+ <li><strong>PoP (Point of Presence):</strong> a datacenter full of edge servers. Cloudflare runs 300+ PoPs; Akamai has 4,000+ deployments.</li>
+ <li><strong>Edge → Regional → Origin hierarchy:</strong> a miss at the edge checks a regional cache before falling all the way back to your origin; hits serve from the nearest layer.</li>
+ <li><strong>Cache key:</strong> usually just the URL — but it can include query params, cookies, or headers. The <code>Vary</code> header controls which request headers split the cache.</li>
+ </ul>
 
-    <h3>Cache invalidation strategies</h3>
-    <div class="steps">
-      <div class="step-item"><div class="step-num">1</div><div><strong>TTL expiry + cache busting</strong><p>Simplest: content is stale until the TTL runs out. The workaround is "cache busting" — change the URL when the content changes (<code>app.v2.js</code>, hashed filenames). Old URL stays cached forever; new URL is instantly fresh.</p></div></div>
-      <div class="step-item"><div class="step-num">2</div><div><strong>Purge API</strong><p>Cloudflare and Fastly let you purge specific URLs (or everything) instantly via API. Standard move after a CMS publish: save article → purge its URL → next request pulls the fresh version.</p></div></div>
-      <div class="step-item"><div class="step-num">3</div><div><strong>Surrogate keys (cache tags)</strong><p>Tag cached objects with content IDs at response time: an article page might carry tags <code>article:42</code> and <code>user:123</code>. Then "purge everything tagged <code>user:123</code>" invalidates every page that included that user's data — one API call, surgical precision.</p></div></div>
-    </div>
-  </section>
+ <h3>Cache invalidation strategies</h3>
+ <div class="steps">
+ <div class="step-item"><div class="step-num">1</div><div><strong>TTL expiry + cache busting</strong><p>Simplest: content is stale until the TTL runs out. The workaround is "cache busting" — change the URL when the content changes (<code>app.v2.js</code>, hashed filenames). Old URL stays cached forever; new URL is instantly fresh.</p></div></div>
+ <div class="step-item"><div class="step-num">2</div><div><strong>Purge API</strong><p>Cloudflare and Fastly let you purge specific URLs (or everything) instantly via API. Standard move after a CMS publish: save article → purge its URL → next request pulls the fresh version.</p></div></div>
+ <div class="step-item"><div class="step-num">3</div><div><strong>Surrogate keys (cache tags)</strong><p>Tag cached objects with content IDs at response time: an article page might carry tags <code>article:42</code> and <code>user:123</code>. Then "purge everything tagged <code>user:123</code>" invalidates every page that included that user's data — one API call, surgical precision.</p></div></div>
+ </div>
+ </section>
 
-  <!-- ============ NETFLIX OPEN CONNECT ============ -->
-  <section class="section-block reveal">
-    <h2>Netflix Open Connect — A CDN Built into ISPs</h2>
-    <p>Netflix is ~15% of global downstream internet traffic, so it built its own CDN: <strong>Open Connect Appliances (OCAs)</strong> — caching servers installed <em>inside</em> ISPs like Comcast and AT&amp;T, for free. The ISP gets free hardware and saves on transit costs; Netflix gets ultra-low-latency delivery.</p>
-    <ul class="key-points">
-      <li>OCAs cache the top ~20% of the Netflix catalog that drives ~80% of traffic — the Pareto principle doing the heavy lifting again.</li>
-      <li>During off-peak hours, Netflix <strong>proactively pushes</strong> predicted-popular content to OCAs — tomorrow's big premiere is already sitting inside your ISP tonight.</li>
-      <li>Result: a single PoP can serve <strong>200 Gbps</strong>, and <strong>90%+ of Netflix traffic never leaves the ISP's network</strong>.</li>
-    </ul>
-    <div class="callout archie">
-      <span class="co-icon"></span>
-      <div><strong>Archie says</strong>
-      <p>The lesson isn't "build your own CDN" — it's that at sufficient scale, the build-vs-rent math flips. Netflix's traffic volume made owning the delivery layer cheaper and faster than renting one. For everyone else, Cloudflare and CloudFront remain the right answer.</p></div>
-    </div>
-  </section>
+ <!-- ============ NETFLIX OPEN CONNECT ============ -->
+ <section class="section-block reveal">
+ <h2>Netflix Open Connect — A CDN Built into ISPs</h2>
+ <p>Netflix is ~15% of global downstream internet traffic, so it built its own CDN: <strong>Open Connect Appliances (OCAs)</strong> — caching servers installed <em>inside</em> ISPs like Comcast and AT&amp;T, for free. The ISP gets free hardware and saves on transit costs; Netflix gets ultra-low-latency delivery.</p>
+ <ul class="key-points">
+ <li>OCAs cache the top ~20% of the Netflix catalog that drives ~80% of traffic — the Pareto principle doing the heavy lifting again.</li>
+ <li>During off-peak hours, Netflix <strong>proactively pushes</strong> predicted-popular content to OCAs — tomorrow's big premiere is already sitting inside your ISP tonight.</li>
+ <li>Result: a single PoP can serve <strong>200 Gbps</strong>, and <strong>90%+ of Netflix traffic never leaves the ISP's network</strong>.</li>
+ </ul>
+ <div class="callout archie">
+ <span class="co-icon">&#9733;</span>
+ <div><strong>Archie says</strong>
+ <p>The lesson isn't "build your own CDN" — it's that at sufficient scale, the build-vs-rent math flips. Netflix's traffic volume made owning the delivery layer cheaper and faster than renting one. For everyone else, Cloudflare and CloudFront remain the right answer.</p></div>
+ </div>
+ </section>
 
-  <!-- ============ CDN SECURITY ============ -->
-  <section class="section-block reveal">
-    <h2>CDN Security Features</h2>
-    <p>Modern CDNs are as much a security perimeter as a performance layer — everything below happens at the edge, before traffic ever reaches your origin:</p>
-    <div class="cards-grid">
-      <div class="mini-card">
-        <span class="mc-icon">🛡️</span>
-        <h4>DDoS protection</h4>
-        <p>Volumetric attacks get absorbed across hundreds of PoPs' combined capacity. Cloudflare blocks 100+ billion threats per day at the edge.</p>
-      </div>
-      <div class="mini-card">
-        <span class="mc-icon">🧱</span>
-        <h4>WAF</h4>
-        <p>The Web Application Firewall blocks SQL injection, XSS, and known-bad bots at the edge — malicious requests never reach your origin.</p>
-      </div>
-      <div class="mini-card">
-        <span class="mc-icon"></span>
-        <h4>Bot management</h4>
-        <p>Browser fingerprinting, JavaScript challenges, and CAPTCHAs separate humans from scrapers and credential-stuffers.</p>
-      </div>
-      <div class="mini-card">
-        <span class="mc-icon"></span>
-        <h4>SSL termination at edge</h4>
-        <p>The CDN handles the TLS handshake near the user; the origin can speak plain HTTP (or re-encrypted HTTPS) — saving origin CPU and a full round trip.</p>
-      </div>
-      <div class="mini-card">
-        <span class="mc-icon">☂️</span>
-        <h4>Origin shield</h4>
-        <p>On a cache miss, requests funnel through one regional node instead of thousands of edges hitting your origin simultaneously — preventing the "thundering herd" on cold or just-purged content.</p>
-      </div>
-    </div>
-  </section>
+ <!-- ============ CDN SECURITY ============ -->
+ <section class="section-block reveal">
+ <h2>CDN Security Features</h2>
+ <p>Modern CDNs are as much a security perimeter as a performance layer — everything below happens at the edge, before traffic ever reaches your origin:</p>
+ <div class="cards-grid">
+ <div class="mini-card">
+ <span class="mc-icon"></span>
+ <h4>DDoS protection</h4>
+ <p>Volumetric attacks get absorbed across hundreds of PoPs' combined capacity. Cloudflare blocks 100+ billion threats per day at the edge.</p>
+ </div>
+ <div class="mini-card">
+ <span class="mc-icon">🧱</span>
+ <h4>WAF</h4>
+ <p>The Web Application Firewall blocks SQL injection, XSS, and known-bad bots at the edge — malicious requests never reach your origin.</p>
+ </div>
+ <div class="mini-card">
+ <span class="mc-icon"></span>
+ <h4>Bot management</h4>
+ <p>Browser fingerprinting, JavaScript challenges, and CAPTCHAs separate humans from scrapers and credential-stuffers.</p>
+ </div>
+ <div class="mini-card">
+ <span class="mc-icon"></span>
+ <h4>SSL termination at edge</h4>
+ <p>The CDN handles the TLS handshake near the user; the origin can speak plain HTTP (or re-encrypted HTTPS) — saving origin CPU and a full round trip.</p>
+ </div>
+ <div class="mini-card">
+ <span class="mc-icon"></span>
+ <h4>Origin shield</h4>
+ <p>On a cache miss, requests funnel through one regional node instead of thousands of edges hitting your origin simultaneously — preventing the "thundering herd" on cold or just-purged content.</p>
+ </div>
+ </div>
+ </section>
 
-  <section class="section-block reveal">
-    <div class="quiz">
-      <h3>🧠 Quick Check</h3>
-      <p class="quiz-q">Your product launches in Brazil tomorrow and the marketing page must be instant for the very first visitor. Which CDN strategy fits best?</p>
-      <div class="quiz-options">
-        <button class="quiz-option">Pull CDN — let the first visitor warm the cache</button>
-        <button class="quiz-option" data-correct="true">Push CDN — pre-load assets to edges before launch</button>
-        <button class="quiz-option">No CDN — just lower the DNS TTL</button>
-        <button class="quiz-option">Serve everything from the origin in Virginia</button>
-      </div>
-      <div class="quiz-feedback"> Correct! Push (or pre-warming a pull CDN) guarantees the content is already sitting at the São Paulo edge before anyone asks for it. Pull CDNs make the first visitor per region pay the origin round trip.</div>
-    </div>
-  </section>
+ <section class="section-block reveal">
+ <div class="quiz">
+ <h3>Quick Check</h3>
+ <p class="quiz-q">Your product launches in Brazil tomorrow and the marketing page must be instant for the very first visitor. Which CDN strategy fits best?</p>
+ <div class="quiz-options">
+ <button class="quiz-option">Pull CDN — let the first visitor warm the cache</button>
+ <button class="quiz-option" data-correct="true">Push CDN — pre-load assets to edges before launch</button>
+ <button class="quiz-option">No CDN — just lower the DNS TTL</button>
+ <button class="quiz-option">Serve everything from the origin in Virginia</button>
+ </div>
+ <div class="quiz-feedback"> Correct! Push (or pre-warming a pull CDN) guarantees the content is already sitting at the São Paulo edge before anyone asks for it. Pull CDNs make the first visitor per region pay the origin round trip.</div>
+ </div>
+ </section>
 
-  <!-- ============ INTERVIEW Q&A ============ -->
-  <section class="section-block reveal">
-    <h2>Interview Q&amp;A</h2>
-    <div class="qa-list">
-      <div class="qa-item">
-        <button class="qa-question">Why would you use a CDN even for dynamic content?</button>
-        <div class="qa-answer">
-          <p>Modern CDNs (Cloudflare Workers, Lambda@Edge) run computation at edge nodes — you can cache personalized responses, A/B test at the edge, rewrite URLs, add security headers, even query edge databases (Cloudflare D1, KV). For truly dynamic content, CDNs still help by: (1) terminating TLS close to users (~100ms RTT saved), (2) keeping persistent keep-alive connections to origin (avoiding a TCP handshake per request), (3) absorbing DDoS before it hits origin.</p>
-        </div>
-      </div>
-      <div class="qa-item">
-        <button class="qa-question">What is the difference between a Push CDN and a Pull CDN?</button>
-        <div class="qa-answer">
-          <p><strong>Pull CDN:</strong> the edge fetches from origin on first miss, caches per TTL. Zero configuration, works for any traffic pattern, but the first user to request new content gets origin latency. Best for high-traffic sites where the cache-fill cost is amortized. <strong>Push CDN:</strong> you proactively upload content to CDN nodes. Full control, no origin hits — but you must manage what's on the CDN. Best for predictable content (software downloads, game patches) and low-traffic sites where pull would rarely hit cache anyway.</p>
-        </div>
-      </div>
-      <div class="qa-item">
-        <button class="qa-question">How does DNS help with disaster recovery?</button>
-        <div class="qa-answer">
-          <p>With Route 53 failover routing: set a health check on the primary endpoint. If the primary fails the health check, Route 53 automatically returns the secondary IP instead. With a low TTL (60s), most clients see the new IP within a minute. The TTL must be short enough for fast failover — but that means more queries: a classic trade-off. For critical services, combine latency + failover routing: normally go to the nearest healthy region, fail over to the next-nearest if that region dies.</p>
-        </div>
-      </div>
-    </div>
-  </section>
+ <!-- ============ INTERVIEW Q&A ============ -->
+ <section class="section-block reveal">
+ <h2>Interview Q&amp;A</h2>
+ <div class="qa-list">
+ <div class="qa-item">
+ <button class="qa-question">Why would you use a CDN even for dynamic content?</button>
+ <div class="qa-answer">
+ <p>Modern CDNs (Cloudflare Workers, Lambda@Edge) run computation at edge nodes — you can cache personalized responses, A/B test at the edge, rewrite URLs, add security headers, even query edge databases (Cloudflare D1, KV). For truly dynamic content, CDNs still help by: (1) terminating TLS close to users (~100ms RTT saved), (2) keeping persistent keep-alive connections to origin (avoiding a TCP handshake per request), (3) absorbing DDoS before it hits origin.</p>
+ </div>
+ </div>
+ <div class="qa-item">
+ <button class="qa-question">What is the difference between a Push CDN and a Pull CDN?</button>
+ <div class="qa-answer">
+ <p><strong>Pull CDN:</strong> the edge fetches from origin on first miss, caches per TTL. Zero configuration, works for any traffic pattern, but the first user to request new content gets origin latency. Best for high-traffic sites where the cache-fill cost is amortized. <strong>Push CDN:</strong> you proactively upload content to CDN nodes. Full control, no origin hits — but you must manage what's on the CDN. Best for predictable content (software downloads, game patches) and low-traffic sites where pull would rarely hit cache anyway.</p>
+ </div>
+ </div>
+ <div class="qa-item">
+ <button class="qa-question">How does DNS help with disaster recovery?</button>
+ <div class="qa-answer">
+ <p>With Route 53 failover routing: set a health check on the primary endpoint. If the primary fails the health check, Route 53 automatically returns the secondary IP instead. With a low TTL (60s), most clients see the new IP within a minute. The TTL must be short enough for fast failover — but that means more queries: a classic trade-off. For critical services, combine latency + failover routing: normally go to the nearest healthy region, fail over to the next-nearest if that region dies.</p>
+ </div>
+ </div>
+ </div>
+ </section>
 
-  <!-- ============ ANTI-PATTERNS ============ -->
-  <section class="section-block reveal">
-    <h2>Anti-Patterns to Avoid</h2>
-    <div class="antipatterns">
-      <div class="antipattern-item">
-        <span class="antipattern-icon">🚫</span>
-        <div class="antipattern-text">
-          <h4>High TTL before an IP change</h4>
-          <p>You're stuck for up to 24 hours with the old IP cached worldwide. Always reduce the TTL well before migrations, and restore it after.</p>
-        </div>
-      </div>
-      <div class="antipattern-item">
-        <span class="antipattern-icon">🚫</span>
-        <div class="antipattern-text">
-          <h4>Personalized content on the CDN without cache variation</h4>
-          <p>If the cache key doesn't include session info, the CDN can serve one user's private dashboard to another user. Use <code>Cache-Control: private</code> or <code>Vary: Authorization/Cookie</code> headers — carefully.</p>
-        </div>
-      </div>
-      <div class="antipattern-item">
-        <span class="antipattern-icon">🚫</span>
-        <div class="antipattern-text">
-          <h4>Caching error responses</h4>
-          <p>A bug makes your origin return 500s, the CDN caches them — and your 5-minute outage becomes a 24-hour one. Set a very short TTL or <code>no-store</code> for error responses.</p>
-        </div>
-      </div>
-    </div>
-  </section>
+ <!-- ============ ANTI-PATTERNS ============ -->
+ <section class="section-block reveal">
+ <h2>Anti-Patterns to Avoid</h2>
+ <div class="antipatterns">
+ <div class="antipattern-item">
+ <span class="antipattern-icon"></span>
+ <div class="antipattern-text">
+ <h4>High TTL before an IP change</h4>
+ <p>You're stuck for up to 24 hours with the old IP cached worldwide. Always reduce the TTL well before migrations, and restore it after.</p>
+ </div>
+ </div>
+ <div class="antipattern-item">
+ <span class="antipattern-icon"></span>
+ <div class="antipattern-text">
+ <h4>Personalized content on the CDN without cache variation</h4>
+ <p>If the cache key doesn't include session info, the CDN can serve one user's private dashboard to another user. Use <code>Cache-Control: private</code> or <code>Vary: Authorization/Cookie</code> headers — carefully.</p>
+ </div>
+ </div>
+ <div class="antipattern-item">
+ <span class="antipattern-icon"></span>
+ <div class="antipattern-text">
+ <h4>Caching error responses</h4>
+ <p>A bug makes your origin return 500s, the CDN caches them — and your 5-minute outage becomes a 24-hour one. Set a very short TTL or <code>no-store</code> for error responses.</p>
+ </div>
+ </div>
+ </div>
+ </section>
 
-  <!-- ============ FURTHER READING ============ -->
-  <section class="section-block reveal">
-    <h2>Further Reading</h2>
-    <div class="reading-links">
-      <a class="reading-link-card" href="https://howdns.works" target="_blank" rel="noopener">
-        <span class="reading-link-icon">🌐</span>
-        <div><span class="reading-link-title">How DNS Works (comic-style walkthrough)</span><span class="reading-link-source">howdns.works</span></div>
-      </a>
-      <a class="reading-link-card" href="https://netflixtechblog.com/netflix-open-connect-overview-d6d2bda0f1da" target="_blank" rel="noopener">
-        <span class="reading-link-icon"></span>
-        <div><span class="reading-link-title">Netflix Open Connect</span><span class="reading-link-source">netflixtechblog.com</span></div>
-      </a>
-      <a class="reading-link-card" href="https://www.cloudflare.com/learning/cdn/what-is-a-cdn/" target="_blank" rel="noopener">
-        <span class="reading-link-icon">🔍</span>
-        <div><span class="reading-link-title">Cloudflare: What is a CDN?</span><span class="reading-link-source">cloudflare.com</span></div>
-      </a>
-      <a class="reading-link-card" href="https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/routing-policy.html" target="_blank" rel="noopener">
-        <span class="reading-link-icon">📖</span>
-        <div><span class="reading-link-title">AWS Route 53 Routing Policies</span><span class="reading-link-source">docs.aws.amazon.com</span></div>
-      </a>
-      <a class="reading-link-card" href="https://www.fastly.com/blog/summary-of-june-8-outage" target="_blank" rel="noopener">
-        <span class="reading-link-icon"></span>
-        <div><span class="reading-link-title">Fastly Outage 2021 Postmortem</span><span class="reading-link-source">fastly.com</span></div>
-      </a>
-    </div>
-  </section>
+ <!-- ============ FURTHER READING ============ -->
+ <section class="section-block reveal">
+ <h2>Further Reading</h2>
+ <div class="reading-links">
+ <a class="reading-link-card" href="https://howdns.works" target="_blank" rel="noopener">
+ <span class="reading-link-icon"></span>
+ <div><span class="reading-link-title">How DNS Works (comic-style walkthrough)</span><span class="reading-link-source">howdns.works</span></div>
+ </a>
+ <a class="reading-link-card" href="https://netflixtechblog.com/netflix-open-connect-overview-d6d2bda0f1da" target="_blank" rel="noopener">
+ <span class="reading-link-icon"></span>
+ <div><span class="reading-link-title">Netflix Open Connect</span><span class="reading-link-source">netflixtechblog.com</span></div>
+ </a>
+ <a class="reading-link-card" href="https://www.cloudflare.com/learning/cdn/what-is-a-cdn/" target="_blank" rel="noopener">
+ <span class="reading-link-icon"></span>
+ <div><span class="reading-link-title">Cloudflare: What is a CDN?</span><span class="reading-link-source">cloudflare.com</span></div>
+ </a>
+ <a class="reading-link-card" href="https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/routing-policy.html" target="_blank" rel="noopener">
+ <span class="reading-link-icon"></span>
+ <div><span class="reading-link-title">AWS Route 53 Routing Policies</span><span class="reading-link-source">docs.aws.amazon.com</span></div>
+ </a>
+ <a class="reading-link-card" href="https://www.fastly.com/blog/summary-of-june-8-outage" target="_blank" rel="noopener">
+ <span class="reading-link-icon"></span>
+ <div><span class="reading-link-title">Fastly Outage 2021 Postmortem</span><span class="reading-link-source">fastly.com</span></div>
+ </a>
+ </div>
+ </section>
 
-  <nav class="bottom-nav">
-    <a href="03-consistency-availability.html"><span class="bn-dir">← Previous</span><span class="bn-title">Consistency &amp; Availability Patterns</span></a>
-    <a class="next" href="05-load-balancers.html"><span class="bn-dir">Next →</span><span class="bn-title">Load Balancers &amp; Reverse Proxies</span></a>
-  </nav>
+ <nav class="bottom-nav">
+ <a href="03-consistency-availability.html"><span class="bn-dir">← Previous</span><span class="bn-title">Consistency &amp; Availability Patterns</span></a>
+ <a class="next" href="05-load-balancers.html"><span class="bn-dir">Next →</span><span class="bn-title">Load Balancers &amp; Reverse Proxies</span></a>
+ </nav>
 </main>
 
 <footer class="footer">
-  <div class="footer-bottom"> System Design Illustrated · Topic 04 of 12 · Built with 💜 and vanilla web tech</div>
+ <div class="footer-bottom"> System Design Illustrated · Topic 04 of 12 · Built with vanilla web tech</div>
 </footer>
 
 <script src="../js/main.js"></script>

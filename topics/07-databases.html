@@ -13,446 +13,446 @@
 <div class="reading-progress"></div>
 
 <nav class="navbar">
-  <div class="nav-inner">
-    <a href="../index.html" class="logo"><span class="bolt"></span><span class="logo-text">System Design Illustrated</span></a>
-    <div class="nav-links">
-      <a href="../index.html#topics">Topics</a>
-      <a href="../index.html#about">About</a>
-      <a href="12-interview-guide.html">Interview Guide</a>
-      <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode"></button>
-    </div>
-  </div>
+ <div class="nav-inner">
+ <a href="../index.html" class="logo"><span class="logo-text">System Design Illustrated</span></a>
+ <div class="nav-links">
+ <a href="../index.html#topics">Topics</a>
+ <a href="../index.html#about">About</a>
+ <a href="12-interview-guide.html">Interview Guide</a>
+ <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode"></button>
+ </div>
+ </div>
 </nav>
 
 <header class="topic-header" style="--topic-color:#7C3AED">
-  <div class="topic-header-inner">
-    <div class="breadcrumb"><a href="../index.html">Home</a> / Topics / 07</div>
-    <div class="topic-num-big">TOPIC 07</div>
-    <h1>Databases Deep Dive </h1>
-    <p class="subtitle">The database is where most systems actually bottleneck — and where the richest design decisions live. Replication, federation, sharding, and the great SQL vs NoSQL question.</p>
-    <div class="topic-meta"><span class="tag"> Advanced</span><span class="tag"> 45 min read</span><span class="tag"> 14 concepts</span></div>
-  </div>
+ <div class="topic-header-inner">
+ <div class="breadcrumb"><a href="../index.html">Home</a> / Topics / 07</div>
+ <div class="topic-num-big">TOPIC 07</div>
+ <h1>Databases Deep Dive </h1>
+ <p class="subtitle">The database is where most systems actually bottleneck — and where the richest design decisions live. Replication, federation, sharding, and the great SQL vs NoSQL question.</p>
+ <div class="topic-meta"><span class="tag"> Advanced</span><span class="tag"> 45 min read</span><span class="tag"> 14 concepts</span></div>
+ </div>
 </header>
 
 <main class="topic-body">
 
-  <div class="at-a-glance">
-    <h3> At a Glance</h3>
-    <ul>
-      <li><strong>RDBMS</strong> = ACID guarantees, SQL joins, structured schema. Postgres is the right default choice.</li>
-      <li><strong>Replication:</strong> master writes, replicas read. Lag is the cost; read scalability is the gain.</li>
-      <li><strong>Sharding</strong> distributes rows across servers by a shard key. Consistent hashing minimizes resharding.</li>
-      <li><strong>Denormalization</strong> deliberately duplicates data to eliminate joins at read time.</li>
-      <li><strong>NoSQL:</strong> key-value (Redis), document (MongoDB), wide-column (Cassandra), graph (Neo4j).</li>
-      <li><strong>Start with SQL</strong> + read replicas + caching. Add NoSQL only when a specific workload demands it.</li>
-    </ul>
-  </div>
+ <div class="at-a-glance">
+ <h3> At a Glance</h3>
+ <ul>
+ <li><strong>RDBMS</strong> = ACID guarantees, SQL joins, structured schema. Postgres is the right default choice.</li>
+ <li><strong>Replication:</strong> master writes, replicas read. Lag is the cost; read scalability is the gain.</li>
+ <li><strong>Sharding</strong> distributes rows across servers by a shard key. Consistent hashing minimizes resharding.</li>
+ <li><strong>Denormalization</strong> deliberately duplicates data to eliminate joins at read time.</li>
+ <li><strong>NoSQL:</strong> key-value (Redis), document (MongoDB), wide-column (Cassandra), graph (Neo4j).</li>
+ <li><strong>Start with SQL</strong> + read replicas + caching. Add NoSQL only when a specific workload demands it.</li>
+ </ul>
+ </div>
 
-  <section class="section-block reveal">
-    <h2>Relational Databases &amp; ACID</h2>
-    <p>An <strong>RDBMS</strong> (PostgreSQL, MySQL, SQL Server…) organizes data into tables of rows and columns, related by keys and queried with SQL — including <strong>joins</strong> that combine tables on the fly. Their superpower is the <strong>transaction</strong>, guaranteed by ACID:</p>
-    <div class="cards-grid">
-      <div class="mini-card"><span class="mc-icon"></span><h4>Atomic</h4><p>All steps of a transaction happen, or none do. A money transfer never debits without crediting.</p></div>
-      <div class="mini-card"><span class="mc-icon"></span><h4>Consistent</h4><p>Every transaction moves the DB from one valid state to another — constraints, foreign keys, and invariants always hold.</p></div>
-      <div class="mini-card"><span class="mc-icon"></span><h4>Isolated</h4><p>Concurrent transactions behave as if they ran one at a time. No reading anyone's half-finished work.</p></div>
-      <div class="mini-card"><span class="mc-icon"></span><h4>Durable</h4><p>Once committed, it survives crashes — written to a log on disk before the "OK" is returned.</p></div>
-    </div>
-    <p><strong>Reach for an RDBMS when:</strong> data is structured and interrelated, you need complex queries and ad-hoc joins, or correctness is money — orders, payments, inventory, anything an accountant might audit.</p>
-  </section>
+ <section class="section-block reveal">
+ <h2>Relational Databases &amp; ACID</h2>
+ <p>An <strong>RDBMS</strong> (PostgreSQL, MySQL, SQL Server…) organizes data into tables of rows and columns, related by keys and queried with SQL — including <strong>joins</strong> that combine tables on the fly. Their superpower is the <strong>transaction</strong>, guaranteed by ACID:</p>
+ <div class="cards-grid">
+ <div class="mini-card"><span class="mc-icon"></span><h4>Atomic</h4><p>All steps of a transaction happen, or none do. A money transfer never debits without crediting.</p></div>
+ <div class="mini-card"><span class="mc-icon"></span><h4>Consistent</h4><p>Every transaction moves the DB from one valid state to another — constraints, foreign keys, and invariants always hold.</p></div>
+ <div class="mini-card"><span class="mc-icon"></span><h4>Isolated</h4><p>Concurrent transactions behave as if they ran one at a time. No reading anyone's half-finished work.</p></div>
+ <div class="mini-card"><span class="mc-icon"></span><h4>Durable</h4><p>Once committed, it survives crashes — written to a log on disk before the "OK" is returned.</p></div>
+ </div>
+ <p><strong>Reach for an RDBMS when:</strong> data is structured and interrelated, you need complex queries and ad-hoc joins, or correctness is money — orders, payments, inventory, anything an accountant might audit.</p>
+ </section>
 
-  <section class="section-block reveal">
-    <h2>Replication: Copies for Safety and Speed</h2>
-    <h3>Master-slave (primary-replica)</h3>
-    <p>The primary accepts all writes and streams its change log to read-only replicas. You scale reads by adding replicas, and a replica can be promoted if the primary dies (manually, or via automated election — which takes seconds to minutes).</p>
-    <p>The catch is <strong>replication lag</strong>: a user updates their avatar (write → primary), refreshes (read → replica), and sees the old avatar. Mitigations: read-your-own-writes routing (send a user's reads to the primary briefly after they write), or synchronous replication (safe but slow).</p>
+ <section class="section-block reveal">
+ <h2>Replication: Copies for Safety and Speed</h2>
+ <h3>Master-slave (primary-replica)</h3>
+ <p>The primary accepts all writes and streams its change log to read-only replicas. You scale reads by adding replicas, and a replica can be promoted if the primary dies (manually, or via automated election — which takes seconds to minutes).</p>
+ <p>The catch is <strong>replication lag</strong>: a user updates their avatar (write → primary), refreshes (read → replica), and sees the old avatar. Mitigations: read-your-own-writes routing (send a user's reads to the primary briefly after they write), or synchronous replication (safe but slow).</p>
 
-    <div class="diagram-box">
-      <svg viewBox="0 0 740 280" role="img" aria-label="Writes go to a master database which streams replication to two replicas; reads are served by the replicas">
-        <text x="100" y="60" text-anchor="middle" class="svg-label"> writes</text>
-        <line x1="100" y1="75" x2="100" y2="115" class="svg-line svg-dash" style="stroke:#7C3AED"/>
-        <!-- master -->
-        <rect x="30" y="120" width="140" height="70" rx="12" style="fill:#7C3AED"/>
-        <text x="100" y="150" text-anchor="middle" style="fill:#fff;font-family:Poppins;font-weight:700;font-size:14px">Primary</text>
-        <text x="100" y="172" text-anchor="middle" style="fill:#DDD3FA;font-size:11px;font-family:Inter">all writes</text>
-        <!-- replication streams -->
-        <line x1="175" y1="140" x2="420" y2="75" class="svg-line svg-dash" style="stroke:#A78BFA;stroke-width:2.5"/>
-        <line x1="175" y1="170" x2="420" y2="225" class="svg-line svg-dash" style="stroke:#A78BFA;stroke-width:2.5"/>
-        <circle cx="200" cy="133" r="6" class="pkt pkt-1" style="fill:#F59E0B"/>
-        <circle cx="200" cy="177" r="6" class="pkt pkt-1" style="fill:#F59E0B;animation-delay:1.2s"/>
-        <text x="300" y="105" class="svg-soft" transform="rotate(-15 300 105)">change log →</text>
-        <!-- replicas -->
-        <rect x="425" y="40" width="140" height="70" rx="12" class="svg-box-p"/>
-        <text x="495" y="70" text-anchor="middle" class="svg-label">Replica 1</text>
-        <text x="495" y="92" text-anchor="middle" class="svg-soft">reads only</text>
-        <rect x="425" y="190" width="140" height="70" rx="12" class="svg-box-p"/>
-        <text x="495" y="220" text-anchor="middle" class="svg-label">Replica 2</text>
-        <text x="495" y="242" text-anchor="middle" class="svg-soft">reads only</text>
-        <!-- readers -->
-        <line x1="570" y1="75" x2="660" y2="75" class="svg-line svg-dash" style="stroke:#10B981"/>
-        <line x1="570" y1="225" x2="660" y2="225" class="svg-line svg-dash" style="stroke:#10B981"/>
-        <text x="690" y="80" text-anchor="middle" class="svg-label"></text>
-        <text x="690" y="230" text-anchor="middle" class="svg-label"></text>
-      </svg>
-      <p class="diagram-caption">One writer, many readers: the change log flows continuously from primary to replicas.</p>
-    </div>
+ <div class="diagram-box">
+ <svg viewBox="0 0 740 280" role="img" aria-label="Writes go to a master database which streams replication to two replicas; reads are served by the replicas">
+ <text x="100" y="60" text-anchor="middle" class="svg-label"> writes</text>
+ <line x1="100" y1="75" x2="100" y2="115" class="svg-line svg-dash" style="stroke:#7C3AED"/>
+ <!-- master -->
+ <rect x="30" y="120" width="140" height="70" rx="12" style="fill:#7C3AED"/>
+ <text x="100" y="150" text-anchor="middle" style="fill:#fff;font-family:Poppins;font-weight:700;font-size:14px">Primary</text>
+ <text x="100" y="172" text-anchor="middle" style="fill:#DDD3FA;font-size:11px;font-family:Inter">all writes</text>
+ <!-- replication streams -->
+ <line x1="175" y1="140" x2="420" y2="75" class="svg-line svg-dash" style="stroke:#A78BFA;stroke-width:2.5"/>
+ <line x1="175" y1="170" x2="420" y2="225" class="svg-line svg-dash" style="stroke:#A78BFA;stroke-width:2.5"/>
+ <circle cx="200" cy="133" r="6" class="pkt pkt-1" style="fill:#F59E0B"/>
+ <circle cx="200" cy="177" r="6" class="pkt pkt-1" style="fill:#F59E0B;animation-delay:1.2s"/>
+ <text x="300" y="105" class="svg-soft" transform="rotate(-15 300 105)">change log →</text>
+ <!-- replicas -->
+ <rect x="425" y="40" width="140" height="70" rx="12" class="svg-box-p"/>
+ <text x="495" y="70" text-anchor="middle" class="svg-label">Replica 1</text>
+ <text x="495" y="92" text-anchor="middle" class="svg-soft">reads only</text>
+ <rect x="425" y="190" width="140" height="70" rx="12" class="svg-box-p"/>
+ <text x="495" y="220" text-anchor="middle" class="svg-label">Replica 2</text>
+ <text x="495" y="242" text-anchor="middle" class="svg-soft">reads only</text>
+ <!-- readers -->
+ <line x1="570" y1="75" x2="660" y2="75" class="svg-line svg-dash" style="stroke:#10B981"/>
+ <line x1="570" y1="225" x2="660" y2="225" class="svg-line svg-dash" style="stroke:#10B981"/>
+ <text x="690" y="80" text-anchor="middle" class="svg-label"></text>
+ <text x="690" y="230" text-anchor="middle" class="svg-label"></text>
+ </svg>
+ <p class="diagram-caption">One writer, many readers: the change log flows continuously from primary to replicas.</p>
+ </div>
 
-    <h3>Master-master</h3>
-    <p>Multiple primaries, each accepting writes and syncing with the others. No failover dance and writes survive a node loss — but concurrent writes to the same row on different masters <strong>conflict</strong>. You'll need last-writer-wins (lossy), conflict-free data types (CRDTs), or app-level merge logic. Loosely-coupled multi-region systems use this; most OLTP apps avoid it.</p>
-  </section>
+ <h3>Master-master</h3>
+ <p>Multiple primaries, each accepting writes and syncing with the others. No failover dance and writes survive a node loss — but concurrent writes to the same row on different masters <strong>conflict</strong>. You'll need last-writer-wins (lossy), conflict-free data types (CRDTs), or app-level merge logic. Loosely-coupled multi-region systems use this; most OLTP apps avoid it.</p>
+ </section>
 
-  <section class="section-block reveal">
-    <h2>Federation: Split by Function</h2>
-    <p><strong>Federation</strong> (functional partitioning) splits one monolithic database into several by <em>domain</em>: a users DB, an orders DB, a products DB. Each is smaller, with its own cache-friendly working set and independent write capacity.</p>
-    <p><em>Costs:</em> cross-database joins are gone — you join in application code or duplicate reference data. Transactions spanning two databases require distributed-transaction machinery (or, more realistically, the saga pattern from Topic 10). This split also maps neatly onto microservice boundaries.</p>
-  </section>
+ <section class="section-block reveal">
+ <h2>Federation: Split by Function</h2>
+ <p><strong>Federation</strong> (functional partitioning) splits one monolithic database into several by <em>domain</em>: a users DB, an orders DB, a products DB. Each is smaller, with its own cache-friendly working set and independent write capacity.</p>
+ <p><em>Costs:</em> cross-database joins are gone — you join in application code or duplicate reference data. Transactions spanning two databases require distributed-transaction machinery (or, more realistically, the saga pattern from Topic 10). This split also maps neatly onto microservice boundaries.</p>
+ </section>
 
-  <section class="section-block reveal">
-    <h2>Sharding: Split by Rows</h2>
-    <p>When even a single-purpose table outgrows one machine, <strong>sharding</strong> distributes its <em>rows</em> across servers by a <strong>shard key</strong>:</p>
-    <ul>
-      <li><strong>Hash-based:</strong> <code>shard = hash(user_id) % N</code>. Even distribution, but range queries scatter across all shards, and changing N is painful.</li>
-      <li><strong>Range-based:</strong> users A–H on shard 1, I–P on shard 2… Great for range scans; risky for hotspots (everyone signing up today lands on the "newest IDs" shard).</li>
-      <li><strong>Directory-based:</strong> a lookup service maps each key to its shard. Maximum flexibility (move tenants individually), plus one more critical service to keep alive.</li>
-    </ul>
-    <h3>The pain points</h3>
-    <ul class="key-points">
-      <li><strong>Hotspots:</strong> a bad key concentrates traffic. The <em>celebrity problem</em>: Rihanna's row gets a million times the reads of yours — shard-by-user puts her whole load on one box.</li>
-      <li><strong>Resharding:</strong> with naive <code>hash % N</code>, going from 4 to 5 shards remaps ~80% of all keys. Migration nightmare.</li>
-      <li><strong>Cross-shard operations:</strong> joins, transactions, and unique constraints across shards all require application gymnastics.</li>
-    </ul>
-    <h3>Consistent hashing</h3>
-    <p>The standard fix for resharding: place shards and keys on a conceptual ring; each key belongs to the next shard clockwise. Adding a shard moves only ~1/N of keys instead of nearly all of them. Virtual nodes (each server appears many times on the ring) smooth the distribution. This is the heart of DynamoDB and Cassandra — and of how CDNs and distributed caches assign keys.</p>
-  </section>
+ <section class="section-block reveal">
+ <h2>Sharding: Split by Rows</h2>
+ <p>When even a single-purpose table outgrows one machine, <strong>sharding</strong> distributes its <em>rows</em> across servers by a <strong>shard key</strong>:</p>
+ <ul>
+ <li><strong>Hash-based:</strong> <code>shard = hash(user_id) % N</code>. Even distribution, but range queries scatter across all shards, and changing N is painful.</li>
+ <li><strong>Range-based:</strong> users A–H on shard 1, I–P on shard 2… Great for range scans; risky for hotspots (everyone signing up today lands on the "newest IDs" shard).</li>
+ <li><strong>Directory-based:</strong> a lookup service maps each key to its shard. Maximum flexibility (move tenants individually), plus one more critical service to keep alive.</li>
+ </ul>
+ <h3>The pain points</h3>
+ <ul class="key-points">
+ <li><strong>Hotspots:</strong> a bad key concentrates traffic. The <em>celebrity problem</em>: Rihanna's row gets a million times the reads of yours — shard-by-user puts her whole load on one box.</li>
+ <li><strong>Resharding:</strong> with naive <code>hash % N</code>, going from 4 to 5 shards remaps ~80% of all keys. Migration nightmare.</li>
+ <li><strong>Cross-shard operations:</strong> joins, transactions, and unique constraints across shards all require application gymnastics.</li>
+ </ul>
+ <h3>Consistent hashing</h3>
+ <p>The standard fix for resharding: place shards and keys on a conceptual ring; each key belongs to the next shard clockwise. Adding a shard moves only ~1/N of keys instead of nearly all of them. Virtual nodes (each server appears many times on the ring) smooth the distribution. This is the heart of DynamoDB and Cassandra — and of how CDNs and distributed caches assign keys.</p>
+ </section>
 
-  <section class="section-block reveal">
-    <h2>Denormalization: Buy Reads with Writes</h2>
-    <p>Normalization removes duplicate data; <strong>denormalization</strong> deliberately adds it back to kill expensive joins. Store <code>author_name</code> directly on each post, keep a precomputed <code>follower_count</code>, maintain a separate read-optimized table per view.</p>
-    <p>Reads become single-row lookups. The price: every write must now update multiple copies, and copies can drift out of sync. Once data is federated or sharded (joins across servers ≈ misery), denormalization stops being optional and becomes the norm.</p>
+ <section class="section-block reveal">
+ <h2>Denormalization: Buy Reads with Writes</h2>
+ <p>Normalization removes duplicate data; <strong>denormalization</strong> deliberately adds it back to kill expensive joins. Store <code>author_name</code> directly on each post, keep a precomputed <code>follower_count</code>, maintain a separate read-optimized table per view.</p>
+ <p>Reads become single-row lookups. The price: every write must now update multiple copies, and copies can drift out of sync. Once data is federated or sharded (joins across servers ≈ misery), denormalization stops being optional and becomes the norm.</p>
 
-    <div class="callout tip">
-      <span class="co-icon"></span>
-      <div><strong>SQL tuning before scaling</strong>
-      <p>Before sharding anything, do the cheap stuff: add <strong>indexes</strong> matching your query patterns (and covering indexes so queries never touch the table), run <code>EXPLAIN</code> on slow queries, kill <strong>N+1 query</strong> loops (fetch 100 posts, then 100 author queries — use one join or batch fetch), avoid <code>SELECT *</code>, and batch your inserts. A week of tuning routinely buys a year of growth.</p></div>
-    </div>
-  </section>
+ <div class="callout tip">
+ <span class="co-icon">&#9733;</span>
+ <div><strong>SQL tuning before scaling</strong>
+ <p>Before sharding anything, do the cheap stuff: add <strong>indexes</strong> matching your query patterns (and covering indexes so queries never touch the table), run <code>EXPLAIN</code> on slow queries, kill <strong>N+1 query</strong> loops (fetch 100 posts, then 100 author queries — use one join or batch fetch), avoid <code>SELECT *</code>, and batch your inserts. A week of tuning routinely buys a year of growth.</p></div>
+ </div>
+ </section>
 
-  <section class="section-block reveal">
-    <h2>NoSQL: The Four Families</h2>
-    <p>"NoSQL" is a marketing umbrella for databases that trade relational guarantees for scale, flexibility, or specialized shapes. Four families matter:</p>
-    <div class="cards-grid">
-      <div class="mini-card"><span class="mc-icon"></span><h4>Key-Value</h4><p><strong>Redis, DynamoDB, Riak.</strong> A giant hash map: get/put by key, O(1), no schema. Perfect for sessions, carts, feature flags, caching. Useless for "find all users where…".</p></div>
-      <div class="mini-card"><span class="mc-icon"></span><h4>Document</h4><p><strong>MongoDB, CouchDB, Firestore.</strong> Values are structured JSON-ish documents you can query into. Flexible per-document schema. Great for user profiles, product catalogs, CMS content.</p></div>
-      <div class="mini-card"><span class="mc-icon"></span><h4>Wide-Column</h4><p><strong>Cassandra, HBase, Bigtable.</strong> Rows with millions of sparse columns, partitioned and sorted for sequential scans. Built for massive write volumes: time-series, IoT telemetry, message history, analytics.</p></div>
-      <div class="mini-card"><span class="mc-icon"></span><h4>Graph</h4><p><strong>Neo4j, Amazon Neptune.</strong> Nodes and edges as first-class citizens; traversals ("friends of friends who like jazz") that would be brutal multi-joins in SQL run naturally. Social graphs, fraud rings, recommendations.</p></div>
-    </div>
+ <section class="section-block reveal">
+ <h2>NoSQL: The Four Families</h2>
+ <p>"NoSQL" is a marketing umbrella for databases that trade relational guarantees for scale, flexibility, or specialized shapes. Four families matter:</p>
+ <div class="cards-grid">
+ <div class="mini-card"><span class="mc-icon"></span><h4>Key-Value</h4><p><strong>Redis, DynamoDB, Riak.</strong> A giant hash map: get/put by key, O(1), no schema. Perfect for sessions, carts, feature flags, caching. Useless for "find all users where…".</p></div>
+ <div class="mini-card"><span class="mc-icon"></span><h4>Document</h4><p><strong>MongoDB, CouchDB, Firestore.</strong> Values are structured JSON-ish documents you can query into. Flexible per-document schema. Great for user profiles, product catalogs, CMS content.</p></div>
+ <div class="mini-card"><span class="mc-icon"></span><h4>Wide-Column</h4><p><strong>Cassandra, HBase, Bigtable.</strong> Rows with millions of sparse columns, partitioned and sorted for sequential scans. Built for massive write volumes: time-series, IoT telemetry, message history, analytics.</p></div>
+ <div class="mini-card"><span class="mc-icon"></span><h4>Graph</h4><p><strong>Neo4j, Amazon Neptune.</strong> Nodes and edges as first-class citizens; traversals ("friends of friends who like jazz") that would be brutal multi-joins in SQL run naturally. Social graphs, fraud rings, recommendations.</p></div>
+ </div>
 
-    <h3>BASE: NoSQL's looser promise</h3>
-    <p>Where ACID promises correctness, BASE promises resilience: <strong>B</strong>asically <strong>A</strong>vailable (the system answers, even during failures), <strong>S</strong>oft state (data may be in flux as replicas sync), <strong>E</strong>ventually consistent (replicas converge, given time). It's the AP corner of CAP wearing a database costume.</p>
-  </section>
+ <h3>BASE: NoSQL's looser promise</h3>
+ <p>Where ACID promises correctness, BASE promises resilience: <strong>B</strong>asically <strong>A</strong>vailable (the system answers, even during failures), <strong>S</strong>oft state (data may be in flux as replicas sync), <strong>E</strong>ventually consistent (replicas converge, given time). It's the AP corner of CAP wearing a database costume.</p>
+ </section>
 
-  <section class="section-block reveal">
-    <h2>SQL vs NoSQL: The Decision Guide</h2>
-    <div class="table-wrap">
-      <table class="compare-table">
-        <thead><tr><th>Question</th><th>Leans SQL</th><th>Leans NoSQL</th></tr></thead>
-        <tbody>
-          <tr><td>Data shape</td><td>Structured, interrelated tables</td><td>Flexible / nested / evolving schema</td></tr>
-          <tr><td>Queries</td><td>Ad-hoc, joins, aggregations</td><td>Known access patterns by key</td></tr>
-          <tr><td>Correctness needs</td><td>Multi-row transactions (money!)</td><td>Per-item atomicity is enough</td></tr>
-          <tr><td>Scale</td><td>Up to a few TB / one big node + replicas</td><td>Horizontal from day one, petabytes</td></tr>
-          <tr><td>Write volume</td><td>Moderate</td><td>Extreme (time-series, events, logs)</td></tr>
-          <tr><td>Examples</td><td>PostgreSQL, MySQL</td><td>DynamoDB, Cassandra, MongoDB, Neo4j</td></tr>
-        </tbody>
-      </table>
-    </div>
+ <section class="section-block reveal">
+ <h2>SQL vs NoSQL: The Decision Guide</h2>
+ <div class="table-wrap">
+ <table class="compare-table">
+ <thead><tr><th>Question</th><th>Leans SQL</th><th>Leans NoSQL</th></tr></thead>
+ <tbody>
+ <tr><td>Data shape</td><td>Structured, interrelated tables</td><td>Flexible / nested / evolving schema</td></tr>
+ <tr><td>Queries</td><td>Ad-hoc, joins, aggregations</td><td>Known access patterns by key</td></tr>
+ <tr><td>Correctness needs</td><td>Multi-row transactions (money!)</td><td>Per-item atomicity is enough</td></tr>
+ <tr><td>Scale</td><td>Up to a few TB / one big node + replicas</td><td>Horizontal from day one, petabytes</td></tr>
+ <tr><td>Write volume</td><td>Moderate</td><td>Extreme (time-series, events, logs)</td></tr>
+ <tr><td>Examples</td><td>PostgreSQL, MySQL</td><td>DynamoDB, Cassandra, MongoDB, Neo4j</td></tr>
+ </tbody>
+ </table>
+ </div>
 
-    <div class="callout info">
-      <span class="co-icon"></span>
-      <div><strong>Real-world receipts</strong>
-      <p>Stripe and most banks live on PostgreSQL/MySQL — ledgers demand ACID. Discord moved trillions of messages from MongoDB to Cassandra, then to ScyllaDB — wide-column for write-heavy history. Netflix pairs Cassandra (viewing data) with caches; Amazon's retail cart is the original DynamoDB story. Notice the theme: <em>polyglot persistence</em> — one company, many databases, each chosen per workload.</p></div>
-    </div>
+ <div class="callout info">
+ <span class="co-icon">&#9733;</span>
+ <div><strong>Real-world receipts</strong>
+ <p>Stripe and most banks live on PostgreSQL/MySQL — ledgers demand ACID. Discord moved trillions of messages from MongoDB to Cassandra, then to ScyllaDB — wide-column for write-heavy history. Netflix pairs Cassandra (viewing data) with caches; Amazon's retail cart is the original DynamoDB story. Notice the theme: <em>polyglot persistence</em> — one company, many databases, each chosen per workload.</p></div>
+ </div>
 
-    <div class="callout archie">
-      <span class="co-icon"></span>
-      <div><strong>Archie says</strong>
-      <p>The safest interview default: "Start with PostgreSQL plus read replicas and caching. Shard or add a specialized NoSQL store only when a specific workload demands it." Boring databases are a feature, not a cop-out — just show you know where the cliff edges are.</p></div>
-    </div>
-  </section>
+ <div class="callout archie">
+ <span class="co-icon">&#9733;</span>
+ <div><strong>Archie says</strong>
+ <p>The safest interview default: "Start with PostgreSQL plus read replicas and caching. Shard or add a specialized NoSQL store only when a specific workload demands it." Boring databases are a feature, not a cop-out — just show you know where the cliff edges are.</p></div>
+ </div>
+ </section>
 
-  <section class="section-block reveal">
-    <h2>Transaction Isolation Levels — The Full Picture</h2>
-    <p>ACID's "I" hides a dial, not a switch. Without proper isolation, four anomalies can occur:</p>
-    <div class="cards-grid">
-      <div class="mini-card"><span class="mc-icon">🩸</span><h4>Dirty Read</h4><p>A transaction reads <em>uncommitted</em> data from another concurrent transaction — data that may be rolled back and never have existed.</p></div>
-      <div class="mini-card"><span class="mc-icon">🔁</span><h4>Non-Repeatable Read</h4><p>Read the same row twice in one transaction, get different values — another transaction committed in between.</p></div>
-      <div class="mini-card"><span class="mc-icon">👻</span><h4>Phantom Read</h4><p>Re-execute a range query and get <em>more rows</em> — another transaction inserted rows between your reads.</p></div>
-      <div class="mini-card"><span class="mc-icon">🕳️</span><h4>Lost Update</h4><p>Two transactions read-modify-write the same row; one silently overwrites the other's change.</p></div>
-    </div>
-    <h3>The four levels, strictest to most permissive</h3>
-    <div class="table-wrap">
-      <table class="compare-table">
-        <thead><tr><th>Level</th><th>What it guarantees</th><th>Notes</th></tr></thead>
-        <tbody>
-          <tr><td><strong>SERIALIZABLE</strong></td><td>Transactions behave as if run sequentially. Prevents all anomalies.</td><td>Slowest — locks or aborts conflicting transactions.</td></tr>
-          <tr><td><strong>REPEATABLE READ</strong></td><td>Same reads within a transaction always return the same data. Prevents dirty + non-repeatable reads.</td><td>Phantoms still possible. MySQL InnoDB default.</td></tr>
-          <tr><td><strong>READ COMMITTED</strong></td><td>Can only read committed data. Prevents dirty reads.</td><td>Non-repeatable reads possible. Postgres default.</td></tr>
-          <tr><td><strong>READ UNCOMMITTED</strong></td><td>Can read uncommitted ("dirty") data.</td><td>All anomalies possible. Fastest, rarely used.</td></tr>
-        </tbody>
-      </table>
-    </div>
-    <h3>Why READ COMMITTED still bites: the bank transfer</h3>
-    <pre class="code-block" data-lang="sql"><code><span class="c-c">-- Two concurrent withdrawals, READ COMMITTED (Postgres default)</span>
+ <section class="section-block reveal">
+ <h2>Transaction Isolation Levels — The Full Picture</h2>
+ <p>ACID's "I" hides a dial, not a switch. Without proper isolation, four anomalies can occur:</p>
+ <div class="cards-grid">
+ <div class="mini-card"><span class="mc-icon">🩸</span><h4>Dirty Read</h4><p>A transaction reads <em>uncommitted</em> data from another concurrent transaction — data that may be rolled back and never have existed.</p></div>
+ <div class="mini-card"><span class="mc-icon"></span><h4>Non-Repeatable Read</h4><p>Read the same row twice in one transaction, get different values — another transaction committed in between.</p></div>
+ <div class="mini-card"><span class="mc-icon"></span><h4>Phantom Read</h4><p>Re-execute a range query and get <em>more rows</em> — another transaction inserted rows between your reads.</p></div>
+ <div class="mini-card"><span class="mc-icon"></span><h4>Lost Update</h4><p>Two transactions read-modify-write the same row; one silently overwrites the other's change.</p></div>
+ </div>
+ <h3>The four levels, strictest to most permissive</h3>
+ <div class="table-wrap">
+ <table class="compare-table">
+ <thead><tr><th>Level</th><th>What it guarantees</th><th>Notes</th></tr></thead>
+ <tbody>
+ <tr><td><strong>SERIALIZABLE</strong></td><td>Transactions behave as if run sequentially. Prevents all anomalies.</td><td>Slowest — locks or aborts conflicting transactions.</td></tr>
+ <tr><td><strong>REPEATABLE READ</strong></td><td>Same reads within a transaction always return the same data. Prevents dirty + non-repeatable reads.</td><td>Phantoms still possible. MySQL InnoDB default.</td></tr>
+ <tr><td><strong>READ COMMITTED</strong></td><td>Can only read committed data. Prevents dirty reads.</td><td>Non-repeatable reads possible. Postgres default.</td></tr>
+ <tr><td><strong>READ UNCOMMITTED</strong></td><td>Can read uncommitted ("dirty") data.</td><td>All anomalies possible. Fastest, rarely used.</td></tr>
+ </tbody>
+ </table>
+ </div>
+ <h3>Why READ COMMITTED still bites: the bank transfer</h3>
+ <pre class="code-block" data-lang="sql"><code><span class="c-c">-- Two concurrent withdrawals, READ COMMITTED (Postgres default)</span>
 <span class="c-k">BEGIN</span>;
-<span class="c-k">SELECT</span> balance <span class="c-k">FROM</span> accounts <span class="c-k">WHERE</span> id = <span class="c-n">1</span>;   <span class="c-c">-- both transactions read 100</span>
+<span class="c-k">SELECT</span> balance <span class="c-k">FROM</span> accounts <span class="c-k">WHERE</span> id = <span class="c-n">1</span>; <span class="c-c">-- both transactions read 100</span>
 <span class="c-c">-- both check 100 - 80 &gt;= 0 in app code … both proceed!</span>
 <span class="c-k">UPDATE</span> accounts <span class="c-k">SET</span> balance = balance - <span class="c-n">80</span> <span class="c-k">WHERE</span> id = <span class="c-n">1</span>;
-<span class="c-k">COMMIT</span>;  <span class="c-c">-- account ends at -60: a classic lost-update / double-spend</span>
+<span class="c-k">COMMIT</span>; <span class="c-c">-- account ends at -60: a classic lost-update / double-spend</span>
 
 <span class="c-c">-- Fix: lock the row at read time</span>
 <span class="c-k">BEGIN</span>;
-<span class="c-k">SELECT</span> balance <span class="c-k">FROM</span> accounts <span class="c-k">WHERE</span> id = <span class="c-n">1</span> <span class="c-k">FOR UPDATE</span>;  <span class="c-c">-- 2nd tx blocks here</span>
+<span class="c-k">SELECT</span> balance <span class="c-k">FROM</span> accounts <span class="c-k">WHERE</span> id = <span class="c-n">1</span> <span class="c-k">FOR UPDATE</span>; <span class="c-c">-- 2nd tx blocks here</span>
 <span class="c-k">UPDATE</span> accounts <span class="c-k">SET</span> balance = balance - <span class="c-n">80</span> <span class="c-k">WHERE</span> id = <span class="c-n">1</span>;
 <span class="c-k">COMMIT</span>;</code></pre>
-  </section>
+ </section>
 
-  <section class="section-block reveal">
-    <h2>Indexes — How They Really Work</h2>
-    <div class="cards-grid">
-      <div class="mini-card"><span class="mc-icon"></span><h4>B-Tree index</h4><p>A balanced tree sorted by key. Perfect for <code>=</code>, <code>&lt;</code>, <code>&gt;</code>, <code>BETWEEN</code>, <code>ORDER BY</code>, and range queries. The default almost everywhere.</p></div>
-      <div class="mini-card"><span class="mc-icon">#️⃣</span><h4>Hash index</h4><p>Only exact equality (<code>=</code>). Faster than a B-Tree for single lookups, but no range queries at all.</p></div>
-      <div class="mini-card"><span class="mc-icon"></span><h4>Composite index</h4><p><code>CREATE INDEX ON orders(user_id, created_at)</code>. Leftmost prefix rule: works for <code>(user_id)</code> and <code>(user_id, created_at)</code>, but NOT for <code>(created_at)</code> alone.</p></div>
-      <div class="mini-card"><span class="mc-icon">🛡️</span><h4>Covering index</h4><p>The index includes every column the query needs — the query never touches the table (index-only scan). Extremely fast.</p></div>
-      <div class="mini-card"><span class="mc-icon">✂️</span><h4>Partial index</h4><p>Index only rows matching a condition: <code>CREATE INDEX ON orders(user_id) WHERE status = 'pending'</code>. Smaller and faster for filtered queries.</p></div>
-      <div class="mini-card"><span class="mc-icon">🔬</span><h4>EXPLAIN ANALYZE</h4><p>Always run it on slow queries. Look for: <code>Seq Scan</code> (full table scan — may need an index), nested loop vs hash join, and row-count estimates that are wildly off.</p></div>
-    </div>
-    <h3>The N+1 problem</h3>
-    <pre class="code-block" data-lang="sql"><code><span class="c-c">-- Bad: 1 query for posts + N queries for authors (N+1)</span>
+ <section class="section-block reveal">
+ <h2>Indexes — How They Really Work</h2>
+ <div class="cards-grid">
+ <div class="mini-card"><span class="mc-icon"></span><h4>B-Tree index</h4><p>A balanced tree sorted by key. Perfect for <code>=</code>, <code>&lt;</code>, <code>&gt;</code>, <code>BETWEEN</code>, <code>ORDER BY</code>, and range queries. The default almost everywhere.</p></div>
+ <div class="mini-card"><span class="mc-icon">#⃣</span><h4>Hash index</h4><p>Only exact equality (<code>=</code>). Faster than a B-Tree for single lookups, but no range queries at all.</p></div>
+ <div class="mini-card"><span class="mc-icon"></span><h4>Composite index</h4><p><code>CREATE INDEX ON orders(user_id, created_at)</code>. Leftmost prefix rule: works for <code>(user_id)</code> and <code>(user_id, created_at)</code>, but NOT for <code>(created_at)</code> alone.</p></div>
+ <div class="mini-card"><span class="mc-icon"></span><h4>Covering index</h4><p>The index includes every column the query needs — the query never touches the table (index-only scan). Extremely fast.</p></div>
+ <div class="mini-card"><span class="mc-icon"></span><h4>Partial index</h4><p>Index only rows matching a condition: <code>CREATE INDEX ON orders(user_id) WHERE status = 'pending'</code>. Smaller and faster for filtered queries.</p></div>
+ <div class="mini-card"><span class="mc-icon"></span><h4>EXPLAIN ANALYZE</h4><p>Always run it on slow queries. Look for: <code>Seq Scan</code> (full table scan — may need an index), nested loop vs hash join, and row-count estimates that are wildly off.</p></div>
+ </div>
+ <h3>The N+1 problem</h3>
+ <pre class="code-block" data-lang="sql"><code><span class="c-c">-- Bad: 1 query for posts + N queries for authors (N+1)</span>
 <span class="c-k">SELECT</span> * <span class="c-k">FROM</span> posts;
 <span class="c-c">-- for each post:</span>
-<span class="c-k">SELECT</span> * <span class="c-k">FROM</span> users <span class="c-k">WHERE</span> id = ?;  <span class="c-c">-- N times</span>
+<span class="c-k">SELECT</span> * <span class="c-k">FROM</span> users <span class="c-k">WHERE</span> id = ?; <span class="c-c">-- N times</span>
 
 <span class="c-c">-- Good: 1 JOIN</span>
 <span class="c-k">SELECT</span> posts.*, users.name <span class="c-k">FROM</span> posts
 <span class="c-k">JOIN</span> users <span class="c-k">ON</span> posts.user_id = users.id;</code></pre>
-  </section>
+ </section>
 
-  <section class="section-block reveal">
-    <h2>Sharding Strategies Deep Dive</h2>
-    <p>The earlier section introduced the three families; here's the full trade-off analysis, plus the consistent hashing mechanics.</p>
-    <h3>Hash-based sharding</h3>
-    <p><code>shard = hash(user_id) % N</code></p>
-    <ul class="key-points">
-      <li><strong>Pro:</strong> even distribution for random IDs.</li>
-      <li><strong>Con:</strong> range queries hit all shards; resharding remaps ~(N−1)/N of all keys.</li>
-      <li><strong>Con:</strong> the "celebrity problem" — Rihanna's user row lives on shard 2, but data for her 100M followers' interactions piles onto shard 2 too → hot shard.</li>
-    </ul>
-    <h3>Range-based sharding</h3>
-    <p>user_id 1–1M → shard 1, 1M–2M → shard 2, …</p>
-    <ul class="key-points">
-      <li><strong>Pro:</strong> range queries hit exactly one shard.</li>
-      <li><strong>Con:</strong> new users all land on the last shard — monotonic IDs create a hotspot.</li>
-      <li><strong>Fix:</strong> use UUIDs or ULIDs (time-sortable UUIDs) to spread inserts.</li>
-    </ul>
-    <h3>Directory-based sharding</h3>
-    <p>A lookup table maps each key → its shard.</p>
-    <ul class="key-points">
-      <li><strong>Pro:</strong> move any key to any shard individually. Ideal for multi-tenant SaaS — move the whale customer to a dedicated shard.</li>
-      <li><strong>Con:</strong> an extra hop to the lookup table; the lookup table itself is a SPOF unless replicated.</li>
-    </ul>
-    <h3>Consistent hashing, illustrated</h3>
-    <div class="diagram-box">
-      <svg viewBox="0 0 740 300" role="img" aria-label="Consistent hashing ring with four servers; a new server takes only the keys between itself and its predecessor">
-        <circle cx="270" cy="150" r="110" fill="none" style="stroke:#C4B5FD;stroke-width:3"/>
-        <g class="bob"><rect x="230" y="8" width="80" height="34" rx="9" class="svg-box-p"/><text x="270" y="30" text-anchor="middle" class="svg-label">S1</text></g>
-        <g class="bob" style="animation-delay:.3s"><rect x="370" y="133" width="80" height="34" rx="9" class="svg-box-p"/><text x="410" y="155" text-anchor="middle" class="svg-label">S2</text></g>
-        <g class="bob" style="animation-delay:.6s"><rect x="230" y="258" width="80" height="34" rx="9" class="svg-box-p"/><text x="270" y="280" text-anchor="middle" class="svg-label">S3</text></g>
-        <g class="bob" style="animation-delay:.9s"><rect x="90" y="133" width="80" height="34" rx="9" class="svg-box-p"/><text x="130" y="155" text-anchor="middle" class="svg-label">S4</text></g>
-        <g><rect x="330" y="50" width="90" height="34" rx="9" style="fill:#EDE9FE;stroke:#7C3AED;stroke-width:2;stroke-dasharray:5 4"/><text x="375" y="72" text-anchor="middle" class="svg-label">S5 new</text></g>
-        <circle cx="352" cy="103" r="6" class="pkt pkt-1" style="fill:#7C3AED"/>
-        <circle cx="330" cy="75" r="5" style="fill:#F59E0B"/>
-        <circle cx="312" cy="58" r="5" style="fill:#F59E0B"/>
-        <text x="560" y="80" class="svg-label" style="fill:#7C3AED">← only keys between S1 and S5</text>
-        <text x="560" y="100" class="svg-soft">migrate (~1/N of total)</text>
-        <text x="560" y="150" class="svg-soft">0 … 2³² hash space wraps</text>
-        <text x="560" y="170" class="svg-soft">around the ring; each key goes</text>
-        <text x="560" y="190" class="svg-soft">to the next server clockwise</text>
-      </svg>
-      <p class="diagram-caption">Keys and servers live on a hash ring (0 to 2³²). Adding S5 migrates only the keys between S5 and its predecessor — ~1/N of the total.</p>
-    </div>
-    <ul class="key-points">
-      <li><strong>Rule:</strong> each key belongs to the next server clockwise on the ring.</li>
-      <li><strong>Adding a server:</strong> only keys between the new server and its predecessor migrate (~1/N of total keys).</li>
-      <li><strong>Virtual nodes:</strong> each physical server takes K virtual positions on the ring (K=150 is typical) for a much smoother distribution.</li>
-      <li><strong>Used by:</strong> DynamoDB, Cassandra, Riak, and the Chord DHT.</li>
-    </ul>
-  </section>
+ <section class="section-block reveal">
+ <h2>Sharding Strategies Deep Dive</h2>
+ <p>The earlier section introduced the three families; here's the full trade-off analysis, plus the consistent hashing mechanics.</p>
+ <h3>Hash-based sharding</h3>
+ <p><code>shard = hash(user_id) % N</code></p>
+ <ul class="key-points">
+ <li><strong>Pro:</strong> even distribution for random IDs.</li>
+ <li><strong>Con:</strong> range queries hit all shards; resharding remaps ~(N−1)/N of all keys.</li>
+ <li><strong>Con:</strong> the "celebrity problem" — Rihanna's user row lives on shard 2, but data for her 100M followers' interactions piles onto shard 2 too → hot shard.</li>
+ </ul>
+ <h3>Range-based sharding</h3>
+ <p>user_id 1–1M → shard 1, 1M–2M → shard 2, …</p>
+ <ul class="key-points">
+ <li><strong>Pro:</strong> range queries hit exactly one shard.</li>
+ <li><strong>Con:</strong> new users all land on the last shard — monotonic IDs create a hotspot.</li>
+ <li><strong>Fix:</strong> use UUIDs or ULIDs (time-sortable UUIDs) to spread inserts.</li>
+ </ul>
+ <h3>Directory-based sharding</h3>
+ <p>A lookup table maps each key → its shard.</p>
+ <ul class="key-points">
+ <li><strong>Pro:</strong> move any key to any shard individually. Ideal for multi-tenant SaaS — move the whale customer to a dedicated shard.</li>
+ <li><strong>Con:</strong> an extra hop to the lookup table; the lookup table itself is a SPOF unless replicated.</li>
+ </ul>
+ <h3>Consistent hashing, illustrated</h3>
+ <div class="diagram-box">
+ <svg viewBox="0 0 740 300" role="img" aria-label="Consistent hashing ring with four servers; a new server takes only the keys between itself and its predecessor">
+ <circle cx="270" cy="150" r="110" fill="none" style="stroke:#C4B5FD;stroke-width:3"/>
+ <g class="bob"><rect x="230" y="8" width="80" height="34" rx="9" class="svg-box-p"/><text x="270" y="30" text-anchor="middle" class="svg-label">S1</text></g>
+ <g class="bob" style="animation-delay:.3s"><rect x="370" y="133" width="80" height="34" rx="9" class="svg-box-p"/><text x="410" y="155" text-anchor="middle" class="svg-label">S2</text></g>
+ <g class="bob" style="animation-delay:.6s"><rect x="230" y="258" width="80" height="34" rx="9" class="svg-box-p"/><text x="270" y="280" text-anchor="middle" class="svg-label">S3</text></g>
+ <g class="bob" style="animation-delay:.9s"><rect x="90" y="133" width="80" height="34" rx="9" class="svg-box-p"/><text x="130" y="155" text-anchor="middle" class="svg-label">S4</text></g>
+ <g><rect x="330" y="50" width="90" height="34" rx="9" style="fill:#EDE9FE;stroke:#7C3AED;stroke-width:2;stroke-dasharray:5 4"/><text x="375" y="72" text-anchor="middle" class="svg-label">S5 new</text></g>
+ <circle cx="352" cy="103" r="6" class="pkt pkt-1" style="fill:#7C3AED"/>
+ <circle cx="330" cy="75" r="5" style="fill:#F59E0B"/>
+ <circle cx="312" cy="58" r="5" style="fill:#F59E0B"/>
+ <text x="560" y="80" class="svg-label" style="fill:#7C3AED">← only keys between S1 and S5</text>
+ <text x="560" y="100" class="svg-soft">migrate (~1/N of total)</text>
+ <text x="560" y="150" class="svg-soft">0 … 2³² hash space wraps</text>
+ <text x="560" y="170" class="svg-soft">around the ring; each key goes</text>
+ <text x="560" y="190" class="svg-soft">to the next server clockwise</text>
+ </svg>
+ <p class="diagram-caption">Keys and servers live on a hash ring (0 to 2³²). Adding S5 migrates only the keys between S5 and its predecessor — ~1/N of the total.</p>
+ </div>
+ <ul class="key-points">
+ <li><strong>Rule:</strong> each key belongs to the next server clockwise on the ring.</li>
+ <li><strong>Adding a server:</strong> only keys between the new server and its predecessor migrate (~1/N of total keys).</li>
+ <li><strong>Virtual nodes:</strong> each physical server takes K virtual positions on the ring (K=150 is typical) for a much smoother distribution.</li>
+ <li><strong>Used by:</strong> DynamoDB, Cassandra, Riak, and the Chord DHT.</li>
+ </ul>
+ </section>
 
-  <section class="section-block reveal">
-    <h2>Instagram's Postgres Sharding Journey</h2>
-    <div class="company-badges">
-      <span class="company-badge">📸 Instagram</span>
-    </div>
-    <div class="steps">
-      <div class="step-item"><div class="step-num">1</div><div><strong>2012: one Postgres server</strong><p>Instagram launched on a single Postgres instance. Three months later: 30M users. Time for horizontal sharding.</p></div></div>
-      <div class="step-item"><div class="step-num">2</div><div><strong>Shard by user_id</strong><p>All of a user's data lives on the same shard → user timeline queries hit exactly one shard.</p></div></div>
-      <div class="step-item"><div class="step-num">3</div><div><strong>Shard-aware schema</strong><p>All tables are prefixed with shard_id; lookups use (shard_id, local_id) instead of a global_id.</p></div></div>
-      <div class="step-item"><div class="step-num">4</div><div><strong>Self-describing IDs</strong><p>Custom 64-bit IDs encoding (shard_id, 13 bits) + (timestamp, 41 bits) + (sequence, 10 bits). IDs are globally unique AND encode the shard directly — no lookup table needed.</p></div></div>
-    </div>
-    <div class="callout tip">
-      <span class="co-icon"></span>
-      <div><strong>The lesson</strong>
-      <p>Design your ID scheme <em>before</em> you need to shard. Retrofitting sharding onto auto-increment IDs is painful.</p></div>
-    </div>
-  </section>
+ <section class="section-block reveal">
+ <h2>Instagram's Postgres Sharding Journey</h2>
+ <div class="company-badges">
+ <span class="company-badge">Instagram</span>
+ </div>
+ <div class="steps">
+ <div class="step-item"><div class="step-num">1</div><div><strong>2012: one Postgres server</strong><p>Instagram launched on a single Postgres instance. Three months later: 30M users. Time for horizontal sharding.</p></div></div>
+ <div class="step-item"><div class="step-num">2</div><div><strong>Shard by user_id</strong><p>All of a user's data lives on the same shard → user timeline queries hit exactly one shard.</p></div></div>
+ <div class="step-item"><div class="step-num">3</div><div><strong>Shard-aware schema</strong><p>All tables are prefixed with shard_id; lookups use (shard_id, local_id) instead of a global_id.</p></div></div>
+ <div class="step-item"><div class="step-num">4</div><div><strong>Self-describing IDs</strong><p>Custom 64-bit IDs encoding (shard_id, 13 bits) + (timestamp, 41 bits) + (sequence, 10 bits). IDs are globally unique AND encode the shard directly — no lookup table needed.</p></div></div>
+ </div>
+ <div class="callout tip">
+ <span class="co-icon">&#9733;</span>
+ <div><strong>The lesson</strong>
+ <p>Design your ID scheme <em>before</em> you need to shard. Retrofitting sharding onto auto-increment IDs is painful.</p></div>
+ </div>
+ </section>
 
-  <section class="section-block reveal">
-    <h2>NewSQL — Distributed ACID</h2>
-    <p>NoSQL gave up ACID for scale. NewSQL asks: can we have both?</p>
-    <div class="cards-grid">
-      <div class="mini-card"><span class="mc-icon">🪳</span><h4>CockroachDB</h4><p>Distributed, Postgres-compatible. Automatic sharding, Raft consensus per range, serializable isolation. Follows Google Spanner's model.</p></div>
-      <div class="mini-card"><span class="mc-icon">🐬</span><h4>TiDB</h4><p>Distributed, MySQL-compatible. Separate storage (TiKV) and compute (TiDB) layers. Used by Shopee and Square.</p></div>
-      <div class="mini-card"><span class="mc-icon">🌐</span><h4>Google Spanner</h4><p>Multi-region ACID with TrueTime (GPS + atomic clocks bound clock uncertainty). Runs Google Ads, banking workloads, Gmail contacts.</p></div>
-    </div>
-    <div class="callout warn">
-      <span class="co-icon"></span>
-      <div><strong>The trade-off</strong>
-      <p>NewSQL adds roughly 2–5ms of latency per write (consensus overhead) versus ~0.5ms on local Postgres. Worth it for global multi-region systems that genuinely need ACID — overkill for a single-region app.</p></div>
-    </div>
-  </section>
+ <section class="section-block reveal">
+ <h2>NewSQL — Distributed ACID</h2>
+ <p>NoSQL gave up ACID for scale. NewSQL asks: can we have both?</p>
+ <div class="cards-grid">
+ <div class="mini-card"><span class="mc-icon">🪳</span><h4>CockroachDB</h4><p>Distributed, Postgres-compatible. Automatic sharding, Raft consensus per range, serializable isolation. Follows Google Spanner's model.</p></div>
+ <div class="mini-card"><span class="mc-icon"></span><h4>TiDB</h4><p>Distributed, MySQL-compatible. Separate storage (TiKV) and compute (TiDB) layers. Used by Shopee and Square.</p></div>
+ <div class="mini-card"><span class="mc-icon"></span><h4>Google Spanner</h4><p>Multi-region ACID with TrueTime (GPS + atomic clocks bound clock uncertainty). Runs Google Ads, banking workloads, Gmail contacts.</p></div>
+ </div>
+ <div class="callout warn">
+ <span class="co-icon">&#9733;</span>
+ <div><strong>The trade-off</strong>
+ <p>NewSQL adds roughly 2–5ms of latency per write (consensus overhead) versus ~0.5ms on local Postgres. Worth it for global multi-region systems that genuinely need ACID — overkill for a single-region app.</p></div>
+ </div>
+ </section>
 
-  <section class="section-block reveal">
-    <h2>Database Connection Pooling</h2>
-    <p>The problem: opening a DB connection takes ~10–20ms (TCP + auth + SSL). 1,000 concurrent web requests × 20ms = 20 seconds of pure connection overhead. Worse, PostgreSQL only handles ~100–300 concurrent connections before performance degrades — each connection is a whole OS process.</p>
-    <p>A <strong>connection pool</strong> maintains N open connections, hands them to request handlers, and takes them back when done.</p>
-    <h3>PgBouncer's three modes</h3>
-    <div class="table-wrap">
-      <table class="compare-table">
-        <thead><tr><th>Mode</th><th>Connection returned to pool…</th><th>Notes</th></tr></thead>
-        <tbody>
-          <tr><td>Session pooling</td><td>When the client session ends</td><td>One real connection per client session — similar to no pooler.</td></tr>
-          <tr><td>Transaction pooling</td><td>After each TRANSACTION</td><td>Best for stateless apps; the sweet spot for most web backends.</td></tr>
-          <tr><td>Statement pooling</td><td>After each STATEMENT</td><td>No multi-statement transactions allowed. Fastest.</td></tr>
-        </tbody>
-      </table>
-    </div>
-    <ul class="key-points">
-      <li><strong>PgBouncer</strong> sits between app and DB: 10,000 app connections → 20 real DB connections.</li>
-      <li><strong>HikariCP</strong> (Java): in-process pool, near-zero overhead, the fastest JVM option.</li>
-      <li><strong>Sizing rule of thumb:</strong> pool_size = (2 × num_cores) + num_disks. An 8-core machine → a pool of ~18 connections.</li>
-    </ul>
-  </section>
+ <section class="section-block reveal">
+ <h2>Database Connection Pooling</h2>
+ <p>The problem: opening a DB connection takes ~10–20ms (TCP + auth + SSL). 1,000 concurrent web requests × 20ms = 20 seconds of pure connection overhead. Worse, PostgreSQL only handles ~100–300 concurrent connections before performance degrades — each connection is a whole OS process.</p>
+ <p>A <strong>connection pool</strong> maintains N open connections, hands them to request handlers, and takes them back when done.</p>
+ <h3>PgBouncer's three modes</h3>
+ <div class="table-wrap">
+ <table class="compare-table">
+ <thead><tr><th>Mode</th><th>Connection returned to pool…</th><th>Notes</th></tr></thead>
+ <tbody>
+ <tr><td>Session pooling</td><td>When the client session ends</td><td>One real connection per client session — similar to no pooler.</td></tr>
+ <tr><td>Transaction pooling</td><td>After each TRANSACTION</td><td>Best for stateless apps; the sweet spot for most web backends.</td></tr>
+ <tr><td>Statement pooling</td><td>After each STATEMENT</td><td>No multi-statement transactions allowed. Fastest.</td></tr>
+ </tbody>
+ </table>
+ </div>
+ <ul class="key-points">
+ <li><strong>PgBouncer</strong> sits between app and DB: 10,000 app connections → 20 real DB connections.</li>
+ <li><strong>HikariCP</strong> (Java): in-process pool, near-zero overhead, the fastest JVM option.</li>
+ <li><strong>Sizing rule of thumb:</strong> pool_size = (2 × num_cores) + num_disks. An 8-core machine → a pool of ~18 connections.</li>
+ </ul>
+ </section>
 
-  <section class="section-block reveal">
-    <h2>Full-Text Search with Elasticsearch</h2>
-    <p>An RDBMS <code>LIKE '%foo%'</code> is a full table scan — O(N), terrible for search. <strong>Elasticsearch</strong> flips the data structure: an <strong>inverted index</strong> stores, for each word, the list of documents containing it. Lookup is O(log V), where V is the vocabulary size.</p>
-    <ul class="key-points">
-      <li><strong>Analyzers</strong> tokenize and normalize text: "Running" → "run" (stemming), "the" → removed (stop word), synonyms ("car" matches "automobile").</li>
-      <li><strong>Search features:</strong> relevance scoring (BM25), fuzzy matching (Levenshtein distance), geo-distance queries, aggregations, autocomplete (edge n-grams).</li>
-      <li><strong>Architecture:</strong> index → shards → segments. Near-real-time: new documents become searchable in ~1 second (configurable).</li>
-      <li><strong>When to use:</strong> full-text search — e-commerce, logs, docs. Don't use it as a primary DB (no ACID). Pair it with Postgres: write to Postgres → async sync to Elasticsearch.</li>
-    </ul>
-  </section>
+ <section class="section-block reveal">
+ <h2>Full-Text Search with Elasticsearch</h2>
+ <p>An RDBMS <code>LIKE '%foo%'</code> is a full table scan — O(N), terrible for search. <strong>Elasticsearch</strong> flips the data structure: an <strong>inverted index</strong> stores, for each word, the list of documents containing it. Lookup is O(log V), where V is the vocabulary size.</p>
+ <ul class="key-points">
+ <li><strong>Analyzers</strong> tokenize and normalize text: "Running" → "run" (stemming), "the" → removed (stop word), synonyms ("car" matches "automobile").</li>
+ <li><strong>Search features:</strong> relevance scoring (BM25), fuzzy matching (Levenshtein distance), geo-distance queries, aggregations, autocomplete (edge n-grams).</li>
+ <li><strong>Architecture:</strong> index → shards → segments. Near-real-time: new documents become searchable in ~1 second (configurable).</li>
+ <li><strong>When to use:</strong> full-text search — e-commerce, logs, docs. Don't use it as a primary DB (no ACID). Pair it with Postgres: write to Postgres → async sync to Elasticsearch.</li>
+ </ul>
+ </section>
 
-  <section class="section-block reveal">
-    <h2>Interview Q&amp;A</h2>
-    <p>Three database questions interviewers actually ask — click to reveal strong answers.</p>
-    <div class="qa-list">
-      <div class="qa-item">
-        <button class="qa-question">You have a users table with 500M rows. Queries are slow. What do you do?</button>
-        <div class="qa-answer">
-          <p>Step 1: <code>EXPLAIN ANALYZE</code> the slow query. Full table scan? Add an index on the WHERE clause column. Index scan but still slow? Check index selectivity — low-cardinality columns (status='active' where 80% are active) make bad indexes. Step 2: Cover your query — add all SELECT columns to the index (covering index). Step 3: Check for N+1 — are you making individual queries in a loop? Step 4: Add a read replica and route reads there. Step 5: Partition the table by range (by date, by user_id range). Step 6: Do you actually need all 500M rows live, or can you archive old data? Most "database scaling" problems are actually index and query design problems.</p>
-        </div>
-      </div>
-      <div class="qa-item">
-        <button class="qa-question">When would you denormalize a table?</button>
-        <div class="qa-answer">
-          <p>Denormalize when: (1) A join is on the hot path (thousands of queries per second) and it's consistently between the same tables. (2) The data is write-once or infrequently updated (profile name, product title). (3) You're sharding — cross-shard joins are not viable. (4) You're building a read replica specifically for analytics with different query patterns. Don't denormalize if the data changes frequently (you'll have sync bugs) or if the join is rare (premature optimization). Always check first: is this join actually slow? Does an index or covering index solve it?</p>
-        </div>
-      </div>
-      <div class="qa-item">
-        <button class="qa-question">Cassandra vs PostgreSQL for an IoT time-series workload with 5M writes/second?</button>
-        <div class="qa-answer">
-          <p>Cassandra wins clearly. (1) Cassandra is built for write-heavy workloads — writes hit a sequential commit log + an in-memory memtable, both extremely fast; Postgres writes go through WAL + buffer pool with far more overhead. (2) Cassandra auto-shards across nodes; getting 5M writes/sec from Postgres requires a complex manual sharding setup. (3) The time-series access pattern fits wide-column perfectly: partition by device_id, cluster by timestamp → "all readings for device X between t1 and t2" is a single-partition range scan. (4) Cassandra TTL automatically deletes old readings after N days, built in.</p>
-        </div>
-      </div>
-    </div>
-  </section>
+ <section class="section-block reveal">
+ <h2>Interview Q&amp;A</h2>
+ <p>Three database questions interviewers actually ask — click to reveal strong answers.</p>
+ <div class="qa-list">
+ <div class="qa-item">
+ <button class="qa-question">You have a users table with 500M rows. Queries are slow. What do you do?</button>
+ <div class="qa-answer">
+ <p>Step 1: <code>EXPLAIN ANALYZE</code> the slow query. Full table scan? Add an index on the WHERE clause column. Index scan but still slow? Check index selectivity — low-cardinality columns (status='active' where 80% are active) make bad indexes. Step 2: Cover your query — add all SELECT columns to the index (covering index). Step 3: Check for N+1 — are you making individual queries in a loop? Step 4: Add a read replica and route reads there. Step 5: Partition the table by range (by date, by user_id range). Step 6: Do you actually need all 500M rows live, or can you archive old data? Most "database scaling" problems are actually index and query design problems.</p>
+ </div>
+ </div>
+ <div class="qa-item">
+ <button class="qa-question">When would you denormalize a table?</button>
+ <div class="qa-answer">
+ <p>Denormalize when: (1) A join is on the hot path (thousands of queries per second) and it's consistently between the same tables. (2) The data is write-once or infrequently updated (profile name, product title). (3) You're sharding — cross-shard joins are not viable. (4) You're building a read replica specifically for analytics with different query patterns. Don't denormalize if the data changes frequently (you'll have sync bugs) or if the join is rare (premature optimization). Always check first: is this join actually slow? Does an index or covering index solve it?</p>
+ </div>
+ </div>
+ <div class="qa-item">
+ <button class="qa-question">Cassandra vs PostgreSQL for an IoT time-series workload with 5M writes/second?</button>
+ <div class="qa-answer">
+ <p>Cassandra wins clearly. (1) Cassandra is built for write-heavy workloads — writes hit a sequential commit log + an in-memory memtable, both extremely fast; Postgres writes go through WAL + buffer pool with far more overhead. (2) Cassandra auto-shards across nodes; getting 5M writes/sec from Postgres requires a complex manual sharding setup. (3) The time-series access pattern fits wide-column perfectly: partition by device_id, cluster by timestamp → "all readings for device X between t1 and t2" is a single-partition range scan. (4) Cassandra TTL automatically deletes old readings after N days, built in.</p>
+ </div>
+ </div>
+ </div>
+ </section>
 
-  <section class="section-block reveal">
-    <h2>Anti-Patterns to Avoid</h2>
-    <div class="antipatterns">
-      <div class="antipattern-item">
-        <span class="antipattern-icon">🚫</span>
-        <div class="antipattern-text">
-          <h4>OFFSET-based pagination at scale</h4>
-          <p><code>LIMIT 10 OFFSET 10000</code> scans 10,010 rows to return 10. Page 1000 of results: 10M rows scanned. Use cursor-based pagination instead: <code>WHERE id &gt; :last_id LIMIT 10</code>.</p>
-        </div>
-      </div>
-      <div class="antipattern-item">
-        <span class="antipattern-icon">🚫</span>
-        <div class="antipattern-text">
-          <h4>SELECT * in production</h4>
-          <p>Retrieves every column, including large BLOB/TEXT fields you don't need. Wastes I/O and network bandwidth. Always specify columns.</p>
-        </div>
-      </div>
-      <div class="antipattern-item">
-        <span class="antipattern-icon">🚫</span>
-        <div class="antipattern-text">
-          <h4>Storing JSON blobs in SQL without indexing</h4>
-          <p>You lose all SQL benefits — no queries, no constraints. Either use a proper document store, or use Postgres JSONB with GIN indexes for queryable JSON.</p>
-        </div>
-      </div>
-    </div>
-  </section>
+ <section class="section-block reveal">
+ <h2>Anti-Patterns to Avoid</h2>
+ <div class="antipatterns">
+ <div class="antipattern-item">
+ <span class="antipattern-icon"></span>
+ <div class="antipattern-text">
+ <h4>OFFSET-based pagination at scale</h4>
+ <p><code>LIMIT 10 OFFSET 10000</code> scans 10,010 rows to return 10. Page 1000 of results: 10M rows scanned. Use cursor-based pagination instead: <code>WHERE id &gt; :last_id LIMIT 10</code>.</p>
+ </div>
+ </div>
+ <div class="antipattern-item">
+ <span class="antipattern-icon"></span>
+ <div class="antipattern-text">
+ <h4>SELECT * in production</h4>
+ <p>Retrieves every column, including large BLOB/TEXT fields you don't need. Wastes I/O and network bandwidth. Always specify columns.</p>
+ </div>
+ </div>
+ <div class="antipattern-item">
+ <span class="antipattern-icon"></span>
+ <div class="antipattern-text">
+ <h4>Storing JSON blobs in SQL without indexing</h4>
+ <p>You lose all SQL benefits — no queries, no constraints. Either use a proper document store, or use Postgres JSONB with GIN indexes for queryable JSON.</p>
+ </div>
+ </div>
+ </div>
+ </section>
 
-  <section class="section-block reveal">
-    <h2>Further Reading</h2>
-    <div class="reading-links">
-      <a class="reading-link-card" href="https://use-the-index-luke.com" target="_blank" rel="noopener">
-        <span class="reading-link-icon">📖</span>
-        <div><span class="reading-link-title">Use The Index, Luke — SQL Indexing Guide</span><span class="reading-link-source">use-the-index-luke.com</span></div>
-      </a>
-      <a class="reading-link-card" href="https://discord.com/blog/how-discord-stores-billions-of-messages" target="_blank" rel="noopener">
-        <span class="reading-link-icon"></span>
-        <div><span class="reading-link-title">Discord: How We Store Billions of Messages</span><span class="reading-link-source">discord.com</span></div>
-      </a>
-      <a class="reading-link-card" href="https://instagram-engineering.com/sharding-ids-at-instagram-1cf5a71e5a5c" target="_blank" rel="noopener">
-        <span class="reading-link-icon">📘</span>
-        <div><span class="reading-link-title">Instagram: Sharding &amp; IDs at Instagram</span><span class="reading-link-source">instagram-engineering.com</span></div>
-      </a>
-      <a class="reading-link-card" href="https://dataintensive.net" target="_blank" rel="noopener">
-        <span class="reading-link-icon"></span>
-        <div><span class="reading-link-title">Designing Data-Intensive Applications (DDIA)</span><span class="reading-link-source">dataintensive.net</span></div>
-      </a>
-      <a class="reading-link-card" href="https://explain.dalibo.com" target="_blank" rel="noopener">
-        <span class="reading-link-icon"></span>
-        <div><span class="reading-link-title">Postgres EXPLAIN Analyzer</span><span class="reading-link-source">explain.dalibo.com</span></div>
-      </a>
-    </div>
-  </section>
+ <section class="section-block reveal">
+ <h2>Further Reading</h2>
+ <div class="reading-links">
+ <a class="reading-link-card" href="https://use-the-index-luke.com" target="_blank" rel="noopener">
+ <span class="reading-link-icon"></span>
+ <div><span class="reading-link-title">Use The Index, Luke — SQL Indexing Guide</span><span class="reading-link-source">use-the-index-luke.com</span></div>
+ </a>
+ <a class="reading-link-card" href="https://discord.com/blog/how-discord-stores-billions-of-messages" target="_blank" rel="noopener">
+ <span class="reading-link-icon"></span>
+ <div><span class="reading-link-title">Discord: How We Store Billions of Messages</span><span class="reading-link-source">discord.com</span></div>
+ </a>
+ <a class="reading-link-card" href="https://instagram-engineering.com/sharding-ids-at-instagram-1cf5a71e5a5c" target="_blank" rel="noopener">
+ <span class="reading-link-icon"></span>
+ <div><span class="reading-link-title">Instagram: Sharding &amp; IDs at Instagram</span><span class="reading-link-source">instagram-engineering.com</span></div>
+ </a>
+ <a class="reading-link-card" href="https://dataintensive.net" target="_blank" rel="noopener">
+ <span class="reading-link-icon"></span>
+ <div><span class="reading-link-title">Designing Data-Intensive Applications (DDIA)</span><span class="reading-link-source">dataintensive.net</span></div>
+ </a>
+ <a class="reading-link-card" href="https://explain.dalibo.com" target="_blank" rel="noopener">
+ <span class="reading-link-icon"></span>
+ <div><span class="reading-link-title">Postgres EXPLAIN Analyzer</span><span class="reading-link-source">explain.dalibo.com</span></div>
+ </a>
+ </div>
+ </section>
 
-  <section class="section-block reveal">
-    <div class="quiz">
-      <h3>🧠 Quick Check</h3>
-      <p class="quiz-q">You're storing sensor readings: 2 million writes per minute, queried only as "give me device X's readings between t1 and t2." Best fit?</p>
-      <div class="quiz-options">
-        <button class="quiz-option">A normalized PostgreSQL schema with joins</button>
-        <button class="quiz-option">A graph database — sensors are connected, right?</button>
-        <button class="quiz-option" data-correct="true">A wide-column store like Cassandra, partitioned by device, sorted by time</button>
-        <button class="quiz-option">A single Redis instance</button>
-      </div>
-      <div class="quiz-feedback"> Exactly. Massive sequential writes + known access pattern (partition key = device, clustering key = timestamp) is the textbook wide-column workload. This is why IoT and metrics systems live on Cassandra/Bigtable-style stores.</div>
-    </div>
-  </section>
+ <section class="section-block reveal">
+ <div class="quiz">
+ <h3>Quick Check</h3>
+ <p class="quiz-q">You're storing sensor readings: 2 million writes per minute, queried only as "give me device X's readings between t1 and t2." Best fit?</p>
+ <div class="quiz-options">
+ <button class="quiz-option">A normalized PostgreSQL schema with joins</button>
+ <button class="quiz-option">A graph database — sensors are connected, right?</button>
+ <button class="quiz-option" data-correct="true">A wide-column store like Cassandra, partitioned by device, sorted by time</button>
+ <button class="quiz-option">A single Redis instance</button>
+ </div>
+ <div class="quiz-feedback"> Exactly. Massive sequential writes + known access pattern (partition key = device, clustering key = timestamp) is the textbook wide-column workload. This is why IoT and metrics systems live on Cassandra/Bigtable-style stores.</div>
+ </div>
+ </section>
 
-  <nav class="bottom-nav">
-    <a href="06-caching.html"><span class="bn-dir">← Previous</span><span class="bn-title">Caching Strategies</span></a>
-    <a class="next" href="08-async-messaging.html"><span class="bn-dir">Next →</span><span class="bn-title">Async Processing &amp; Messaging</span></a>
-  </nav>
+ <nav class="bottom-nav">
+ <a href="06-caching.html"><span class="bn-dir">← Previous</span><span class="bn-title">Caching Strategies</span></a>
+ <a class="next" href="08-async-messaging.html"><span class="bn-dir">Next →</span><span class="bn-title">Async Processing &amp; Messaging</span></a>
+ </nav>
 </main>
 
 <footer class="footer">
-  <div class="footer-bottom"> System Design Illustrated · Topic 07 of 12 · Built with 💜 and vanilla web tech</div>
+ <div class="footer-bottom"> System Design Illustrated · Topic 07 of 12 · Built with vanilla web tech</div>
 </footer>
 
 <script src="../js/main.js"></script>
