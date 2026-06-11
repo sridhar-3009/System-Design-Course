@@ -314,9 +314,8 @@
 })();
 
 /* ============================================================
-   Hero canvas — labeled distributed system architecture
-   Client → CDN → Load Balancer → App Servers → Cache + DB
-   Click anywhere to trigger animated requests
+   Hero — Three.js 3D distributed system architecture
+   Right-panel canvas. Click to trigger request animations.
    ============================================================ */
 (function () {
   'use strict';
@@ -325,299 +324,308 @@
     var canvas = document.getElementById('system3d');
     if (!canvas) return;
     var hero = canvas.closest('.hero') || document.body;
-    var ctx  = canvas.getContext('2d');
-    if (!ctx) return;
 
-    var W = 0, H = 0, dpr = 1;
-    var mouse = { x: 0.5, y: 0.5 };
-    var raf;
-    var reqCount = 0;
-    var packets  = [];
-    /* Active node flash: idx -> alpha 0..1 */
-    var flashes  = {};
-    var t0       = performance.now();
-
-    /* ---- Layout helpers ---- */
-    var NW = 96, NH = 38; /* node box size */
-
-    function N(id, label, sub, color, xf, yf) {
-      return { id: id, label: label, sub: sub, color: color, xf: xf, yf: yf };
+    /* ── Require Three.js ─────────────────────────────────── */
+    if (!window.THREE) {
+      /* Three.js not loaded yet — wait and retry */
+      setTimeout(initHeroCanvas, 200);
+      return;
     }
+    var T = window.THREE;
 
-    /* Node definitions (fractional positions) */
+    /* ── Scene ─────────────────────────────────────────────── */
+    var scene = new T.Scene();
+    scene.background = new T.Color(0x05030e);
+    scene.fog = new T.FogExp2(0x05030e, 0.038);
+
+    /* ── Camera ────────────────────────────────────────────── */
+    var camera = new T.PerspectiveCamera(52, 1, 0.1, 100);
+    camera.position.set(0, 0.5, 13);
+    camera.lookAt(0, 0, 0);
+
+    /* ── Renderer ──────────────────────────────────────────── */
+    var renderer = new T.WebGLRenderer({ canvas: canvas, antialias: true, alpha: false });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.toneMapping = T.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.15;
+
+    /* ── Lighting ──────────────────────────────────────────── */
+    scene.add(new T.AmbientLight(0x7C3AED, 0.5));
+    var sun = new T.DirectionalLight(0xffffff, 0.7);
+    sun.position.set(4, 8, 6);
+    scene.add(sun);
+
+    /* ── Grid floor ────────────────────────────────────────── */
+    var grid = new T.GridHelper(22, 22, 0x3b1d8c, 0x1b1638);
+    grid.position.y = -6;
+    grid.material.opacity = 0.4;
+    grid.material.transparent = true;
+    scene.add(grid);
+
+    /* ── Architecture definition ───────────────────────────── */
     var ARCH = [
-      N('client', 'CLIENT',       'Browser',    '#06B6D4', 0.5,  0.08),
-      N('cdn',    'CDN',          'CloudFront', '#8B5CF6', 0.5,  0.22),
-      N('lb',     'LOAD BALANCER','nginx',      '#7C3AED', 0.5,  0.37),
-      N('app1',   'APP-1',        'Node.js',    '#A78BFA', 0.25, 0.54),
-      N('app2',   'APP-2',        'Node.js',    '#A78BFA', 0.5,  0.54),
-      N('app3',   'APP-3',        'Node.js',    '#A78BFA', 0.75, 0.54),
-      N('cache',  'REDIS',        'L1 Cache',   '#F59E0B', 0.31, 0.74),
-      N('db',     'POSTGRESQL',   'Primary DB', '#10B981', 0.69, 0.74)
+      { id:'client', label:'CLIENT',        sub:'Browser / App',   color:'#06B6D4', hex:0x06B6D4, pos:[  0,  5.2, 0]   },
+      { id:'cdn',    label:'CDN',            sub:'CloudFront',      color:'#8B5CF6', hex:0x8B5CF6, pos:[  0,  3.2,-0.3] },
+      { id:'lb',     label:'LOAD BALANCER', sub:'nginx / HAProxy', color:'#7C3AED', hex:0x7C3AED, pos:[  0,  1.0, 0]   },
+      { id:'app1',   label:'APP-1',          sub:'Node.js',         color:'#A78BFA', hex:0xA78BFA, pos:[-3.0,-1.2, 0.5] },
+      { id:'app2',   label:'APP-2',          sub:'Node.js',         color:'#A78BFA', hex:0xA78BFA, pos:[  0, -1.2,-0.3] },
+      { id:'app3',   label:'APP-3',          sub:'Node.js',         color:'#A78BFA', hex:0xA78BFA, pos:[ 3.0,-1.2, 0.5] },
+      { id:'cache',  label:'REDIS',          sub:'L1 Cache',        color:'#F59E0B', hex:0xF59E0B, pos:[-2.2,-3.5, 0]   },
+      { id:'db',     label:'POSTGRESQL',     sub:'Primary DB',      color:'#10B981', hex:0x10B981, pos:[ 2.2,-3.5, 0]   }
     ];
-
-    /* Directed edges: [from-id, to-id] */
     var EDGES = [
-      ['client','cdn'],
-      ['cdn','lb'],
+      ['client','cdn'],['cdn','lb'],
       ['lb','app1'],['lb','app2'],['lb','app3'],
-      ['app1','cache'],['app2','cache'],
-      ['app2','db'],  ['app3','db'],
-      ['cache','db']
+      ['app1','cache'],['app2','cache'],['app2','db'],['app3','db']
     ];
 
-    var nodes = {}; /* id → {x,y,w,h,...} */
+    var nodeMap  = {};
+    var edgeCurves = [];
+    var packets  = [];
+    var reqCount = 0;
+    var mouse    = { x:0, y:0 };
+    var camAngle = 0;
 
-    function lerp(a, b, t) { return a + (b-a)*t; }
-    function ease(t) { return t<0.5 ? 2*t*t : -1+(4-2*t)*t; }
-
-    function rrect(x, y, w, h, r) {
-      ctx.beginPath();
-      ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y);
-      ctx.arcTo(x+w,y,x+w,y+r,r); ctx.lineTo(x+w,y+h-r);
-      ctx.arcTo(x+w,y+h,x+w-r,y+h,r); ctx.lineTo(x+r,y+h);
-      ctx.arcTo(x,y+h,x,y+h-r,r); ctx.lineTo(x,y+r);
-      ctx.arcTo(x,y,x+r,y,r); ctx.closePath();
+    /* ── Helpers ───────────────────────────────────────────── */
+    function hexColorStr(h) { /* '#RRGGBB' → 'r,g,b' */
+      return parseInt(h.slice(1,3),16)+','+parseInt(h.slice(3,5),16)+','+parseInt(h.slice(5,7),16);
     }
 
-    function buildLayout() {
-      ARCH.forEach(function (d) {
-        nodes[d.id] = {
-          x: d.xf * W - NW/2,
-          y: d.yf * H - NH/2,
-          w: NW, h: NH,
-          cx: d.xf * W, cy: d.yf * H,
-          label: d.label, sub: d.sub, color: d.color, id: d.id
-        };
+    /* Canvas-texture label for each node */
+    function makeLabel(label, sub, color) {
+      var c = document.createElement('canvas');
+      c.width = 288; c.height = 96;
+      var cx = c.getContext('2d');
+      /* background */
+      cx.fillStyle = 'rgba(13,10,30,0.95)';
+      cx.beginPath();
+      if (cx.roundRect) cx.roundRect(0,0,288,96,10); else cx.rect(0,0,288,96);
+      cx.fill();
+      /* top bar */
+      cx.fillStyle = color;
+      cx.fillRect(0,0,288,4);
+      /* border */
+      cx.strokeStyle = color;
+      cx.lineWidth = 1.5;
+      cx.globalAlpha = 0.9;
+      cx.beginPath();
+      if (cx.roundRect) cx.roundRect(1,1,286,94,9); else cx.rect(1,1,286,94);
+      cx.stroke();
+      cx.globalAlpha = 1;
+      /* label */
+      cx.fillStyle = '#EDE9FE';
+      cx.font = 'bold 18px monospace';
+      cx.textAlign = 'center'; cx.textBaseline = 'middle';
+      cx.fillText(label, 144, 42);
+      /* sub */
+      cx.fillStyle = 'rgba(148,144,180,0.85)';
+      cx.font = '13px monospace';
+      cx.fillText(sub, 144, 68);
+      return new T.CanvasTexture(c);
+    }
+
+    /* Glow sprite around node */
+    function makeGlow(color, size) {
+      var c = document.createElement('canvas');
+      c.width = c.height = 128;
+      var cx = c.getContext('2d');
+      var rgb = hexColorStr(color);
+      var g = cx.createRadialGradient(64,64,0,64,64,64);
+      g.addColorStop(0,   'rgba('+rgb+',0.65)');
+      g.addColorStop(0.35,'rgba('+rgb+',0.22)');
+      g.addColorStop(1,   'rgba('+rgb+',0)');
+      cx.fillStyle = g; cx.fillRect(0,0,128,128);
+      var mat = new T.SpriteMaterial({
+        map: new T.CanvasTexture(c),
+        transparent: true, blending: T.AdditiveBlending, depthWrite: false
       });
+      var sp = new T.Sprite(mat);
+      sp.scale.set(size, size, 1);
+      return sp;
     }
 
-    function drawNode(n, flashA) {
-      var x=n.x, y=n.y, w=n.w, h=n.h;
-
-      /* Glow halo */
-      var ga = 0.15 + flashA * 0.6;
-      var grd = ctx.createRadialGradient(n.cx, n.cy, 0, n.cx, n.cy, w * 0.8);
-      grd.addColorStop(0, n.color + Math.round(ga*255).toString(16).padStart(2,'0'));
-      grd.addColorStop(1, n.color + '00');
-      ctx.fillStyle = grd;
-      ctx.beginPath();
-      ctx.ellipse(n.cx, n.cy, w*0.9, h*1.4, 0, 0, Math.PI*2);
-      ctx.fill();
-
-      /* Box */
-      rrect(x, y, w, h, 6);
-      ctx.fillStyle = flashA > 0.1
-        ? 'rgba(19,15,38,' + (0.85 + flashA*0.1) + ')'
-        : 'rgba(19,15,38,0.88)';
-      ctx.fill();
-      ctx.strokeStyle = flashA > 0.3 ? '#fff' : n.color;
-      ctx.lineWidth   = flashA > 0.3 ? 1.8 : 1.2;
-      ctx.stroke();
-
-      /* Top color bar */
-      rrect(x, y, w, 3, 1);
-      ctx.fillStyle = n.color; ctx.fill();
-
-      /* Label */
-      ctx.fillStyle = flashA > 0.4 ? '#fff' : 'rgba(237,233,254,0.9)';
-      ctx.font = 'bold 10px "JetBrains Mono",monospace';
-      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText(n.label, n.cx, n.cy - 5);
-
-      /* Sub-label */
-      ctx.fillStyle = 'rgba(148,144,180,0.7)';
-      ctx.font = '8px "JetBrains Mono",monospace';
-      ctx.fillText(n.sub, n.cx, n.cy + 8);
+    /* Packet mesh (sphere + glow child) */
+    function makePacket(hexColor) {
+      var mesh = new T.Mesh(
+        new T.SphereGeometry(0.14, 10, 10),
+        new T.MeshBasicMaterial({ color: hexColor })
+      );
+      var glow = makeGlow('#'+hexColor.toString(16).padStart(6,'0'), 1.2);
+      mesh.add(glow);
+      return mesh;
     }
 
-    function drawEdge(fromId, toId) {
-      var a = nodes[fromId], b = nodes[toId];
-      if (!a || !b) return;
-      ctx.save();
-      ctx.strokeStyle = 'rgba(124,58,237,0.28)';
-      ctx.lineWidth = 1.2;
-      ctx.setLineDash([6,5]);
-      ctx.beginPath();
-      ctx.moveTo(a.cx, a.y + a.h);
-      /* Bezier for non-vertical edges */
-      var dy = b.cy - a.cy;
-      var cx1 = a.cx, cy1 = a.cy + dy*0.45;
-      var cx2 = b.cx, cy2 = b.cy - dy*0.45;
-      ctx.bezierCurveTo(cx1, cy1, cx2, cy2, b.cx, b.y);
-      ctx.stroke();
-      ctx.setLineDash([]);
-      ctx.restore();
-    }
+    /* ── Build scene objects ───────────────────────────────── */
+    ARCH.forEach(function (d) {
+      var group = new T.Group();
+      group.position.set(d.pos[0], d.pos[1], d.pos[2]);
 
-    function spawnRequest(triggerColor) {
-      reqCount++;
-      var color = triggerColor || '#7C3AED';
-      var isCacheHit = Math.random() < 0.55;
+      /* Label plane */
+      var tex  = makeLabel(d.label, d.sub, d.color);
+      var plane = new T.Mesh(
+        new T.PlaneGeometry(2.8, 0.95),
+        new T.MeshBasicMaterial({ map: tex, transparent: true, side: T.DoubleSide, depthWrite: false })
+      );
+      group.add(plane);
 
-      /* Route: client→cdn→lb→appX→(cache or db) */
-      var appId = ['app1','app2','app3'][Math.floor(Math.random()*3)];
-      var target = isCacheHit ? 'cache' : 'db';
+      /* Glow behind */
+      var glow = makeGlow(d.color, 4.2);
+      glow.position.z = -0.05;
+      group.add(glow);
 
-      var segments = [
-        {from:'client', to:'cdn',   color:'#06B6D4'},
-        {from:'cdn',    to:'lb',    color:'#8B5CF6'},
-        {from:'lb',     to:appId,   color:'#7C3AED'},
-        {from:appId,    to:target,  color: isCacheHit ? '#F59E0B' : '#10B981'}
-      ];
+      /* Point light */
+      var light = new T.PointLight(d.hex, 0.85, 4.5);
+      group.add(light);
 
-      var delay = 0;
-      segments.forEach(function (seg, idx) {
-        setTimeout(function () {
-          var a = nodes[seg.from], b = nodes[seg.to];
-          if (!a || !b) return;
-          packets.push({
-            x: a.cx, y: a.cy, tx: b.cx, ty: b.cy,
-            t: 0, color: seg.color,
-            fromId: seg.from, toId: seg.to
-          });
-          flashes[seg.from] = 1;
-          setTimeout(function () { flashes[seg.to] = 1; }, 280);
-        }, delay);
-        delay += 320;
-      });
-    }
-
-    function drawPacket(px, py, color, alpha) {
-      ctx.save();
-      ctx.globalAlpha = alpha;
-      var grd = ctx.createRadialGradient(px, py, 0, px, py, 12);
-      grd.addColorStop(0, color + 'cc');
-      grd.addColorStop(1, color + '00');
-      ctx.fillStyle = grd;
-      ctx.beginPath(); ctx.arc(px, py, 12, 0, Math.PI*2); ctx.fill();
-      ctx.fillStyle = color;
-      ctx.beginPath(); ctx.arc(px, py, 3.8, 0, Math.PI*2); ctx.fill();
-      ctx.restore();
-    }
-
-    function drawFrame(now) {
-      var t = (now - t0) * 0.001;
-
-      ctx.clearRect(0, 0, W, H);
-
-      /* Particle field */
-      for (var pi = 0; pi < 60; pi++) {
-        var ppx = (pi * 137.508 * W * 0.01) % W;
-        var ppy = (pi * 97.31  * H * 0.01) % H;
-        var pa  = 0.05 + 0.03 * Math.sin(t * 0.7 + pi * 1.9);
-        ctx.fillStyle = 'rgba(167,139,250,' + pa + ')';
-        ctx.beginPath();
-        ctx.arc(ppx, ppy, 1 + (pi%3)*0.4, 0, Math.PI*2);
-        ctx.fill();
-      }
-
-      /* Grid lines (subtle) */
-      ctx.save();
-      ctx.strokeStyle = 'rgba(124,58,237,0.06)';
-      ctx.lineWidth = 0.5;
-      for (var gx = 0; gx < W; gx += 60) {
-        ctx.beginPath(); ctx.moveTo(gx,0); ctx.lineTo(gx,H); ctx.stroke();
-      }
-      for (var gy = 0; gy < H; gy += 60) {
-        ctx.beginPath(); ctx.moveTo(0,gy); ctx.lineTo(W,gy); ctx.stroke();
-      }
-      ctx.restore();
-
-      /* Parallax offset */
-      var ox = (mouse.x - 0.5) * 32;
-      var oy = (mouse.y - 0.5) * 16;
-
-      /* Apply parallax temporarily */
-      ctx.save();
-      ctx.translate(ox, oy);
-
-      /* Edges */
-      EDGES.forEach(function (e) { drawEdge(e[0], e[1]); });
-
-      /* Packets */
-      for (var i = packets.length - 1; i >= 0; i--) {
-        var pk = packets[i];
-        pk.t = Math.min(1, pk.t + 0.038);
-        var ex = ease(pk.t);
-        var alpha = pk.t < 0.08 ? pk.t/0.08 : pk.t > 0.88 ? (1-pk.t)/0.12 : 1;
-        drawPacket(lerp(pk.x, pk.tx, ex), lerp(pk.y, pk.ty, ex), pk.color, alpha);
-        if (pk.t >= 1) packets.splice(i, 1);
-      }
-
-      /* Decay flashes */
-      Object.keys(flashes).forEach(function (id) {
-        flashes[id] = Math.max(0, flashes[id] - 0.025);
-        if (flashes[id] <= 0) delete flashes[id];
-      });
-
-      /* Nodes */
-      ARCH.forEach(function (d) {
-        var n = nodes[d.id];
-        if (!n) return;
-        var fa = flashes[d.id] || 0;
-        /* Breathing pulse when idle */
-        var pulse = 0.05 + 0.05 * Math.sin(t * 1.2 + d.xf * 6);
-        drawNode(n, fa > 0 ? fa : pulse);
-      });
-
-      ctx.restore(); /* end parallax */
-
-      /* HUD — request counter */
-      ctx.font = '11px "JetBrains Mono",monospace';
-      ctx.fillStyle = 'rgba(167,139,250,0.55)';
-      ctx.textAlign = 'left';
-      ctx.textBaseline = 'bottom';
-      ctx.fillText('REQUESTS: ' + reqCount, 14, H - 14);
-      ctx.textAlign = 'right';
-      ctx.fillText('CLICK TO SEND REQUEST', W - 14, H - 14);
-
-      /* Auto-spawn every ~2s */
-      if (Math.random() < 0.008) spawnRequest();
-
-      raf = requestAnimationFrame(drawFrame);
-    }
-
-    function resize() {
-      var rect = hero.getBoundingClientRect();
-      W = Math.max(400, rect.width);
-      H = Math.max(520, rect.height);
-      dpr = Math.min(window.devicePixelRatio || 1, 2);
-      canvas.width  = Math.round(W * dpr);
-      canvas.height = Math.round(H * dpr);
-      canvas.style.width  = W + 'px';
-      canvas.style.height = H + 'px';
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      buildLayout();
-    }
-
-    /* Click → send request */
-    hero.addEventListener('click', function (e) {
-      spawnRequest('#A78BFA');
+      scene.add(group);
+      nodeMap[d.id] = { group: group, pos: new T.Vector3(d.pos[0], d.pos[1], d.pos[2]), color: d.color, hex: d.hex, light: light };
     });
+
+    /* Build edge curves + line meshes */
+    EDGES.forEach(function (e) {
+      var a = nodeMap[e[0]], b = nodeMap[e[1]];
+      if (!a || !b) return;
+      var mid = new T.Vector3(
+        (a.pos.x + b.pos.x) * 0.5,
+        (a.pos.y + b.pos.y) * 0.5,
+        (a.pos.z + b.pos.z) * 0.5 + 0.4
+      );
+      var curve = new T.CatmullRomCurve3([a.pos.clone(), mid, b.pos.clone()]);
+      var pts   = curve.getPoints(64);
+      var line  = new T.Line(
+        new T.BufferGeometry().setFromPoints(pts),
+        new T.LineBasicMaterial({ color: 0x5b21b6, transparent: true, opacity: 0.4 })
+      );
+      scene.add(line);
+      edgeCurves.push({ curve: curve, fromId: e[0], toId: e[1] });
+    });
+
+    /* Background particle cloud */
+    var ptPositions = new Float32Array(240 * 3);
+    for (var i = 0; i < 240; i++) {
+      ptPositions[i*3]   = (Math.random()-0.5) * 20;
+      ptPositions[i*3+1] = (Math.random()-0.5) * 14;
+      ptPositions[i*3+2] = (Math.random()-0.5) * 8 - 2;
+    }
+    var ptGeo = new T.BufferGeometry();
+    ptGeo.setAttribute('position', new T.BufferAttribute(ptPositions, 3));
+    var ptCloud = new T.Points(ptGeo, new T.PointsMaterial({
+      color: 0xA78BFA, size: 0.055, transparent: true, opacity: 0.55,
+      blending: T.AdditiveBlending
+    }));
+    scene.add(ptCloud);
+
+    /* ── Request spawner ───────────────────────────────────── */
+    function spawnRequest() {
+      reqCount++;
+      var appId  = ['app1','app2','app3'][Math.floor(Math.random()*3)];
+      var target = Math.random() < 0.55 ? 'cache' : 'db';
+      var segs   = [
+        { from:'client', to:'cdn',   hex:0x06B6D4 },
+        { from:'cdn',    to:'lb',    hex:0x8B5CF6 },
+        { from:'lb',     to:appId,   hex:0x7C3AED },
+        { from:appId,    to:target,  hex: target==='cache' ? 0xF59E0B : 0x10B981 }
+      ];
+      segs.forEach(function (s, idx) {
+        setTimeout(function () {
+          var edge = null;
+          for (var j = 0; j < edgeCurves.length; j++) {
+            var ec = edgeCurves[j];
+            if ((ec.fromId===s.from && ec.toId===s.to) || (ec.fromId===s.to && ec.toId===s.from)) {
+              edge = ec; break;
+            }
+          }
+          if (!edge) return;
+          var mesh = makePacket(s.hex);
+          scene.add(mesh);
+          packets.push({ mesh: mesh, curve: edge.curve, t: 0, speed: 0.6 + Math.random()*0.25, rev: edge.fromId !== s.from });
+
+          /* flash destination */
+          setTimeout(function () {
+            var n = nodeMap[s.to];
+            if (n && n.light) { n.light.intensity = 3.5; setTimeout(function(){ n.light.intensity = 0.85; }, 320); }
+          }, 550);
+        }, idx * 350);
+      });
+    }
+
+    /* ── Resize ────────────────────────────────────────────── */
+    function resize() {
+      var rect = canvas.getBoundingClientRect();
+      var W = Math.max(1, rect.width  || canvas.offsetWidth  || 500);
+      var H = Math.max(1, rect.height || canvas.offsetHeight || 700);
+      camera.aspect = W / H;
+      camera.updateProjectionMatrix();
+      renderer.setSize(W, H, false);
+    }
+
+    window.addEventListener('resize', resize);
+    resize();
+
+    /* ── Input ─────────────────────────────────────────────── */
+    canvas.addEventListener('click', spawnRequest);
+    hero.addEventListener('click',   spawnRequest);
     hero.addEventListener('pointermove', function (e) {
       var r = hero.getBoundingClientRect();
-      mouse.x = (e.clientX - r.left) / r.width;
-      mouse.y = (e.clientY - r.top)  / r.height;
+      mouse.x = ((e.clientX - r.left) / r.width  - 0.5) * 2;
+      mouse.y = ((e.clientY - r.top)  / r.height - 0.5) * 2;
     }, { passive: true });
 
-    var resizeTimer;
-    window.addEventListener('resize', function () {
-      clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(function () {
-        cancelAnimationFrame(raf);
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
-        resize();
-        raf = requestAnimationFrame(drawFrame);
-      }, 120);
-    });
+    /* ── Render loop ───────────────────────────────────────── */
+    var autoTimer = 0;
+    var clock = new T.Clock();
 
-    resize();
-    /* Initial burst of requests to show it off */
-    setTimeout(function () { spawnRequest('#06B6D4'); }, 600);
-    setTimeout(function () { spawnRequest('#7C3AED'); }, 1400);
-    setTimeout(function () { spawnRequest('#10B981'); }, 2200);
-    raf = requestAnimationFrame(drawFrame);
+    function animate() {
+      requestAnimationFrame(animate);
+      var dt = clock.getDelta();
+      var et = clock.getElapsedTime();
+
+      /* Camera gentle orbit + mouse tilt */
+      camAngle += 0.0015;
+      camera.position.x = Math.sin(camAngle) * 1.8 + mouse.x * 0.7;
+      camera.position.y = 0.5 + mouse.y * -0.5;
+      camera.position.z = Math.cos(camAngle) * 1.5 + 13;
+      camera.lookAt(0, 0, 0);
+
+      /* Rotate particle cloud slowly */
+      ptCloud.rotation.y = et * 0.04;
+
+      /* Node glow breathing */
+      ARCH.forEach(function (d, idx) {
+        var n = nodeMap[d.id];
+        if (!n) return;
+        var brightness = 0.5 + 0.35 * Math.sin(et * 1.3 + idx * 0.8);
+        n.group.children.forEach(function (c) {
+          if (c.isSprite) c.material.opacity = brightness;
+        });
+        /* Slight float */
+        n.group.position.y = d.pos[1] + Math.sin(et * 0.9 + idx * 0.55) * 0.08;
+      });
+
+      /* Animate packets */
+      for (var i = packets.length - 1; i >= 0; i--) {
+        var pk = packets[i];
+        pk.t = Math.min(1, pk.t + pk.speed * dt);
+        var tE = pk.t < 0.5 ? 2*pk.t*pk.t : -1+(4-2*pk.t)*pk.t;
+        var pos = pk.curve.getPoint(pk.rev ? 1-tE : tE);
+        pk.mesh.position.copy(pos);
+        pk.mesh.scale.setScalar(0.85 + Math.sin(pk.t * Math.PI) * 0.4);
+        if (pk.t >= 1) { scene.remove(pk.mesh); packets.splice(i, 1); }
+      }
+
+      /* Auto-spawn */
+      autoTimer += dt;
+      if (autoTimer > 2.6) { autoTimer = 0; spawnRequest(); }
+
+      renderer.render(scene, camera);
+    }
+
+    animate();
+
+    /* Staggered initial burst */
+    setTimeout(spawnRequest, 500);
+    setTimeout(spawnRequest, 1100);
+    setTimeout(spawnRequest, 1900);
   }
 
   if (document.readyState === 'loading') {

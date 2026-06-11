@@ -157,13 +157,26 @@ table { border-collapse: collapse; width: 100%; }
   background: radial-gradient(ellipse 1000px 500px at 50% -5%, rgba(124,58,237,0.22) 0%, transparent 70%), var(--bg);
 }
 .hero-svg {
-  position: absolute; inset: 0; width: 100%; height: 100%;
-  opacity: 0.88; pointer-events: none; z-index: 0;
+  display: none; /* replaced by Three.js canvas */
 }
 .system-3d {
-  position: absolute !important; inset: 0 !important;
-  width: 100% !important; height: 100% !important;
-  z-index: 1 !important; pointer-events: none !important; opacity: 1 !important;
+  position: absolute !important;
+  right: 0 !important; top: 0 !important; bottom: 0 !important; left: auto !important;
+  width: 52% !important; height: 100% !important;
+  z-index: 1 !important; pointer-events: auto !important; opacity: 1 !important;
+  /* Soft left-edge fade so canvas blends into background */
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, rgba(0,0,0,0.6) 12%, black 28%);
+  mask-image: linear-gradient(to right, transparent 0%, rgba(0,0,0,0.6) 12%, black 28%);
+}
+/* On narrower screens canvas goes behind full hero (text is still readable) */
+@media (max-width: 880px) {
+  .system-3d {
+    left: 0 !important; width: 100% !important;
+    opacity: 0.45 !important;
+    -webkit-mask-image: none !important;
+    mask-image: none !important;
+    pointer-events: none !important;
+  }
 }
 .hero-inner { position: relative; z-index: 2; max-width: 840px; margin: 0 auto; }
 .hero-badge {
