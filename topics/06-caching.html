@@ -455,6 +455,14 @@ r = redis.Redis()
  </div>
  </section>
 
+ <!-- ============ INTERACTIVE DEMO ============ -->
+ <section class="section-block reveal">
+ <div class="section-badge">Try It</div>
+ <h2>Interactive: Cache Hit / Miss Visualizer</h2>
+ <p>Click any URL button to simulate a request. The first request always misses (hits the DB at 85ms). Repeat the same URL for a cache hit at 2ms. Fill up the 6-slot cache to see LRU eviction kick in — the least recently used entry is evicted when you add a 7th key.</p>
+ <div id="demo-cache"></div>
+ </section>
+
  <nav class="bottom-nav">
  <a href="05-load-balancers.html"><span class="bn-dir">← Previous</span><span class="bn-title">Load Balancers &amp; Reverse Proxies</span></a>
  <a class="next" href="07-databases.html"><span class="bn-dir">Next →</span><span class="bn-title">Databases Deep Dive</span></a>
@@ -466,5 +474,6 @@ r = redis.Redis()
 </footer>
 
 <script src="../js/main.js"></script>
+<script src="../js/demos.js"></script>
 </body>
 </html>

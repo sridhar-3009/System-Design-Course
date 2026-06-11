@@ -314,8 +314,9 @@
 })();
 
 /* ============================================================
-   Hero canvas — Canvas 2D network animation (no Three.js needed)
-   Inspired by the Gradient Descent reference project
+   Hero canvas — labeled distributed system architecture
+   Client → CDN → Load Balancer → App Servers → Cache + DB
+   Click anywhere to trigger animated requests
    ============================================================ */
 (function () {
   'use strict';
@@ -324,168 +325,281 @@
     var canvas = document.getElementById('system3d');
     if (!canvas) return;
     var hero = canvas.closest('.hero') || document.body;
-    var ctx = canvas.getContext('2d');
+    var ctx  = canvas.getContext('2d');
     if (!ctx) return;
 
-    /* Node layout (normalized 0–1) */
-    var ND = [
-      { nx: 0.17, ny: 0.28, r: 9,  color: '#7C3AED' },
-      { nx: 0.34, ny: 0.19, r: 11, color: '#9F67F8' },
-      { nx: 0.52, ny: 0.34, r: 8,  color: '#F59E0B' },
-      { nx: 0.67, ny: 0.22, r: 10, color: '#7C3AED' },
-      { nx: 0.82, ny: 0.16, r: 7,  color: '#10B981' },
-      { nx: 0.24, ny: 0.64, r: 8,  color: '#10B981' },
-      { nx: 0.55, ny: 0.68, r: 10, color: '#7C3AED' },
-      { nx: 0.78, ny: 0.66, r: 7,  color: '#F59E0B' }
-    ];
-    var EDGES = [[0,1],[1,2],[2,3],[3,4],[0,5],[1,6],[2,6],[3,7],[5,6],[6,7]];
-
     var W = 0, H = 0, dpr = 1;
-    var nodes = [], packets = [];
     var mouse = { x: 0.5, y: 0.5 };
     var raf;
+    var reqCount = 0;
+    var packets  = [];
+    /* Active node flash: idx -> alpha 0..1 */
+    var flashes  = {};
+    var t0       = performance.now();
 
-    function buildGeometry() {
-      nodes = ND.map(function (d) {
-        return {
-          x: d.nx * W, y: d.ny * H,
-          r: d.r, color: d.color,
-          phase: Math.random() * Math.PI * 2
+    /* ---- Layout helpers ---- */
+    var NW = 96, NH = 38; /* node box size */
+
+    function N(id, label, sub, color, xf, yf) {
+      return { id: id, label: label, sub: sub, color: color, xf: xf, yf: yf };
+    }
+
+    /* Node definitions (fractional positions) */
+    var ARCH = [
+      N('client', 'CLIENT',       'Browser',    '#06B6D4', 0.5,  0.08),
+      N('cdn',    'CDN',          'CloudFront', '#8B5CF6', 0.5,  0.22),
+      N('lb',     'LOAD BALANCER','nginx',      '#7C3AED', 0.5,  0.37),
+      N('app1',   'APP-1',        'Node.js',    '#A78BFA', 0.25, 0.54),
+      N('app2',   'APP-2',        'Node.js',    '#A78BFA', 0.5,  0.54),
+      N('app3',   'APP-3',        'Node.js',    '#A78BFA', 0.75, 0.54),
+      N('cache',  'REDIS',        'L1 Cache',   '#F59E0B', 0.31, 0.74),
+      N('db',     'POSTGRESQL',   'Primary DB', '#10B981', 0.69, 0.74)
+    ];
+
+    /* Directed edges: [from-id, to-id] */
+    var EDGES = [
+      ['client','cdn'],
+      ['cdn','lb'],
+      ['lb','app1'],['lb','app2'],['lb','app3'],
+      ['app1','cache'],['app2','cache'],
+      ['app2','db'],  ['app3','db'],
+      ['cache','db']
+    ];
+
+    var nodes = {}; /* id → {x,y,w,h,...} */
+
+    function lerp(a, b, t) { return a + (b-a)*t; }
+    function ease(t) { return t<0.5 ? 2*t*t : -1+(4-2*t)*t; }
+
+    function rrect(x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y);
+      ctx.arcTo(x+w,y,x+w,y+r,r); ctx.lineTo(x+w,y+h-r);
+      ctx.arcTo(x+w,y+h,x+w-r,y+h,r); ctx.lineTo(x+r,y+h);
+      ctx.arcTo(x,y+h,x,y+h-r,r); ctx.lineTo(x,y+r);
+      ctx.arcTo(x,y,x+r,y,r); ctx.closePath();
+    }
+
+    function buildLayout() {
+      ARCH.forEach(function (d) {
+        nodes[d.id] = {
+          x: d.xf * W - NW/2,
+          y: d.yf * H - NH/2,
+          w: NW, h: NH,
+          cx: d.xf * W, cy: d.yf * H,
+          label: d.label, sub: d.sub, color: d.color, id: d.id
         };
       });
-      packets = EDGES.map(function (e, i) {
-        return {
-          from: e[0], to: e[1],
-          t: (i * 0.13) % 1,
-          speed: 0.09 + (i % 5) * 0.018,
-          color: ND[e[0]].color
-        };
+    }
+
+    function drawNode(n, flashA) {
+      var x=n.x, y=n.y, w=n.w, h=n.h;
+
+      /* Glow halo */
+      var ga = 0.15 + flashA * 0.6;
+      var grd = ctx.createRadialGradient(n.cx, n.cy, 0, n.cx, n.cy, w * 0.8);
+      grd.addColorStop(0, n.color + Math.round(ga*255).toString(16).padStart(2,'0'));
+      grd.addColorStop(1, n.color + '00');
+      ctx.fillStyle = grd;
+      ctx.beginPath();
+      ctx.ellipse(n.cx, n.cy, w*0.9, h*1.4, 0, 0, Math.PI*2);
+      ctx.fill();
+
+      /* Box */
+      rrect(x, y, w, h, 6);
+      ctx.fillStyle = flashA > 0.1
+        ? 'rgba(19,15,38,' + (0.85 + flashA*0.1) + ')'
+        : 'rgba(19,15,38,0.88)';
+      ctx.fill();
+      ctx.strokeStyle = flashA > 0.3 ? '#fff' : n.color;
+      ctx.lineWidth   = flashA > 0.3 ? 1.8 : 1.2;
+      ctx.stroke();
+
+      /* Top color bar */
+      rrect(x, y, w, 3, 1);
+      ctx.fillStyle = n.color; ctx.fill();
+
+      /* Label */
+      ctx.fillStyle = flashA > 0.4 ? '#fff' : 'rgba(237,233,254,0.9)';
+      ctx.font = 'bold 10px "JetBrains Mono",monospace';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(n.label, n.cx, n.cy - 5);
+
+      /* Sub-label */
+      ctx.fillStyle = 'rgba(148,144,180,0.7)';
+      ctx.font = '8px "JetBrains Mono",monospace';
+      ctx.fillText(n.sub, n.cx, n.cy + 8);
+    }
+
+    function drawEdge(fromId, toId) {
+      var a = nodes[fromId], b = nodes[toId];
+      if (!a || !b) return;
+      ctx.save();
+      ctx.strokeStyle = 'rgba(124,58,237,0.28)';
+      ctx.lineWidth = 1.2;
+      ctx.setLineDash([6,5]);
+      ctx.beginPath();
+      ctx.moveTo(a.cx, a.y + a.h);
+      /* Bezier for non-vertical edges */
+      var dy = b.cy - a.cy;
+      var cx1 = a.cx, cy1 = a.cy + dy*0.45;
+      var cx2 = b.cx, cy2 = b.cy - dy*0.45;
+      ctx.bezierCurveTo(cx1, cy1, cx2, cy2, b.cx, b.y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.restore();
+    }
+
+    function spawnRequest(triggerColor) {
+      reqCount++;
+      var color = triggerColor || '#7C3AED';
+      var isCacheHit = Math.random() < 0.55;
+
+      /* Route: client→cdn→lb→appX→(cache or db) */
+      var appId = ['app1','app2','app3'][Math.floor(Math.random()*3)];
+      var target = isCacheHit ? 'cache' : 'db';
+
+      var segments = [
+        {from:'client', to:'cdn',   color:'#06B6D4'},
+        {from:'cdn',    to:'lb',    color:'#8B5CF6'},
+        {from:'lb',     to:appId,   color:'#7C3AED'},
+        {from:appId,    to:target,  color: isCacheHit ? '#F59E0B' : '#10B981'}
+      ];
+
+      var delay = 0;
+      segments.forEach(function (seg, idx) {
+        setTimeout(function () {
+          var a = nodes[seg.from], b = nodes[seg.to];
+          if (!a || !b) return;
+          packets.push({
+            x: a.cx, y: a.cy, tx: b.cx, ty: b.cy,
+            t: 0, color: seg.color,
+            fromId: seg.from, toId: seg.to
+          });
+          flashes[seg.from] = 1;
+          setTimeout(function () { flashes[seg.to] = 1; }, 280);
+        }, delay);
+        delay += 320;
       });
+    }
+
+    function drawPacket(px, py, color, alpha) {
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      var grd = ctx.createRadialGradient(px, py, 0, px, py, 12);
+      grd.addColorStop(0, color + 'cc');
+      grd.addColorStop(1, color + '00');
+      ctx.fillStyle = grd;
+      ctx.beginPath(); ctx.arc(px, py, 12, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = color;
+      ctx.beginPath(); ctx.arc(px, py, 3.8, 0, Math.PI*2); ctx.fill();
+      ctx.restore();
+    }
+
+    function drawFrame(now) {
+      var t = (now - t0) * 0.001;
+
+      ctx.clearRect(0, 0, W, H);
+
+      /* Particle field */
+      for (var pi = 0; pi < 60; pi++) {
+        var ppx = (pi * 137.508 * W * 0.01) % W;
+        var ppy = (pi * 97.31  * H * 0.01) % H;
+        var pa  = 0.05 + 0.03 * Math.sin(t * 0.7 + pi * 1.9);
+        ctx.fillStyle = 'rgba(167,139,250,' + pa + ')';
+        ctx.beginPath();
+        ctx.arc(ppx, ppy, 1 + (pi%3)*0.4, 0, Math.PI*2);
+        ctx.fill();
+      }
+
+      /* Grid lines (subtle) */
+      ctx.save();
+      ctx.strokeStyle = 'rgba(124,58,237,0.06)';
+      ctx.lineWidth = 0.5;
+      for (var gx = 0; gx < W; gx += 60) {
+        ctx.beginPath(); ctx.moveTo(gx,0); ctx.lineTo(gx,H); ctx.stroke();
+      }
+      for (var gy = 0; gy < H; gy += 60) {
+        ctx.beginPath(); ctx.moveTo(0,gy); ctx.lineTo(W,gy); ctx.stroke();
+      }
+      ctx.restore();
+
+      /* Parallax offset */
+      var ox = (mouse.x - 0.5) * 32;
+      var oy = (mouse.y - 0.5) * 16;
+
+      /* Apply parallax temporarily */
+      ctx.save();
+      ctx.translate(ox, oy);
+
+      /* Edges */
+      EDGES.forEach(function (e) { drawEdge(e[0], e[1]); });
+
+      /* Packets */
+      for (var i = packets.length - 1; i >= 0; i--) {
+        var pk = packets[i];
+        pk.t = Math.min(1, pk.t + 0.038);
+        var ex = ease(pk.t);
+        var alpha = pk.t < 0.08 ? pk.t/0.08 : pk.t > 0.88 ? (1-pk.t)/0.12 : 1;
+        drawPacket(lerp(pk.x, pk.tx, ex), lerp(pk.y, pk.ty, ex), pk.color, alpha);
+        if (pk.t >= 1) packets.splice(i, 1);
+      }
+
+      /* Decay flashes */
+      Object.keys(flashes).forEach(function (id) {
+        flashes[id] = Math.max(0, flashes[id] - 0.025);
+        if (flashes[id] <= 0) delete flashes[id];
+      });
+
+      /* Nodes */
+      ARCH.forEach(function (d) {
+        var n = nodes[d.id];
+        if (!n) return;
+        var fa = flashes[d.id] || 0;
+        /* Breathing pulse when idle */
+        var pulse = 0.05 + 0.05 * Math.sin(t * 1.2 + d.xf * 6);
+        drawNode(n, fa > 0 ? fa : pulse);
+      });
+
+      ctx.restore(); /* end parallax */
+
+      /* HUD — request counter */
+      ctx.font = '11px "JetBrains Mono",monospace';
+      ctx.fillStyle = 'rgba(167,139,250,0.55)';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'bottom';
+      ctx.fillText('REQUESTS: ' + reqCount, 14, H - 14);
+      ctx.textAlign = 'right';
+      ctx.fillText('CLICK TO SEND REQUEST', W - 14, H - 14);
+
+      /* Auto-spawn every ~2s */
+      if (Math.random() < 0.008) spawnRequest();
+
+      raf = requestAnimationFrame(drawFrame);
     }
 
     function resize() {
       var rect = hero.getBoundingClientRect();
       W = Math.max(400, rect.width);
-      H = Math.max(500, rect.height);
+      H = Math.max(520, rect.height);
       dpr = Math.min(window.devicePixelRatio || 1, 2);
       canvas.width  = Math.round(W * dpr);
       canvas.height = Math.round(H * dpr);
       canvas.style.width  = W + 'px';
       canvas.style.height = H + 'px';
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      buildGeometry();
+      buildLayout();
     }
 
-    function hex2rgb(hex) {
-      var r = parseInt(hex.slice(1,3), 16);
-      var g = parseInt(hex.slice(3,5), 16);
-      var b = parseInt(hex.slice(5,7), 16);
-      return { r: r, g: g, b: b };
-    }
-
-    function drawFrame(now) {
-      var t = now * 0.001;
-
-      ctx.clearRect(0, 0, W, H);
-
-      /* Subtle background particle field */
-      ctx.save();
-      for (var pi = 0; pi < 55; pi++) {
-        var px = ((pi * 137.508 * W) % W);
-        var py = ((pi * 97.31  * H) % H);
-        var pa = 0.06 + 0.04 * Math.sin(t * 0.8 + pi * 2.1);
-        ctx.fillStyle = 'rgba(167,139,250,' + pa + ')';
-        ctx.beginPath();
-        ctx.arc(px, py, 1 + (pi % 3) * 0.5, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      ctx.restore();
-
-      /* Parallax offset */
-      var ox = (mouse.x - 0.5) * 50;
-      var oy = (mouse.y - 0.5) * 25;
-
-      /* --- Draw edges --- */
-      ctx.save();
-      ctx.setLineDash([8, 6]);
-      EDGES.forEach(function (e) {
-        var a = nodes[e[0]], b = nodes[e[1]];
-        ctx.beginPath();
-        ctx.moveTo(a.x + ox * 0.55, a.y + oy * 0.55);
-        ctx.lineTo(b.x + ox * 0.55, b.y + oy * 0.55);
-        ctx.strokeStyle = 'rgba(167,139,250,0.28)';
-        ctx.lineWidth = 1.2;
-        ctx.stroke();
-      });
-      ctx.setLineDash([]);
-      ctx.restore();
-
-      /* --- Draw packets --- */
-      packets.forEach(function (pk) {
-        pk.t = (pk.t + pk.speed * 0.004) % 1;
-        var a = nodes[pk.from], b = nodes[pk.to];
-        var ax = a.x + ox * 0.55, ay = a.y + oy * 0.55;
-        var bx = b.x + ox * 0.55, by = b.y + oy * 0.55;
-        var ease = pk.t < 0.5 ? 2*pk.t*pk.t : -1+(4-2*pk.t)*pk.t;
-        var px = ax + (bx - ax) * ease;
-        var py = ay + (by - ay) * ease;
-        var alpha = pk.t < 0.08 ? pk.t/0.08 : pk.t > 0.9 ? (1-pk.t)/0.1 : 1;
-
-        var rgb = hex2rgb(pk.color);
-        /* Glow */
-        var grd = ctx.createRadialGradient(px, py, 0, px, py, 14);
-        grd.addColorStop(0, 'rgba(' + rgb.r + ',' + rgb.g + ',' + rgb.b + ',' + (alpha * 0.7) + ')');
-        grd.addColorStop(1, 'rgba(' + rgb.r + ',' + rgb.g + ',' + rgb.b + ',0)');
-        ctx.fillStyle = grd;
-        ctx.beginPath();
-        ctx.arc(px, py, 14, 0, Math.PI * 2);
-        ctx.fill();
-        /* Core */
-        ctx.fillStyle = 'rgba(' + rgb.r + ',' + rgb.g + ',' + rgb.b + ',' + alpha + ')';
-        ctx.beginPath();
-        ctx.arc(px, py, 3.5, 0, Math.PI * 2);
-        ctx.fill();
-      });
-
-      /* --- Draw nodes --- */
-      nodes.forEach(function (n) {
-        var nx = n.x + ox * 0.55;
-        var ny = n.y + oy * 0.55;
-        var pulse = 1 + Math.sin(t * 1.7 + n.phase) * 0.11;
-        var nr = n.r * pulse;
-        var rgb = hex2rgb(n.color);
-
-        /* Outer glow */
-        var grd = ctx.createRadialGradient(nx, ny, 0, nx, ny, nr * 3.5);
-        grd.addColorStop(0,   'rgba(' + rgb.r + ',' + rgb.g + ',' + rgb.b + ',0.55)');
-        grd.addColorStop(0.4, 'rgba(' + rgb.r + ',' + rgb.g + ',' + rgb.b + ',0.18)');
-        grd.addColorStop(1,   'rgba(' + rgb.r + ',' + rgb.g + ',' + rgb.b + ',0)');
-        ctx.fillStyle = grd;
-        ctx.beginPath();
-        ctx.arc(nx, ny, nr * 3.5, 0, Math.PI * 2);
-        ctx.fill();
-
-        /* Node body */
-        ctx.fillStyle = n.color;
-        ctx.beginPath();
-        ctx.arc(nx, ny, nr, 0, Math.PI * 2);
-        ctx.fill();
-
-        /* Specular highlight */
-        ctx.fillStyle = 'rgba(255,255,255,0.42)';
-        ctx.beginPath();
-        ctx.arc(nx - nr * 0.28, ny - nr * 0.28, nr * 0.32, 0, Math.PI * 2);
-        ctx.fill();
-      });
-
-      raf = requestAnimationFrame(drawFrame);
-    }
-
-    function onPointerMove(e) {
-      var rect = hero.getBoundingClientRect();
-      mouse.x = (e.clientX - rect.left) / rect.width;
-      mouse.y = (e.clientY - rect.top)  / rect.height;
-    }
+    /* Click → send request */
+    hero.addEventListener('click', function (e) {
+      spawnRequest('#A78BFA');
+    });
+    hero.addEventListener('pointermove', function (e) {
+      var r = hero.getBoundingClientRect();
+      mouse.x = (e.clientX - r.left) / r.width;
+      mouse.y = (e.clientY - r.top)  / r.height;
+    }, { passive: true });
 
     var resizeTimer;
     window.addEventListener('resize', function () {
@@ -497,12 +611,14 @@
         raf = requestAnimationFrame(drawFrame);
       }, 120);
     });
-    hero.addEventListener('pointermove', onPointerMove, { passive: true });
 
     resize();
+    /* Initial burst of requests to show it off */
+    setTimeout(function () { spawnRequest('#06B6D4'); }, 600);
+    setTimeout(function () { spawnRequest('#7C3AED'); }, 1400);
+    setTimeout(function () { spawnRequest('#10B981'); }, 2200);
     raf = requestAnimationFrame(drawFrame);
   }
-
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initHeroCanvas);

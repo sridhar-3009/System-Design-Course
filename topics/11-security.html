@@ -407,6 +407,14 @@ ph.verify(hash, attempt) <span class="c-c"># raises on mismatch</span></code></p
  </div>
  </section>
 
+ <!-- ============ INTERACTIVE DEMO ============ -->
+ <section class="section-block reveal">
+ <div class="section-badge">Try It</div>
+ <h2>Interactive: Rate Limiter Algorithms</h2>
+ <p>Switch between Fixed Window, Sliding Window, and Token Bucket algorithms. Adjust the limit, then spam requests to see 429 responses appear. The sliding window is fairer than fixed — try sending 5 requests just before and just after a window boundary to see why.</p>
+ <div id="demo-ratelimit"></div>
+ </section>
+
  <nav class="bottom-nav">
  <a href="10-microservices.html"><span class="bn-dir">← Previous</span><span class="bn-title">Microservices Architecture</span></a>
  <a class="next" href="12-interview-guide.html"><span class="bn-dir">Next →</span><span class="bn-title">Interview Guide</span></a>
@@ -418,5 +426,6 @@ ph.verify(hash, attempt) <span class="c-c"># raises on mismatch</span></code></p
 </footer>
 
 <script src="../js/main.js"></script>
+<script src="../js/demos.js"></script>
 </body>
 </html>
