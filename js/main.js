@@ -336,11 +336,11 @@
     /* ── Scene ─────────────────────────────────────────────── */
     var scene = new T.Scene();
     scene.background = new T.Color(0x05030e);
-    scene.fog = new T.FogExp2(0x05030e, 0.038);
+    scene.fog = new T.FogExp2(0x05030e, 0.032);
 
-    /* ── Camera ────────────────────────────────────────────── */
-    var camera = new T.PerspectiveCamera(52, 1, 0.1, 100);
-    camera.position.set(0, 0.5, 13);
+    /* ── Camera — angled to show 3D depth ─────────────────── */
+    var camera = new T.PerspectiveCamera(50, 1, 0.1, 100);
+    camera.position.set(5, 2.5, 11);
     camera.lookAt(0, 0, 0);
 
     /* ── Renderer ──────────────────────────────────────────── */
@@ -364,14 +364,14 @@
 
     /* ── Architecture definition ───────────────────────────── */
     var ARCH = [
-      { id:'client', label:'CLIENT',        sub:'Browser / App',   color:'#06B6D4', hex:0x06B6D4, pos:[  0,  5.2, 0]   },
-      { id:'cdn',    label:'CDN',            sub:'CloudFront',      color:'#8B5CF6', hex:0x8B5CF6, pos:[  0,  3.2,-0.3] },
-      { id:'lb',     label:'LOAD BALANCER', sub:'nginx / HAProxy', color:'#7C3AED', hex:0x7C3AED, pos:[  0,  1.0, 0]   },
-      { id:'app1',   label:'APP-1',          sub:'Node.js',         color:'#A78BFA', hex:0xA78BFA, pos:[-3.0,-1.2, 0.5] },
-      { id:'app2',   label:'APP-2',          sub:'Node.js',         color:'#A78BFA', hex:0xA78BFA, pos:[  0, -1.2,-0.3] },
-      { id:'app3',   label:'APP-3',          sub:'Node.js',         color:'#A78BFA', hex:0xA78BFA, pos:[ 3.0,-1.2, 0.5] },
-      { id:'cache',  label:'REDIS',          sub:'L1 Cache',        color:'#F59E0B', hex:0xF59E0B, pos:[-2.2,-3.5, 0]   },
-      { id:'db',     label:'POSTGRESQL',     sub:'Primary DB',      color:'#10B981', hex:0x10B981, pos:[ 2.2,-3.5, 0]   }
+      { id:'client', label:'CLIENT',        sub:'Browser / App',   color:'#06B6D4', hex:0x06B6D4, pos:[  0,  5.2, 1.0] },
+      { id:'cdn',    label:'CDN',            sub:'CloudFront',      color:'#8B5CF6', hex:0x8B5CF6, pos:[  0,  3.2,-1.2] },
+      { id:'lb',     label:'LOAD BALANCER', sub:'nginx / HAProxy', color:'#7C3AED', hex:0x7C3AED, pos:[  0,  1.0, 0.4] },
+      { id:'app1',   label:'APP-1',          sub:'Node.js',         color:'#A78BFA', hex:0xA78BFA, pos:[-3.0,-1.2, 1.8] },
+      { id:'app2',   label:'APP-2',          sub:'Node.js',         color:'#A78BFA', hex:0xA78BFA, pos:[  0, -1.2,-0.8] },
+      { id:'app3',   label:'APP-3',          sub:'Node.js',         color:'#A78BFA', hex:0xA78BFA, pos:[ 3.0,-1.2, 1.8] },
+      { id:'cache',  label:'REDIS',          sub:'L1 Cache',        color:'#F59E0B', hex:0xF59E0B, pos:[-2.2,-3.5, 0.6] },
+      { id:'db',     label:'POSTGRESQL',     sub:'Primary DB',      color:'#10B981', hex:0x10B981, pos:[ 2.2,-3.5,-0.6] }
     ];
     var EDGES = [
       ['client','cdn'],['cdn','lb'],
@@ -460,21 +460,37 @@
       var group = new T.Group();
       group.position.set(d.pos[0], d.pos[1], d.pos[2]);
 
-      /* Label plane */
-      var tex  = makeLabel(d.label, d.sub, d.color);
-      var plane = new T.Mesh(
-        new T.PlaneGeometry(2.8, 0.95),
-        new T.MeshBasicMaterial({ map: tex, transparent: true, side: T.DoubleSide, depthWrite: false })
-      );
-      group.add(plane);
+      /* 3D box body */
+      var boxGeo  = new T.BoxGeometry(2.8, 0.85, 0.45);
+      var tex     = makeLabel(d.label, d.sub, d.color);
+      /* Material array: front=label texture, rest=dark with color tint */
+      var rgb  = hexColorStr(d.color);
+      var c    = parseInt(d.color.slice(1), 16);
+      var mats = [
+        new T.MeshStandardMaterial({ color: 0x0d0a1e, emissive: c, emissiveIntensity: 0.08, metalness: 0.3, roughness: 0.7 }),
+        new T.MeshStandardMaterial({ color: 0x0d0a1e, emissive: c, emissiveIntensity: 0.08, metalness: 0.3, roughness: 0.7 }),
+        new T.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: 0.4, metalness: 0.5, roughness: 0.4 }), /* top */
+        new T.MeshStandardMaterial({ color: 0x060412, emissive: c, emissiveIntensity: 0.03 }), /* bottom */
+        new T.MeshBasicMaterial({ map: tex, transparent: true }),  /* front — label */
+        new T.MeshStandardMaterial({ color: 0x0d0a1e, emissive: c, emissiveIntensity: 0.06 })  /* back */
+      ];
+      var box = new T.Mesh(boxGeo, mats);
+      group.add(box);
 
-      /* Glow behind */
-      var glow = makeGlow(d.color, 4.2);
-      glow.position.z = -0.05;
+      /* Edge wireframe outline */
+      var edges = new T.LineSegments(
+        new T.EdgesGeometry(boxGeo),
+        new T.LineBasicMaterial({ color: d.hex, transparent: true, opacity: 0.75 })
+      );
+      group.add(edges);
+
+      /* Glow sprite */
+      var glow = makeGlow(d.color, 4.5);
+      glow.position.z = -0.3;
       group.add(glow);
 
       /* Point light */
-      var light = new T.PointLight(d.hex, 0.85, 4.5);
+      var light = new T.PointLight(d.hex, 0.9, 5.0);
       group.add(light);
 
       scene.add(group);
@@ -551,12 +567,16 @@
 
     /* ── Resize ────────────────────────────────────────────── */
     function resize() {
-      var rect = canvas.getBoundingClientRect();
-      var W = Math.max(1, rect.width  || canvas.offsetWidth  || 500);
-      var H = Math.max(1, rect.height || canvas.offsetHeight || 700);
+      /* Use the parent panel dimensions (right column of grid) */
+      var panel = canvas.parentElement || canvas;
+      var W = Math.max(1, panel.offsetWidth  || 500);
+      var H = Math.max(1, panel.offsetHeight || 700);
       camera.aspect = W / H;
       camera.updateProjectionMatrix();
       renderer.setSize(W, H, false);
+      /* Keep canvas sized to its container */
+      canvas.style.width  = W + 'px';
+      canvas.style.height = H + 'px';
     }
 
     window.addEventListener('resize', resize);
@@ -564,7 +584,6 @@
 
     /* ── Input ─────────────────────────────────────────────── */
     canvas.addEventListener('click', spawnRequest);
-    hero.addEventListener('click',   spawnRequest);
     hero.addEventListener('pointermove', function (e) {
       var r = hero.getBoundingClientRect();
       mouse.x = ((e.clientX - r.left) / r.width  - 0.5) * 2;
@@ -580,11 +599,12 @@
       var dt = clock.getDelta();
       var et = clock.getElapsedTime();
 
-      /* Camera gentle orbit + mouse tilt */
-      camAngle += 0.0015;
-      camera.position.x = Math.sin(camAngle) * 1.8 + mouse.x * 0.7;
-      camera.position.y = 0.5 + mouse.y * -0.5;
-      camera.position.z = Math.cos(camAngle) * 1.5 + 13;
+      /* Camera orbit — angle shows 3D depth clearly */
+      camAngle += 0.0028;
+      var baseX = 5, baseZ = 10;
+      camera.position.x = baseX + Math.sin(camAngle) * 3.5 + mouse.x * 1.2;
+      camera.position.y = 2.5 + Math.sin(camAngle * 0.4) * 0.8 + mouse.y * -0.8;
+      camera.position.z = baseZ + Math.cos(camAngle) * 2.0;
       camera.lookAt(0, 0, 0);
 
       /* Rotate particle cloud slowly */

@@ -150,35 +150,68 @@ table { border-collapse: collapse; width: 100%; }
 .hero {
   position: relative;
   min-height: 100vh;
-  padding: 10rem 1.5rem 7rem;
-  text-align: center;
   overflow: hidden;
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  background: radial-gradient(ellipse 1000px 500px at 50% -5%, rgba(124,58,237,0.22) 0%, transparent 70%), var(--bg);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  gap: 0;
+  background: radial-gradient(ellipse 800px 500px at 20% 50%, rgba(124,58,237,0.18) 0%, transparent 65%), var(--bg);
+  padding-top: 5rem; /* space for fixed navbar */
 }
-.hero-svg {
-  display: none; /* replaced by Three.js canvas */
+.hero-svg { display: none; }
+
+/* Left text column */
+.hero-inner {
+  position: relative; z-index: 2;
+  padding: 4rem 2rem 4rem clamp(1.5rem, 5vw, 5rem);
+  text-align: left;
+  max-width: none;
+  margin: 0;
+}
+
+/* Right 3D panel — canvas lives here */
+.hero-3d-panel {
+  position: relative;
+  height: 100%;
+  min-height: 100vh;
+  overflow: hidden;
+  z-index: 1;
 }
 .system-3d {
   position: absolute !important;
-  right: 0 !important; top: 0 !important; bottom: 0 !important; left: auto !important;
-  width: 52% !important; height: 100% !important;
-  z-index: 1 !important; pointer-events: auto !important; opacity: 1 !important;
-  /* Soft left-edge fade so canvas blends into background */
-  -webkit-mask-image: linear-gradient(to right, transparent 0%, rgba(0,0,0,0.6) 12%, black 28%);
-  mask-image: linear-gradient(to right, transparent 0%, rgba(0,0,0,0.6) 12%, black 28%);
+  inset: 0 !important;
+  width: 100% !important; height: 100% !important;
+  pointer-events: auto !important;
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, rgba(0,0,0,0.7) 14%, black 30%);
+  mask-image: linear-gradient(to right, transparent 0%, rgba(0,0,0,0.7) 14%, black 30%);
 }
-/* On narrower screens canvas goes behind full hero (text is still readable) */
-@media (max-width: 880px) {
+
+/* Orbs stay as decorative bg in left column */
+.hero-orb, .hero-grid { z-index: 0; }
+
+/* Mobile: single column */
+@media (max-width: 900px) {
+  .hero {
+    grid-template-columns: 1fr;
+    padding-top: 5rem;
+    background: radial-gradient(ellipse 600px 400px at 50% 20%, rgba(124,58,237,0.18) 0%, transparent 65%), var(--bg);
+  }
+  .hero-inner {
+    padding: 3rem 1.5rem 2rem;
+    text-align: center;
+  }
+  .hero h1 { font-size: clamp(2rem, 9vw, 3.2rem); }
+  .hero-ctas { justify-content: center; }
+  .hero-stats { justify-content: center; }
+  .hero-3d-panel {
+    height: 55vw; min-height: 280px; max-height: 420px;
+  }
   .system-3d {
-    left: 0 !important; width: 100% !important;
-    opacity: 0.45 !important;
-    -webkit-mask-image: none !important;
-    mask-image: none !important;
-    pointer-events: none !important;
+    -webkit-mask-image: linear-gradient(to bottom, black 50%, transparent 100%);
+    mask-image: linear-gradient(to bottom, black 50%, transparent 100%);
+    opacity: 0.7;
   }
 }
-.hero-inner { position: relative; z-index: 2; max-width: 840px; margin: 0 auto; }
 .hero-badge {
   display: inline-flex; align-items: center; gap: 0.4rem;
   background: rgba(124,58,237,0.14); border: 1px solid rgba(124,58,237,0.35);
@@ -708,12 +741,12 @@ footer {
   box-shadow: 0 0 16px rgba(124,58,237,0.12);
 }
 .step-num {
-  flex-shrink: 0; width: 34px; height: 34px; border-radius: 50%;
+  /* flex:none prevents the parent's "flex:1 on div" rule from stretching this into an oval */
+  flex: none; width: 34px; height: 34px; border-radius: 50%;
   background: var(--topic-color, var(--primary)); color: #fff;
   font-family: var(--font-code); font-weight: 600; font-size: 0.88rem;
   display: grid; place-items: center; margin-top: 0.1rem;
   box-shadow: 0 0 10px color-mix(in srgb, var(--topic-color, var(--primary)) 50%, transparent);
-  flex-shrink: 0;
 }
 .step-item > div { flex: 1; min-width: 0; }
 .step-item strong { font-family: var(--font-head); font-size: 1rem; display: block; margin-bottom: 0.25rem; }

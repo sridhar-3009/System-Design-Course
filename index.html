@@ -39,31 +39,6 @@
  <div class="hero-orb hero-orb-2" aria-hidden="true"></div>
  <div class="hero-orb hero-orb-3" aria-hidden="true"></div>
  <div class="hero-grid" aria-hidden="true"></div>
- <canvas class="system-3d" id="system3d" aria-hidden="true"></canvas>
-
- <svg class="hero-svg" viewBox="0 0 1200 600" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
- <line x1="150" y1="120" x2="380" y2="200" class="svg-line svg-dash" style="stroke:rgba(167,139,250,0.35);stroke-width:1.5"/>
- <line x1="380" y1="200" x2="620" y2="110" class="svg-line svg-dash" style="stroke:rgba(167,139,250,0.35);stroke-width:1.5"/>
- <line x1="620" y1="110" x2="880" y2="190" class="svg-line svg-dash" style="stroke:rgba(245,158,11,0.25);stroke-width:1.5"/>
- <line x1="880" y1="190" x2="1080" y2="100" class="svg-line svg-dash" style="stroke:rgba(167,139,250,0.35);stroke-width:1.5"/>
- <line x1="380" y1="200" x2="250" y2="420" class="svg-line svg-dash" style="stroke:rgba(16,185,129,0.25);stroke-width:1.5"/>
- <line x1="620" y1="110" x2="700" y2="430" class="svg-line svg-dash" style="stroke:rgba(167,139,250,0.3);stroke-width:1.5"/>
- <line x1="880" y1="190" x2="990" y2="450" class="svg-line svg-dash" style="stroke:rgba(245,158,11,0.25);stroke-width:1.5"/>
- <line x1="250" y1="420" x2="700" y2="430" class="svg-line svg-dash" style="stroke:rgba(167,139,250,0.25);stroke-width:1.5"/>
- <line x1="700" y1="430" x2="990" y2="450" class="svg-line svg-dash" style="stroke:rgba(16,185,129,0.25);stroke-width:1.5"/>
- <circle cx="150" cy="120" r="6" class="svg-node" style="fill:#7C3AED"/>
- <circle cx="380" cy="200" r="9" class="svg-node" style="fill:#9F67F8;animation-delay:.3s"/>
- <circle cx="620" cy="110" r="7" class="svg-node" style="fill:#F59E0B;animation-delay:.6s"/>
- <circle cx="880" cy="190" r="8" class="svg-node" style="fill:#7C3AED;animation-delay:.9s"/>
- <circle cx="1080" cy="100" r="5" class="svg-node" style="fill:#10B981;animation-delay:1.2s"/>
- <circle cx="250" cy="420" r="7" class="svg-node" style="fill:#10B981;animation-delay:.4s"/>
- <circle cx="700" cy="430" r="9" class="svg-node" style="fill:#7C3AED;animation-delay:.8s"/>
- <circle cx="990" cy="450" r="6" class="svg-node" style="fill:#F59E0B;animation-delay:1.1s"/>
- <circle cx="160" cy="125" r="3" class="pkt pkt-1" style="fill:#F59E0B"/>
- <circle cx="640" cy="118" r="3" class="pkt pkt-1" style="fill:#10B981;animation-delay:.8s"/>
- <circle cx="860" cy="185" r="3" class="pkt pkt-2" style="fill:#A78BFA"/>
- <circle cx="680" cy="425" r="3" class="pkt pkt-2" style="fill:#F59E0B;animation-delay:1.6s"/>
- </svg>
 
  <div class="hero-inner">
  <div class="hero-badge">
@@ -86,9 +61,14 @@
  <div class="stat"><div class="num">100%</div><div class="lbl">Free &amp; Offline</div></div>
  </div>
  </div>
- <div class="hero-scroll-cue" aria-hidden="true">
-  <span class="sc-text">Scroll</span>
-  <span class="sc-line"></span>
+
+ <!-- Right column: Three.js 3D panel — physically separate from text -->
+ <div class="hero-3d-panel" aria-hidden="true">
+  <canvas class="system-3d" id="system3d"></canvas>
+  <div class="hero-scroll-cue">
+   <span class="sc-text">Scroll</span>
+   <span class="sc-line"></span>
+  </div>
  </div>
 </header>
 
