@@ -373,6 +373,33 @@ DELETE /users/42 <span class="c-c"># remove user 42</span></code></pre>
  <p><strong>When GraphQL:</strong> complex APIs with many entity types, mobile clients needing custom response shapes, and rapid frontend iteration without backend changes. <strong>When REST:</strong> simple CRUD, public APIs, and anywhere HTTP caching matters — GraphQL's everything-is-a-POST makes caching much harder.</p>
  </section>
 
+ <!-- ============ API GATEWAY CONTENT ============ -->
+ <section class="section-block reveal">
+  <h2>API Gateway</h2>
+  <p>An API Gateway is a managed reverse proxy that sits between clients and your backend services, acting as the single entry point for all external requests. Instead of clients knowing the address of every microservice, they call the gateway — which handles routing, authentication, rate limiting, caching, and protocol translation on their behalf.</p>
+
+  <p><strong>Core responsibilities:</strong></p>
+  <ul class="feature-list">
+   <li><strong>Request routing</strong> — maps incoming paths to the correct backend service (e.g., <code>/api/orders</code> → Order Service, <code>/api/users</code> → User Service)</li>
+   <li><strong>Authentication &amp; authorization</strong> — validates JWT tokens, API keys, or OAuth credentials before the request reaches any backend; backends never deal with raw auth</li>
+   <li><strong>Rate limiting &amp; throttling</strong> — enforces per-client or per-endpoint quotas (100 req/min for free tier, 10K for paid) using token buckets or sliding windows</li>
+   <li><strong>SSL termination</strong> — decrypts HTTPS at the gateway; internal traffic between gateway and services can use plain HTTP on a private network</li>
+   <li><strong>Request/response transformation</strong> — rewrites headers, aggregates multiple backend responses into one, or converts between protocols (REST → gRPC)</li>
+   <li><strong>Caching</strong> — returns cached responses for idempotent GET requests, reducing load on backends</li>
+   <li><strong>Logging &amp; observability</strong> — centralises access logs, latency metrics, and traces across every service at a single chokepoint</li>
+  </ul>
+
+  <p><strong>API Gateway vs. Load Balancer:</strong> A load balancer distributes traffic across identical instances of the same service (Layer 4 or Layer 7 routing). An API Gateway operates at Layer 7 and understands application-level semantics — it routes by path, method, and headers; enforces business policies; and can call multiple backends and merge their responses. Many architectures use both: the gateway as the intelligent front door and a load balancer behind it distributing traffic to each service's pool of instances.</p>
+
+  <p><strong>API Gateway vs. Service Mesh:</strong> An API Gateway manages north-south traffic (external clients ↔ backend). A service mesh (Istio, Linkerd) manages east-west traffic (service ↔ service inside the cluster) — handling mutual TLS, retries, circuit breakers, and observability between microservices. Production systems often run both together.</p>
+
+  <p><strong>How rate limiting works inside a gateway:</strong> On each request the gateway increments a counter in a distributed store (Redis) keyed by client ID and time window. If the counter exceeds the limit it returns <code>429 Too Many Requests</code> with a <code>Retry-After</code> header. The token bucket algorithm allows short bursts above the average rate; the sliding window log is more precise but memory-intensive. All gateway instances share the same Redis counter so the limit is globally enforced across the fleet.</p>
+
+  <p><strong>Failure modes and resilience:</strong> The gateway is a potential single point of failure — run multiple instances behind a load balancer. If the gateway itself is overloaded, back-pressure cascades to clients. Use circuit breakers so the gateway stops forwarding to a failing backend and returns a fast error rather than queueing requests indefinitely. Health checks on backend routes let the gateway stop routing to unhealthy pods automatically.</p>
+
+  <p><strong>Real-world API gateway products:</strong> AWS API Gateway (managed, pay-per-call), Kong (open-source, Nginx-based, plugin ecosystem), Apigee (Google Cloud, enterprise), NGINX (self-managed reverse proxy + gateway features), Envoy (programmatic, used by Istio), and Azure API Management. Choosing between them is mostly a build-vs-buy and cloud-vendor decision rather than a technical one — the patterns above apply to all of them.</p>
+ </section>
+
  <section class="section-block reveal">
  <h2>Interview Q&amp;A</h2>
  <p>Three protocol questions interviewers actually ask — click to reveal strong answers.</p>

@@ -479,6 +479,44 @@ media: <span class="c-n">petabytes</span>/year → CDN mandatory</code></pre>
  </div>
  </section>
 
+ <!-- ============ IP ADDRESSES CONTENT ============ -->
+ <section class="section-block reveal">
+  <h2>IP Addresses</h2>
+  <p>An IP (Internet Protocol) address is a unique numerical label assigned to every device on a network. It serves two purposes: identifying the host or network interface, and providing the location of the device in the network so data can be routed to it correctly.</p>
+
+  <p><strong>IPv4</strong> uses 32-bit addresses written as four decimal octets separated by dots (e.g., <code>192.168.1.1</code>). This gives roughly 4.3 billion possible addresses — a number that ran out as the internet grew. <strong>IPv6</strong> uses 128-bit addresses written in hexadecimal groups separated by colons (e.g., <code>2001:0db8:85a3::8a2e:0370:7334</code>), providing 340 undecillion addresses — effectively limitless for the foreseeable future. IPv6 also adds built-in security (IPSec), better routing efficiency, and no need for NAT.</p>
+
+  <p><strong>Public vs. Private IP Addresses:</strong> Public IPs are globally routable on the internet and assigned by ISPs — every web server you access has one. Private IPs are used inside local networks (home, office, data centre) and are not routable on the public internet. The reserved private ranges are <code>10.0.0.0/8</code>, <code>172.16.0.0/12</code>, and <code>192.168.0.0/16</code>. Your laptop at home has a private IP; your router has the public IP.</p>
+
+  <p><strong>NAT — Network Address Translation:</strong> Because private IPs cannot communicate directly on the internet, NAT lets an entire network share a single public IP. The router rewrites the source IP of outgoing packets to the public IP, tracks active connections in a translation table, and rewrites incoming responses back to the originating private IP. This is how millions of home devices share one public address from an ISP.</p>
+
+  <p><strong>CIDR and Subnets:</strong> CIDR (Classless Inter-Domain Routing) notation expresses an IP address range compactly: <code>10.0.0.0/24</code> means the first 24 bits are the network prefix and the remaining 8 bits are host addresses (256 addresses, 254 usable). Subnetting divides a large network into smaller segments to improve security, reduce broadcast traffic, and allow fine-grained routing. Cloud VPCs (Virtual Private Clouds) always use CIDR to define address spaces.</p>
+
+  <p><strong>Static vs. Dynamic IPs:</strong> A static IP is fixed and never changes — used for servers, printers, and devices that must always be reachable at the same address. A dynamic IP is assigned temporarily by DHCP (Dynamic Host Configuration Protocol) and may change when a device reconnects. Home users typically get dynamic IPs from their ISP; production servers require static IPs (or elastic IPs in cloud environments).</p>
+
+  <p><strong>Loopback and Special Addresses:</strong> <code>127.0.0.1</code> (or <code>localhost</code>) is the loopback address — traffic sent here never leaves the machine and is used for testing local services. <code>0.0.0.0</code> means "all interfaces" when binding a server socket. <code>255.255.255.255</code> is the broadcast address (send to all devices on the subnet).</p>
+ </section>
+
+ <!-- ============ CLIENT-SERVER MODEL CONTENT ============ -->
+ <section class="section-block reveal">
+  <h2>The Client-Server Model</h2>
+  <p>The client-server model is the foundational architecture of the modern web. A <strong>client</strong> is any process that initiates a request for a service or resource. A <strong>server</strong> is a process that listens for and responds to those requests. The two communicate over a network using a well-defined protocol (HTTP, TCP, WebSockets, etc.).</p>
+
+  <p><strong>How it works:</strong> The client sends a request (e.g., <code>GET /api/products</code>) including headers, authentication tokens, and optionally a body. The server receives the request, validates it, executes the business logic (queries a database, calls other services), and returns a response with a status code, headers, and a body (HTML, JSON, binary data). The client then renders or processes that response. This request-response cycle repeats for every interaction.</p>
+
+  <p><strong>Types of clients:</strong> Web browsers (Chrome, Safari), mobile applications (iOS, Android), command-line tools (curl, wget), API clients (Postman, other backend services), and IoT devices all act as clients. The defining characteristic is that the client initiates the communication.</p>
+
+  <p><strong>Types of servers:</strong> Web servers (NGINX, Apache) serve HTTP responses. Application servers (Node.js, Tomcat, Gunicorn) run business logic. Database servers (PostgreSQL, MySQL, MongoDB) store and query data. File servers store and serve files. Cache servers (Redis, Memcached) serve fast in-memory data. A real production system chains several of these together — the client talks to a web server, which delegates to an application server, which reads from a database server.</p>
+
+  <p><strong>Client-Server vs. Peer-to-Peer (P2P):</strong> In client-server, the server is a dedicated, always-on machine and the clients are transient. In P2P (BitTorrent, blockchain nodes), every participant can be both client and server simultaneously. P2P is more resilient (no single point of failure) but harder to secure and control. Most production systems use client-server because it is easier to reason about, scale, monitor, and secure.</p>
+
+  <p><strong>Scaling the server side:</strong> A single server eventually becomes the bottleneck. Vertical scaling (bigger machine) has limits. Horizontal scaling (multiple server instances behind a load balancer) is the standard approach for production. Stateless servers — where the server holds no session data between requests — are easy to scale horizontally because any server can handle any request. Stateful servers (holding session data in memory) require sticky sessions or external session stores (Redis) to scale.</p>
+
+  <p><strong>The two-tier and three-tier models:</strong> A two-tier model has the client talk directly to the database — simple but insecure and hard to scale. The three-tier model (client → application server → database) is the industry standard: the application server enforces business logic and access control, and the database is never exposed directly. Additional tiers (cache, API gateway, CDN) are added as traffic grows.</p>
+
+  <p><strong>Real-world example — how a tweet loads:</strong> Your browser (client) sends an HTTPS GET request to Twitter's CDN edge. The CDN serves cached assets; the dynamic feed request goes to Twitter's load balancer, which routes to an application server. The application server queries a distributed database cluster and a Redis cache for your timeline. The response travels back through the chain in milliseconds — each layer adding capability while hiding complexity from the client.</p>
+ </section>
+
  <!-- ============ INTERVIEW QUESTIONS ============ -->
  <section class="section-block reveal">
  <div class="section-badge">Interview Prep</div>
