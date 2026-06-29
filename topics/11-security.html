@@ -368,6 +368,287 @@ ph.verify(hash, attempt) <span class="c-c"># raises on mismatch</span></code></p
  </section>
 
  <section class="section-block reveal">
+  <h2>Security Foundations in Distributed Systems</h2>
+  <p>Distributed systems expose dramatically more attack surfaces than monolithic applications — every network boundary, API endpoint, and service-to-service call is a potential entry point. Understanding the foundational principles lets you reason about trade-offs before reaching for any specific tool.</p>
+
+  <h3 style="margin-top:1.6rem;margin-bottom:0.8rem;color:var(--topic-color)">The CIA Triad</h3>
+  <p>Every security decision in system design maps back to three properties:</p>
+  <ul>
+   <li><strong>Confidentiality</strong> — prevent unauthorized access to data. Achieved via encryption (AES-256 at rest, TLS in transit), strict IAM roles, and network segmentation so that a compromised service cannot read data it has no business touching.</li>
+   <li><strong>Integrity</strong> — prevent unauthorized modification of data. Achieved via HMACs, digital signatures, input validation, and immutable audit logs. A system that detects tampering is far safer than one that merely hopes tampering does not occur.</li>
+   <li><strong>Availability</strong> — ensure system uptime and access. Achieved via redundancy, auto-scaling, DDoS mitigation (rate limiting, traffic scrubbing), and tested failover strategies. Availability trade-offs are real: aggressively open endpoints raise confidentiality risk, so every availability decision must be evaluated against the other two properties.</li>
+  </ul>
+
+  <h3 style="margin-top:1.6rem;margin-bottom:0.8rem;color:var(--topic-color)">Threat Modeling</h3>
+  <p><strong>Threat modeling</strong> is the structured practice of identifying what you are protecting, who might attack it, where the vulnerabilities lie, and what mitigations are appropriate. Conducted during the design phase of the SDLC (shift-left security), it prevents expensive rework later.</p>
+  <p>The <strong>STRIDE model</strong> gives a checklist of threat categories: <strong>S</strong>poofing (impersonation), <strong>T</strong>ampering (data modification), <strong>R</strong>epudiation (denying actions), <strong>I</strong>nformation disclosure (data leakage), <strong>D</strong>enial of service (availability attacks), and <strong>E</strong>levation of privilege (gaining unauthorized permissions). For each component in your design, walk through every STRIDE category and document the mitigation.</p>
+
+  <h3 style="margin-top:1.6rem;margin-bottom:0.8rem;color:var(--topic-color)">Distributed vs Monolithic: Additional Attack Surface</h3>
+  <p>A monolith has one deployment boundary. A distributed system has many: each microservice, message queue, database, cache, CDN edge node, and internal API is an additional entry point. Key implications:</p>
+  <ul>
+   <li><strong>Inter-service communication</strong> must be authenticated (mTLS or identity tokens) — internal networks are not inherently trusted.</li>
+   <li><strong>Lateral movement</strong> becomes a real risk: a compromised low-privilege service can probe other services if network policies are absent.</li>
+   <li><strong>Secrets sprawl</strong>: each service needs credentials; hardcoding them in images or config files leaks them at scale. Use a dedicated secrets manager (HashiCorp Vault, AWS Secrets Manager).</li>
+   <li><strong>Centralized logging and monitoring</strong> become non-optional — distributed attack patterns are invisible without aggregated telemetry.</li>
+  </ul>
+
+  <h3 style="margin-top:1.6rem;margin-bottom:0.8rem;color:var(--topic-color)">Common Attack Vectors</h3>
+  <p>Understanding the attacker's toolkit helps you design targeted mitigations:</p>
+  <ul>
+   <li><strong>DDoS</strong> — flood the system with traffic to exhaust availability. Mitigate with rate limiting at the edge, traffic scrubbing (Cloudflare, AWS Shield Advanced), and auto-scaling.</li>
+   <li><strong>MITM (Man-in-the-Middle)</strong> — attacker intercepts communication to eavesdrop or tamper. Mitigate with HTTPS/TLS, certificate pinning for mobile clients, and VPNs for internal traffic.</li>
+   <li><strong>Injection attacks</strong> (SQL, NoSQL, command injection) — malicious input executes unintended commands. Mitigate with parameterized queries, input validation, and WAF rules.</li>
+   <li><strong>Spoofing</strong> — impersonating another user, IP, or service. Mitigate with MFA, token-based auth, mTLS for service identities, and IP allowlisting where appropriate.</li>
+  </ul>
+
+  <h3 style="margin-top:1.6rem;margin-bottom:0.8rem;color:var(--topic-color)">Security in the SDLC</h3>
+  <p>Security must be embedded at every phase rather than bolted on at the end:</p>
+  <ul>
+   <li><strong>Requirements</strong>: conduct threat modeling, define security SLAs.</li>
+   <li><strong>Design</strong>: apply secure architecture patterns (least privilege, defense in depth, zero trust).</li>
+   <li><strong>Development</strong>: enforce secure coding standards, use static analysis (SAST) tools.</li>
+   <li><strong>Testing</strong>: run penetration tests, fuzz inputs, and security regression tests.</li>
+   <li><strong>Deployment</strong>: manage secrets properly, harden images, scan for CVEs before release.</li>
+   <li><strong>Maintenance</strong>: patch dependencies promptly, rotate credentials, monitor for anomalies.</li>
+  </ul>
+ </section>
+
+ <section class="section-block reveal">
+  <div class="section-badge">Interview Prep</div>
+  <h2>Security Interview Questions</h2>
+  <p>Key questions on security principles, data protection, authentication, and network security.</p>
+
+  <h3 style="margin-top:1.6rem;margin-bottom:0.8rem;color:var(--topic-color)">Data Protection &amp; Secure Communication Questions</h3>
+  <div class="qa-list">
+   <div class="qa-item">
+    <button class="qa-question">What is the difference between hashing and encryption? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>Encryption</strong> transforms data into unreadable ciphertext that can be reversed (decrypted) with a key. It exists to protect <strong>confidentiality</strong>. There are two families: <strong>symmetric</strong> encryption uses the same key for both operations (e.g., AES — fast, suitable for bulk data), and <strong>asymmetric</strong> encryption uses a public key to encrypt and a private key to decrypt (e.g., RSA — slower, used for key exchange and digital signatures). Encryption is <strong>reversible</strong> if you hold the key.</p>
+     <p><strong>Hashing</strong> generates a fixed-size, irreversible digest from input data. It is a one-way function — the same input always produces the same output, but you cannot reconstruct the input from the hash. A small change in input produces a completely different hash (the <strong>avalanche effect</strong>). Hashing is used for <strong>integrity checks</strong> and <strong>password storage</strong> (e.g., bcrypt, Argon2, SHA-256 with salt). It is <strong>not reversible</strong> by design.</p>
+     <p>Summary: use encryption when you need to retrieve the original data; use hashing when you only need to verify identity or integrity without ever recovering the plaintext.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">Why is asymmetric encryption slower than symmetric encryption? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>Asymmetric encryption</strong> (RSA, ECC, DSA) relies on computationally hard mathematical problems — for example, RSA uses modular exponentiation over very large primes (2048-bit or 4096-bit keys). These operations are CPU-intensive and cannot be easily hardware-accelerated at the same throughput as symmetric ciphers.</p>
+     <p><strong>Symmetric encryption</strong> (AES) uses a single shared key and operates on data blocks with efficient bitwise and substitution operations. Modern CPUs have dedicated AES-NI instructions that make AES extremely fast — orders of magnitude faster than RSA for the same data volume.</p>
+     <p>The real-world solution is <strong>hybrid encryption</strong>: TLS/HTTPS uses asymmetric encryption only during the handshake to securely exchange a symmetric session key, then switches to fast symmetric encryption (AES-GCM) for the actual data stream. This gives you the security properties of asymmetric key exchange with the performance of symmetric encryption.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">How does PKI build trust online? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>PKI (Public Key Infrastructure)</strong> is a framework of roles, policies, and technologies that enables secure authentication, encryption, and digital signing over untrusted networks like the internet. It answers the critical question: "How do I know this public key really belongs to example.com?"</p>
+     <p>PKI builds trust through a <strong>chain of trust</strong>: browsers ship with a set of pre-trusted <strong>Root Certificate Authorities (CAs)</strong>. Root CAs sign <strong>Intermediate CA</strong> certificates, which in turn sign the <strong>leaf certificate</strong> for your domain. If the browser trusts the root, it trusts the entire chain down to your certificate. Each <strong>digital certificate</strong> binds a public key to an identity (domain, organization) and includes the issuer's signature, validity period, and allowed usages.</p>
+     <p>When a browser visits an HTTPS site, it verifies the certificate's signature, expiration, and issuer against the trusted chain. It also checks <strong>revocation status</strong> via CRLs (Certificate Revocation Lists) or OCSP (Online Certificate Status Protocol) to catch compromised certificates. PKI ultimately provides: <strong>Authentication</strong> (you're talking to the real server), <strong>Confidentiality</strong> (encrypted session), <strong>Integrity</strong> (tamper detection), and <strong>Non-repudiation</strong> (signed content cannot be denied).</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">What is the concept behind securing Data at Rest and Data in Motion? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>Data at Rest</strong> refers to data stored persistently — on disk, SSDs, databases, file systems, and backups. Threats include physical theft of storage media, compromised database access, and insider threats. Protection methods include <strong>full-disk encryption</strong> (BitLocker, LUKS), <strong>database-level encryption</strong> (Transparent Data Encryption / TDE), file-level encryption, and strict IAM roles enforcing least-privilege access. Encryption keys themselves must be managed via a KMS (Key Management Service) rather than stored alongside the data.</p>
+     <p><strong>Data in Motion</strong> (data in transit) refers to data actively moving through the network — between client and server, between microservices, or across data centers. Threats include eavesdropping, MITM attacks, and session hijacking. Protection methods include <strong>TLS/SSL</strong> (HTTPS for client-server, secure WebSockets), <strong>VPNs and IPSec</strong> for internal network tunnels, and <strong>mutual TLS (mTLS)</strong> for service-to-service communication where both sides present certificates.</p>
+     <p>A robust security posture encrypts data <em>everywhere</em> — at rest and in transit — and combines encryption with strong access controls, auditing, and continuous monitoring. Leaving one state unprotected breaks the entire chain.</p>
+    </div>
+   </div>
+  </div>
+
+  <h3 style="margin-top:1.6rem;margin-bottom:0.8rem;color:var(--topic-color)">Security Focused Questions</h3>
+  <div class="qa-list">
+   <div class="qa-item">
+    <button class="qa-question">How would you design a secure authentication system for a distributed application? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>Use <strong>OAuth 2.0 / OpenID Connect</strong> for delegation and identity federation. A dedicated <strong>Authentication Server</strong> (Auth0, Okta, or a custom implementation) issues short-lived <strong>access tokens</strong> (~15 min) and longer-lived <strong>refresh tokens</strong> stored securely server-side or in HttpOnly cookies. Tokens are typically <strong>JWTs</strong> signed with HMAC-SHA256 or RSA, enabling stateless validation across services without querying a central session store.</p>
+     <p>Security layers to add on top: enforce <strong>HTTPS everywhere</strong> so tokens are never transmitted in plaintext; implement <strong>MFA</strong> for sensitive operations; <strong>rate-limit</strong> login attempts to prevent brute force; rotate signing keys on a schedule; and set short token TTLs with forced re-authentication for high-risk operations (e.g., password change, large financial transfers). Store minimal session state on the client — only what is needed for the token to be self-describing.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">Explain how the CIA triad applies to system design. <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>The <strong>CIA triad</strong> is the foundational security framework: every system design decision that touches security maps to one or more of its three properties.</p>
+     <p><strong>Confidentiality</strong> means preventing unauthorized access to data. In system design: HTTPS for data in transit, AES encryption for data at rest, IAM roles with least privilege, secrets management (Vault, AWS Secrets Manager), and network segmentation via VPCs.</p>
+     <p><strong>Integrity</strong> means preventing unauthorized modification of data. In system design: HMACs on API payloads, digital signatures on critical records, input validation and parameterized queries to prevent injection, immutable audit logs, and database row-level checksums.</p>
+     <p><strong>Availability</strong> means ensuring services are accessible when needed. In system design: load balancing, auto-scaling, multi-region redundancy, DDoS protection (rate limiting, traffic scrubbing), and tested failover/DR procedures.</p>
+     <p>Important trade-off: these properties can conflict. Maximizing availability (e.g., removing authentication for speed) can compromise confidentiality. Good system design explicitly documents where trade-offs are made and why.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">What are common security threats in a microservices architecture, and how would you mitigate them? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>Microservices introduce a large internal attack surface that monoliths avoid. Key threats:</p>
+     <p><strong>Unauthorized inter-service calls</strong>: in a flat internal network, a compromised service can call any other service. Mitigate with <strong>mTLS</strong> (mutual TLS) or short-lived identity tokens so each service authenticates every incoming call — this is the core of <strong>zero-trust networking</strong>.</p>
+     <p><strong>Sensitive data leakage over internal APIs</strong>: internal APIs are not automatically safe. Encrypt all internal traffic with TLS and apply schema validation at the API gateway layer.</p>
+     <p><strong>No centralized audit logging</strong>: distributed logs make it nearly impossible to reconstruct an attack timeline. Use a centralized log aggregation platform (ELK, Splunk, Datadog) with tamper-evident storage.</p>
+     <p><strong>API gateway spoofing</strong>: if services blindly trust headers set by a gateway, a compromised internal caller can forge them. Verify JWT signatures at each service, not just at the gateway.</p>
+     <p><strong>Lateral movement</strong>: implement network policies (Kubernetes NetworkPolicy, security groups) so services can only communicate with the specific peers they need. Pair with a service mesh (Istio, Linkerd) for fine-grained traffic control and policy enforcement.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">How would you protect your system from a DDoS attack? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>DDoS attacks flood your system with traffic to exhaust bandwidth, compute, or connection capacity. Defense is layered:</p>
+     <p><strong>Edge-level mitigation</strong>: put a CDN or DDoS scrubbing service (Cloudflare, AWS Shield Advanced, Akamai Kona) in front of your origin. These services have massive network capacity to absorb volumetric attacks and can distinguish legitimate traffic from attack traffic using behavioral analysis.</p>
+     <p><strong>Rate limiting</strong>: enforce per-IP and per-user request limits at the API gateway or WAF layer. Combined with <strong>CAPTCHAs</strong> for interactive endpoints, this raises the cost for attackers significantly.</p>
+     <p><strong>Auto-scaling</strong>: horizontally scale your infrastructure (Kubernetes HPA, AWS Auto Scaling) so sudden traffic spikes do not immediately exhaust capacity while scrubbing kicks in.</p>
+     <p><strong>Global load balancers</strong>: distribute traffic geographically so regional attacks are absorbed without impacting other regions.</p>
+     <p><strong>Detection</strong>: monitor request volume, latency percentiles, and failed authentication rates in real time. Anomaly spikes are the earliest signal of an in-progress attack. Automate runbooks to activate additional protections when thresholds are crossed.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">What role does TLS/HTTPS play in system security, and how do you manage certificates at scale? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>TLS (Transport Layer Security) provides three guarantees for data in transit: <strong>confidentiality</strong> (the payload is encrypted and unreadable to eavesdroppers), <strong>integrity</strong> (MAC ensures tampering is detected), and <strong>authentication</strong> (the server presents a certificate proving its identity).</p>
+     <p>At scale, certificate management becomes operationally complex. Best practices: use <strong>automated certificate rotation</strong> via Let's Encrypt with Certbot or ACME protocol integrations — never let certificates expire silently. <strong>Offload TLS termination</strong> at the load balancer or API gateway (e.g., AWS ALB, Nginx, Envoy) rather than at every application instance, reducing per-service complexity. Enforce <strong>HSTS (HTTP Strict Transport Security)</strong> so browsers never downgrade to HTTP. Disable deprecated protocol versions (TLS 1.0 and 1.1) and weak cipher suites — enforce TLS 1.2 minimum, preferably TLS 1.3. For internal service-to-service communication, use a service mesh (Istio) that automatically provisions and rotates mTLS certificates via a built-in CA.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">How can you ensure secure data storage in a cloud-based system? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>Secure cloud data storage requires multiple complementary controls:</p>
+     <p><strong>Encryption at rest</strong>: use cloud KMS-managed keys (AWS KMS, GCP KMS, Azure Key Vault) for all storage services — object stores, databases, and block volumes. Customer-managed keys (CMKs) give you control over key rotation and revocation.</p>
+     <p><strong>Role-based access control (RBAC)</strong>: follow the <strong>principle of least privilege</strong> — each service, function, or user should be granted only the permissions strictly required for its job. Database read replicas used for reporting should not have write access.</p>
+     <p><strong>Secrets management</strong>: never hardcode credentials. Store API keys, database passwords, and certificates in a dedicated secrets manager (AWS Secrets Manager, HashiCorp Vault) with automatic rotation enabled.</p>
+     <p><strong>Audit logging</strong>: enable CloudTrail (AWS), Cloud Audit Logs (GCP), or equivalent so you have an immutable record of who accessed what and when. Alert on anomalous access patterns — unexpected geographic locations, unusually large data exports, or access outside business hours.</p>
+     <p><strong>Data classification</strong>: classify data by sensitivity and apply stricter controls (additional encryption layers, narrower access) to PII, financial data, and secrets.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">What is threat modeling and how would you incorporate it into your design process? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>Threat modeling</strong> is a structured process for identifying security risks early. It answers four questions: What are you protecting (assets)? Who might attack it (threat actors)? Where are you vulnerable (attack vectors)? How do you defend (mitigations)?</p>
+     <p>Integration into the SDLC: conduct threat modeling during the <strong>design phase</strong>, before implementation begins — changes are cheap at design time and expensive in production. For each major feature or architectural change, assemble the relevant engineers and walk through the system diagram using a framework like <strong>STRIDE</strong> (Spoofing, Tampering, Repudiation, Information disclosure, Denial of service, Elevation of privilege) or <strong>DREAD</strong> (Damage, Reproducibility, Exploitability, Affected users, Discoverability) to score risks.</p>
+     <p>Document the findings: list every threat, the component it affects, its likelihood and impact, and the chosen mitigation. Revisit the threat model with every significant feature addition or architecture change. Threat modeling is not a one-time exercise — it is an ongoing practice that matures as the system evolves.</p>
+    </div>
+   </div>
+  </div>
+
+  <h3 style="margin-top:1.6rem;margin-bottom:0.8rem;color:var(--topic-color)">Authentication &amp; Authorization Questions</h3>
+  <div class="qa-list">
+   <div class="qa-item">
+    <button class="qa-question">Why is JWT commonly used for stateless authentication in distributed systems? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>JWT (JSON Web Token)</strong> is popular for distributed systems because it is <strong>self-contained</strong>: a JWT carries all necessary claims — user identity, roles, permissions, and expiration — encoded directly in the token. A receiving service can validate the token by verifying its cryptographic signature (HMAC-SHA256 or RSA) without querying a central session store. This <strong>stateless validation</strong> is critical for horizontal scalability: any instance of any service can independently validate any token.</p>
+     <p>Additional advantages: JWTs are compact and URL-safe (transmitted as a <code>Bearer</code> header), they follow a well-known standard (RFC 7519) supported across languages and platforms, and the payload can carry custom claims to avoid extra database lookups in authorization logic.</p>
+     <p>Key caveats: JWT tokens cannot easily be revoked before expiry without maintaining a token blacklist (which reintroduces statefulness). Store tokens in <strong>HttpOnly cookies</strong>, not <code>localStorage</code>, to prevent XSS theft. Use short expiration (~15 minutes) with refresh tokens to limit the damage window if a token is stolen. Always validate the signature, <code>iss</code>, <code>aud</code>, and <code>exp</code> claims — never accept tokens with <code>alg: none</code>.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">How does OAuth 2.0 differ from OpenID Connect? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>OAuth 2.0</strong> is an <em>authorization</em> framework. It allows a third-party application to obtain limited access to a user's resources on another service — without exposing the user's credentials. The classic example: granting a third-party app permission to post on your Twitter account. OAuth 2.0 issues an <strong>access token</strong> scoped to specific resources and actions. It says nothing about who the user actually is.</p>
+     <p><strong>OpenID Connect (OIDC)</strong> is an <em>authentication</em> layer built on top of OAuth 2.0. It adds the concept of an <strong>ID token</strong> (a JWT) that contains verified identity claims about the user — name, email, subject identifier. OIDC standardizes login flows so that a relying party (your app) can verify the user's identity through an identity provider (Google, Okta, Auth0).</p>
+     <p>In practice: use OAuth 2.0 when you need delegated resource access; use OIDC when you need to authenticate who the user is. Most modern systems use both: OIDC authenticates the user and OAuth 2.0 scopes control what the issued tokens can access.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">Explain the difference between RBAC and ABAC. Which is more suitable for a highly dynamic environment? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>RBAC (Role-Based Access Control)</strong> grants access based on user roles (Admin, Editor, Viewer). A user is assigned one or more roles, and each role maps to a set of permissions. RBAC is simple to implement and audit, but can lead to "role explosion" as the number of distinct permission combinations grows.</p>
+     <p><strong>ABAC (Attribute-Based Access Control)</strong> grants access based on a combination of attributes: user attributes (department, clearance level), resource attributes (classification, owner), and environmental attributes (time of day, IP address, device trust level). Example policy: "A user with <code>department=HR</code> can access payroll records during business hours from a managed device." ABAC policies are expressed in policy engines like OPA (Open Policy Agent) or AWS Cedar.</p>
+     <p>For a <strong>highly dynamic environment</strong> — multi-tenant SaaS, cloud platforms, systems with context-sensitive rules — <strong>ABAC is more suitable</strong>. It handles fine-grained and context-aware decisions that RBAC cannot express without an impractical number of roles. The trade-off is complexity: ABAC policies are harder to reason about and audit than simple role assignments.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">What are the advantages of using Single Sign-On (SSO) in a system? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>Single Sign-On (SSO)</strong> allows a user to authenticate once with a central identity provider and then access multiple applications or services without re-entering credentials. Common protocols: SAML 2.0, OAuth 2.0 / OIDC.</p>
+     <p>Advantages: <strong>Improved user experience</strong> — one login for all connected systems reduces friction and credential fatigue. <strong>Stronger security posture</strong> — centralizing authentication allows the organization to enforce consistent security policies (MFA, password complexity, session timeouts) across all applications from a single control plane. <strong>Reduced attack surface</strong> — fewer passwords means fewer credentials to phish or breach. <strong>Simplified compliance and auditing</strong> — central authentication logs provide a unified access trail for SOC 2, HIPAA, and other compliance frameworks. <strong>Reduced helpdesk load</strong> — fewer forgotten-password tickets when users only manage one set of credentials.</p>
+     <p>SSO also enables <strong>federated identity</strong> across organizational boundaries (e.g., B2B partnerships), allowing employees of one company to access a partner's systems using their home-company credentials.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">What are the potential security concerns with token-based authentication? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>Token-based authentication (particularly JWTs) is powerful but carries specific risks that must be actively mitigated:</p>
+     <p><strong>Token theft</strong>: tokens stored in <code>localStorage</code> are accessible to JavaScript and can be stolen via XSS attacks. Store tokens in <strong>HttpOnly, Secure cookies</strong> which JavaScript cannot read.</p>
+     <p><strong>Lack of revocation</strong>: a JWT is valid until its <code>exp</code> claim expires — there is no built-in way to invalidate a specific token mid-life. If a user logs out or their account is compromised, the token remains valid. Solutions: maintain a server-side <strong>token blacklist</strong> (reintroduces statefulness) or use very short expiration windows with refresh token rotation.</p>
+     <p><strong>Token replay attacks</strong>: if a token is intercepted (e.g., MITM on HTTP), an attacker can reuse it. Enforce HTTPS everywhere to prevent interception. Bind tokens to a specific audience (<code>aud</code> claim) and origin where possible.</p>
+     <p><strong>Algorithm confusion attacks</strong>: servers that accept both RS256 and HS256 can be tricked by an attacker who re-signs a tampered token using HS256 with the public key as the HMAC secret. Always specify the expected algorithm server-side — never trust the algorithm from the token header.</p>
+     <p><strong>Long-lived tokens</strong>: tokens with multi-day or no expiry dramatically extend the blast radius of a breach. Use short-lived access tokens (~15 min) and rotate refresh tokens on each use.</p>
+    </div>
+   </div>
+  </div>
+
+  <h3 style="margin-top:1.6rem;margin-bottom:0.8rem;color:var(--topic-color)">Network &amp; Infrastructure Security Questions</h3>
+  <div class="qa-list">
+   <div class="qa-item">
+    <button class="qa-question">What is the difference between a firewall and a reverse proxy? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>A <strong>firewall</strong> is a network security control that monitors and filters traffic based on predetermined rules at the network or transport layer. It makes allow/deny decisions based on IP addresses, ports, and protocols. Firewalls can be hardware appliances, software (iptables, Windows Firewall), or cloud-native (AWS Security Groups, GCP VPC Firewall Rules). Advanced <strong>next-generation firewalls (NGFW)</strong> operate at the application layer and can perform deep packet inspection.</p>
+     <p>A <strong>reverse proxy</strong> sits between external clients and backend servers, forwarding requests to the appropriate backend and returning responses to the client. The client never communicates directly with the backend server — the reverse proxy hides their identity and addresses. In addition to routing, reverse proxies provide: <strong>TLS termination</strong>, <strong>load balancing</strong>, <strong>caching</strong>, <strong>compression</strong>, <strong>rate limiting</strong>, and protection from DDoS by masking origin infrastructure. Examples: Nginx, HAProxy, Envoy, AWS ALB, Cloudflare.</p>
+     <p>Key distinction: a firewall enforces network access rules and blocks unwanted traffic at the connection level; a reverse proxy operates at the application level and provides both routing and additional security features. In production, they are complementary — firewalls protect the network perimeter and internal segmentation, while reverse proxies add application-layer controls.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">How does rate limiting protect your backend services? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>Rate limiting</strong> controls the volume of incoming requests to a service within a time window. It protects backend services from several classes of abuse:</p>
+     <p><strong>DDoS and volumetric attacks</strong>: by capping the request rate per IP or per client, rate limiting prevents a single source from exhausting server resources. Combined with traffic scrubbing at the CDN layer, it provides layered defense.</p>
+     <p><strong>API abuse</strong>: without rate limits, a malicious or misconfigured client can send thousands of requests per second, starving legitimate users. Rate limiting enforces fair use and SLA compliance.</p>
+     <p><strong>Credential stuffing and brute force</strong>: rate limiting login endpoints to a few attempts per minute makes automated password-guessing attacks economically infeasible.</p>
+     <p>Common algorithms: <strong>Fixed Window</strong> — simple counter per time window, but vulnerable to burst at window boundaries. <strong>Sliding Window</strong> — smooths out boundary bursts. <strong>Token Bucket</strong> — allows controlled bursting up to a bucket capacity, ideal for APIs with bursty legitimate traffic. <strong>Leaky Bucket</strong> — enforces a strictly constant output rate regardless of input burst.</p>
+     <p>Rate limits should be applied at multiple layers: CDN/edge for volumetric protection, API gateway for per-route quotas, and application code for business-logic-specific limits (e.g., per-user transaction frequency).</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">Explain the Zero Trust security model and its importance. <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>Zero Trust</strong> is a security model built on the principle of "Never Trust, Always Verify." Traditional perimeter-based security assumed everything inside the corporate network was trustworthy — once past the firewall, lateral movement was easy. Zero Trust eliminates this assumption: no user, device, or service is trusted by default, regardless of whether the request originates inside or outside the network.</p>
+     <p>Core principles: <strong>Verify every access request</strong> explicitly — authenticate and authorize using all available signals (identity, device health, location, service). <strong>Least privilege access</strong> — grant the minimum permissions required for the task, for the shortest necessary duration. <strong>Micro-segmentation</strong> — divide the network into small zones so that a compromised service cannot freely access other services. <strong>Continuous monitoring</strong> — log and analyze all traffic; flag behavioral anomalies in real time.</p>
+     <p>Importance for modern architectures: cloud workloads, remote workers, and microservices have dissolved the traditional perimeter entirely. Zero Trust is the only model that works when your "network" spans multiple clouds, on-premises data centers, and employee home networks. It also limits blast radius — even if one service or credential is compromised, tight segmentation and least-privilege policies prevent the attacker from moving laterally.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">How would you secure a containerized workload in Kubernetes? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>Kubernetes security is multi-layered — no single control is sufficient:</p>
+     <p><strong>Container image security</strong>: use minimal, trusted base images (Alpine Linux, distroless). Scan images for CVEs before deployment using tools like Trivy or Clair. Sign images with Cosign to ensure only approved images are deployed.</p>
+     <p><strong>RBAC</strong>: define fine-grained Kubernetes Role and ClusterRole objects. Service accounts should have the minimum permissions needed — avoid <code>cluster-admin</code> for application workloads. Audit RBAC policies regularly.</p>
+     <p><strong>Pod Security Admission (PSA)</strong>: enforce security profiles that prevent containers from running as root, disallow privilege escalation, restrict host path mounts, and enforce read-only root filesystems where possible.</p>
+     <p><strong>Network Policies</strong>: by default, Kubernetes allows all pods to communicate with all other pods. Implement explicit NetworkPolicy resources to whitelist only the required pod-to-pod communication paths, blocking lateral movement.</p>
+     <p><strong>Service mesh for mTLS</strong>: deploy Istio or Linkerd to automatically provision and rotate mTLS certificates for all service-to-service communication, with traffic policy enforcement at the sidecar proxy level.</p>
+     <p><strong>Secrets management</strong>: never store secrets in plaintext in Kubernetes manifests or ConfigMaps. Use Kubernetes Secrets (encrypted at rest via KMS) or external solutions like HashiCorp Vault with the Vault Agent Injector or External Secrets Operator to pull secrets at runtime.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">What are common OWASP Top 10 vulnerabilities and how do you mitigate them? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>The OWASP Top 10 (2021) represents the most critical web application security risks:</p>
+     <p><strong>Injection</strong> (SQL, NoSQL, OS command): attackers send malicious input that gets executed as code. Mitigate with parameterized queries, prepared statements, and WAF rules — never concatenate user input into queries.</p>
+     <p><strong>Broken Authentication</strong>: weak passwords, missing MFA, credential stuffing. Mitigate with strong password policies, MFA, rate-limited login endpoints, and secure password hashing (bcrypt, Argon2).</p>
+     <p><strong>Sensitive Data Exposure</strong>: unencrypted PII in transit or at rest. Mitigate with HTTPS/TLS everywhere, encryption at rest (AES-256), and data minimization.</p>
+     <p><strong>XML External Entities (XXE)</strong>: malicious XML input that reads files or SSRFs. Mitigate by disabling external entity processing in XML parsers and validating all XML input.</p>
+     <p><strong>Broken Access Control</strong>: users accessing resources beyond their authorization. Mitigate with server-side authorization checks on every request, RBAC, and deny-by-default access policies.</p>
+     <p><strong>Security Misconfiguration</strong>: default credentials, open cloud storage, verbose error messages. Mitigate with hardened baseline configurations, automated config auditing (CIS Benchmarks), and removing all unnecessary features and services.</p>
+     <p><strong>Cross-Site Scripting (XSS)</strong>: injected scripts run in victim's browser. Mitigate with output encoding, Content Security Policy (CSP) headers, and input sanitization.</p>
+     <p><strong>Insecure Deserialization</strong>: untrusted data deserialized into objects, enabling RCE. Mitigate by avoiding deserialization of untrusted data, using signed/encrypted serialization formats.</p>
+     <p><strong>Using Components with Known Vulnerabilities</strong>: outdated libraries with CVEs. Mitigate with automated dependency scanning (Snyk, Dependabot) and a patching process with SLA.</p>
+     <p><strong>Insufficient Logging &amp; Monitoring</strong>: attackers operate undetected for months. Mitigate with centralized, tamper-evident logging, real-time alerting on anomalies, and regular incident response drills.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">How does a service mesh help enforce security in microservices? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>A <strong>service mesh</strong> is a dedicated infrastructure layer — typically implemented via sidecar proxies (Envoy in Istio, Linkerd proxy) — that intercepts all service-to-service communication and applies policies transparently, without requiring application code changes.</p>
+     <p><strong>Mutual TLS (mTLS)</strong>: the mesh's built-in CA automatically provisions short-lived certificates for each service identity. Every connection between services is mutually authenticated and encrypted, eliminating the "trust the internal network" assumption. Certificate rotation is automated.</p>
+     <p><strong>Access control policies</strong>: the mesh enforces which services are allowed to communicate with which other services. A <code>service-to-service</code> policy can be as specific as "Service A can call Service B's <code>/payment</code> endpoint using POST — nothing else."</p>
+     <p><strong>Traffic observability</strong>: the sidecar proxies emit detailed telemetry — request rates, error rates, latency histograms — and full distributed traces. This makes anomalous communication patterns (unexpected service-to-service calls, spike in error rates) immediately visible.</p>
+     <p><strong>Rate limiting and circuit breaking</strong>: the mesh can apply these resilience patterns at the infrastructure layer, protecting services from being overwhelmed without application-level code. Popular service meshes: Istio, Linkerd, Consul Connect, AWS App Mesh.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">What is the role of IAM in cloud security? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>IAM (Identity and Access Management)</strong> is the control plane for cloud security — it governs who or what can access which cloud resources and what actions they can perform.</p>
+     <p>Key functions: <strong>Authentication</strong> — verifying the identity of users, applications, or services (via passwords, API keys, service account tokens, or federated SSO). <strong>Authorization</strong> — determining what an authenticated principal is permitted to do, expressed as IAM policies that attach to users, groups, roles, or resources. <strong>Least privilege enforcement</strong> — IAM policies allow fine-grained permission scoping: a Lambda function that reads from one S3 bucket should be granted exactly <code>s3:GetObject</code> on that specific bucket ARN, nothing broader. <strong>Audit logging</strong> — all IAM-governed API calls are logged (AWS CloudTrail, GCP Cloud Audit Logs) for compliance and incident investigation.</p>
+     <p>IAM also enables <strong>temporary credentials</strong> via role assumption (AWS STS AssumeRole) — workloads receive short-lived credentials that automatically expire, dramatically reducing the risk of long-lived credential leakage. In Kubernetes, <strong>IAM Roles for Service Accounts (IRSA)</strong> or <strong>Workload Identity</strong> (GCP) bind pod-level service accounts to cloud IAM roles, enabling fine-grained cloud API permissions without mounting static credentials into pods.</p>
+    </div>
+   </div>
+  </div>
+ </section>
+
+ <section class="section-block reveal">
  <h2>Further Reading</h2>
  <div class="reading-links">
  <a class="reading-link-card" href="https://owasp.org/www-project-top-ten/" target="_blank" rel="noopener">
