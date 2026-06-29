@@ -664,11 +664,11 @@
   /* ── Aurora background orbs ─────────────────────────── */
   function spawnAuroraOrbs() {
     const orbs = [
-      { color:'rgba(124,58,237,0.22)',  w:560, h:420, top:'8%',  left:'12%', dur:'22s', delay:'0s'   },
-      { color:'rgba(6,182,212,0.14)',   w:480, h:360, top:'55%', left:'62%', dur:'28s', delay:'-8s'  },
-      { color:'rgba(236,72,153,0.10)',  w:400, h:340, top:'30%', left:'75%', dur:'20s', delay:'-4s'  },
-      { color:'rgba(16,185,129,0.10)',  w:380, h:280, top:'70%', left:'8%',  dur:'24s', delay:'-12s' },
-      { color:'rgba(167,139,250,0.12)', w:320, h:260, top:'20%', left:'42%', dur:'18s', delay:'-6s'  },
+      { color:'rgba(124,58,237,0.38)',  w:600, h:460, top:'8%',  left:'12%', dur:'22s', delay:'0s'   },
+      { color:'rgba(6,182,212,0.22)',   w:520, h:400, top:'55%', left:'62%', dur:'28s', delay:'-8s'  },
+      { color:'rgba(236,72,153,0.16)',  w:440, h:370, top:'30%', left:'75%', dur:'20s', delay:'-4s'  },
+      { color:'rgba(16,185,129,0.16)',  w:420, h:320, top:'70%', left:'8%',  dur:'24s', delay:'-12s' },
+      { color:'rgba(167,139,250,0.20)', w:360, h:300, top:'20%', left:'42%', dur:'18s', delay:'-6s'  },
     ];
     orbs.forEach(function(o) {
       var el = document.createElement('div');
