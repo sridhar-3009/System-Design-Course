@@ -438,6 +438,569 @@ redis.call(<span class="c-s">'HSET'</span>, KEYS[<span class="c-n">1</span>], <s
  </div>
  </section>
 
+ <!-- ========== MINDSET & FINAL PREP ========== -->
+ <section class="section-block reveal">
+  <h2>Interview Mindset &amp; Final Preparation</h2>
+  <p>Clearing a system design interview is as much about how you think and communicate as it is about knowing the right patterns. Interviewers are evaluating four things simultaneously: clarity of thought, depth in trade-offs and technical decisions, communication and collaboration skills, and structured problem-solving. Keeping those four lenses in mind shapes every minute of your session.</p>
+
+  <h3 style="margin-top:1.2rem;font-size:1.05rem;color:var(--accent)">What Interviewers Are Really Measuring</h3>
+  <ul class="feature-list">
+   <li><strong>Clarity of thought</strong> — Can you decompose a vague prompt into concrete requirements without hand-waving?</li>
+   <li><strong>Trade-off depth</strong> — Do you know <em>why</em> you chose SQL over NoSQL, or strong consistency over eventual? Can you articulate the cost?</li>
+   <li><strong>Communication</strong> — Are you narrating your reasoning step-by-step, or just drawing boxes silently?</li>
+   <li><strong>Structured problem-solving</strong> — Do you follow a repeatable framework, or jump straight to implementation details?</li>
+  </ul>
+
+  <h3 style="margin-top:1.2rem;font-size:1.05rem;color:var(--accent)">The Right Mindset Going In</h3>
+  <ul class="feature-list">
+   <li><strong>Stay curious, not anxious</strong> — Treat the problem as an interesting puzzle, not a pass/fail test. Curiosity surfaces better questions.</li>
+   <li><strong>Prioritize exploration over perfection</strong> — No real system is perfect. Show that you understand trade-offs better than you chase a single "right" answer.</li>
+   <li><strong>Communicate step-by-step</strong> — Interviewers want to follow your reasoning. Say "I'm going to start by clarifying requirements" before you do it.</li>
+   <li><strong>Lean into complexity</strong> — When scope expands or constraints change, don't panic. Reassess bottlenecks aloud and adapt.</li>
+  </ul>
+
+  <h3 style="margin-top:1.2rem;font-size:1.05rem;color:var(--accent)">The 4-Step Repeatable Framework</h3>
+  <p>Use this framework every time — it keeps responses structured and easy to iterate on when the interviewer adds new constraints:</p>
+  <ul class="feature-list">
+   <li><strong>Step 1 — Understand requirements</strong> — Gather functional requirements (what the system does) and non-functional requirements (scale, latency, availability, consistency). Ask clarifying questions out loud.</li>
+   <li><strong>Step 2 — Estimate scale &amp; identify bottlenecks</strong> — Back-of-the-envelope math: DAU, QPS, storage, bandwidth. Use this to pinpoint which components will buckle first.</li>
+   <li><strong>Step 3 — High-level design</strong> — Sketch the major components, data flow, and key service interactions. Don't over-engineer; get the skeleton right first.</li>
+   <li><strong>Step 4 — Strategic tech &amp; infra decisions</strong> — Now go deep: database choice, caching strategy, async vs. sync, scaling approach, failure modes. Always justify your choices with context.</li>
+  </ul>
+
+  <h3 style="margin-top:1.2rem;font-size:1.05rem;color:var(--accent)">Handling Ambiguity and Evolving Scope</h3>
+  <p>Interviewers add ambiguity on purpose. When the scope changes mid-interview: reassess bottlenecks, communicate how your design needs to shift, and reason through the impact. Practice decomposition — break large problems into services, flows, or layers, then zoom into specific parts (storage, API, auth) when the interviewer signals interest.</p>
+
+  <h3 style="margin-top:1.2rem;font-size:1.05rem;color:var(--accent)">Communicating Trade-offs Effectively</h3>
+  <ul class="feature-list">
+   <li><strong>Always explain why X over Y</strong> — SQL vs. NoSQL, strong vs. eventual consistency, monolith vs. microservices, caching vs. precomputation. Context wins every time.</li>
+   <li><strong>Show awareness of real-world costs</strong> — Latency, cost, scalability, and availability pull in different directions. Name the tension.</li>
+   <li><strong>Avoid blanket answers</strong> — "Just use Kafka" without justification is a red flag. Tie every choice to the problem's specific constraints.</li>
+  </ul>
+
+  <h3 style="margin-top:1.2rem;font-size:1.05rem;color:var(--accent)">Building Interview Fluency</h3>
+  <ul class="feature-list">
+   <li><strong>Timed drills</strong> — Practice on whiteboards or tools like Excalidraw with a 45-minute timer. Record yourself and review for clarity.</li>
+   <li><strong>Mock sessions with peers</strong> — Nothing replaces real-time feedback from someone playing the role of interviewer.</li>
+   <li><strong>Build muscle memory</strong> — Use templates for requirements gathering and scale estimation. Repeat core design patterns until they become reflexive.</li>
+   <li><strong>Prepare for both formats</strong> — Remote (diagramming tools, screen sharing) and in-person (whiteboarding and verbal reasoning) require slightly different pacing.</li>
+  </ul>
+
+  <p style="margin-top:1rem"><strong>Final thought:</strong> You are not just preparing for interviews — you are becoming a system thinker. The habits you build here (structured decomposition, trade-off reasoning, clear communication) will serve you throughout your engineering career.</p>
+ </section>
+
+ <!-- ========== CASE STUDY: TICKETING SYSTEM ========== -->
+ <section class="section-block reveal">
+  <h2>Case Study: Ticketing System (BookMyShow)</h2>
+  <p>Design an online platform where users can browse events, view real-time seat availability, book and pay for tickets, and receive confirmation — while the system handles high concurrency, flash sales, and the critical requirement of never double-booking a seat.</p>
+
+  <p><strong>Functional Requirements:</strong></p>
+  <ul class="feature-list">
+   <li><strong>Browse &amp; search events</strong> — Users can discover events, venues, and view seat maps with live availability.</li>
+   <li><strong>Reserve &amp; book tickets</strong> — Seat selection, temporary hold (5-minute TTL), payment, and confirmation.</li>
+   <li><strong>Real-time seat availability</strong> — Seat status must reflect locks and bookings within milliseconds.</li>
+   <li><strong>Secure payment</strong> — Integrates with third-party gateways (Stripe, Razorpay) with retry and idempotency support.</li>
+   <li><strong>Email/SMS confirmations</strong> — Async notification after successful booking.</li>
+   <li><strong>Admin portal</strong> — Create/manage events, define seat layouts and pricing tiers.</li>
+  </ul>
+
+  <p><strong>Non-Functional Requirements:</strong></p>
+  <ul class="feature-list">
+   <li><strong>High availability</strong> — No downtime during peak flash sales; multi-region deployment.</li>
+   <li><strong>Low latency</strong> — Booking response in milliseconds; seat availability updates in near real-time.</li>
+   <li><strong>Scalability</strong> — Handle 5M total users, 100K concurrent users during peak events.</li>
+   <li><strong>Strong data consistency</strong> — Zero double-bookings; transactional guarantees on seat allocation.</li>
+   <li><strong>Audit trail</strong> — All transactions logged for fraud prevention and dispute resolution.</li>
+  </ul>
+
+  <p><strong>Scale Estimates:</strong> 1M DAU, 100K concurrent users at peak, ~500K bookings/day (~6/sec average, up to 2,000/sec during a major release). Primary bottlenecks: race conditions on seat allocation, write pressure on the booking DB, payment API latency, and notification queue buildup.</p>
+
+  <p><strong>High-Level Architecture:</strong></p>
+  <ul class="feature-list">
+   <li><strong>API Gateway</strong> — Unified entry point; handles auth (OAuth2/JWT), rate limiting, and routing.</li>
+   <li><strong>Event Management Service</strong> — CRUD for events, venues, and seat layouts (stored in MongoDB/DocumentDB for flexible schemas).</li>
+   <li><strong>Seat Inventory Service</strong> — Tracks available/locked/booked seats; backed by Redis for millisecond-latency reads.</li>
+   <li><strong>Booking Service</strong> — Orchestrates the booking flow: lock seat → initiate payment → confirm booking (PostgreSQL for ACID guarantees).</li>
+   <li><strong>Payment Service</strong> — Integrates with Stripe/Razorpay; handles retries via idempotency keys and webhook callbacks.</li>
+   <li><strong>Notification Service</strong> — Async email/SMS via AWS SES and Twilio, fed by Kafka topics.</li>
+   <li><strong>Kafka</strong> — Decouples booking events from notifications, audit logs, and payment retries.</li>
+  </ul>
+
+  <p><strong>Key Design Decisions:</strong></p>
+  <ul class="feature-list">
+   <li><strong>Concurrency control</strong> — Use optimistic locking (version check on seat row) for low-contention scenarios; pessimistic locking (seat-level DB lock) during flash sales with extremely high contention.</li>
+   <li><strong>Seat hold timeout</strong> — Redis TTL-based lock (5-minute auto-release) prevents seats from being held indefinitely if payment is abandoned.</li>
+   <li><strong>CQRS pattern</strong> — Separate read models (seat availability, event listings cached in Redis) from write models (booking transactions in PostgreSQL) to prevent read traffic from degrading write performance.</li>
+   <li><strong>Idempotency keys for payments</strong> — Every payment request carries a unique key so retries never cause duplicate charges.</li>
+   <li><strong>Elasticsearch for event search</strong> — Full-text and geo-filtered event discovery without hammering the relational DB.</li>
+  </ul>
+
+  <p><strong>Scaling Strategy:</strong> Deploy on Kubernetes with Horizontal Pod Autoscaling; partition Kafka topics by event ID; use read replicas for the event catalog; deploy Redis Cluster for seat inventory; route to the nearest region via a global load balancer. For extremely popular events, queue incoming booking requests and process them in strict order to eliminate race conditions entirely.</p>
+ </section>
+
+ <!-- ========== CASE STUDY: NEWS FEED ========== -->
+ <section class="section-block reveal">
+  <h2>Case Study: News Feed (Twitter / Facebook)</h2>
+  <p>Design a social news feed where users post updates and followers see a personalized, real-time timeline. The core challenge is <em>fan-out</em>: one tweet from a user with one million followers must propagate instantly, efficiently, and without duplicates — at a scale of 500M users and 1B tweets per day.</p>
+
+  <p><strong>Functional Requirements:</strong></p>
+  <ul class="feature-list">
+   <li><strong>Post a tweet/update</strong> — Short-form text with optional media (images, video).</li>
+   <li><strong>Follow/unfollow users</strong> — Directed social graph.</li>
+   <li><strong>View home timeline</strong> — Chronological or ranked feed of posts from followed users.</li>
+   <li><strong>Engagement</strong> — Likes, replies, retweets; counters must be accurate at scale.</li>
+   <li><strong>Media uploads</strong> — Chunked upload, stored in object storage, delivered via CDN.</li>
+   <li><strong>Real-time updates</strong> — New posts appear in timelines without a manual refresh.</li>
+  </ul>
+
+  <p><strong>Non-Functional Requirements:</strong></p>
+  <ul class="feature-list">
+   <li><strong>High availability</strong> — No single point of failure; timelines must load even if one region degrades.</li>
+   <li><strong>Low latency</strong> — Timeline reads must feel instant; target &lt;100ms p99.</li>
+   <li><strong>Massive scalability</strong> — 500M total users, 200M DAU, 1B tweets/day, 2B+ feed requests/day.</li>
+   <li><strong>Read-heavy workload</strong> — ~80% of traffic is reads; optimize accordingly.</li>
+  </ul>
+
+  <p><strong>The Fan-Out Problem:</strong> When a user posts, every follower's timeline must update. Two models exist:</p>
+  <ul class="feature-list">
+   <li><strong>Fan-out on write (push)</strong> — Pre-compute and write the tweet into every follower's timeline cache at post time. Fast reads, but a celebrity with 10M followers generates 10M writes per tweet.</li>
+   <li><strong>Fan-out on read (pull)</strong> — Compose the timeline dynamically at read time by fetching from followed users. Lighter writes, but slower and more expensive reads.</li>
+   <li><strong>Hybrid model (recommended)</strong> — Fan-out on write for regular users; fan-out on read for celebrity accounts (identified by follower threshold). Gives fast reads for most users without write storms from hot accounts.</li>
+  </ul>
+
+  <p><strong>High-Level Architecture:</strong></p>
+  <ul class="feature-list">
+   <li><strong>Tweet Service</strong> — Creates tweets, stores in Cassandra/DynamoDB (wide-column, high write throughput).</li>
+   <li><strong>Timeline Service</strong> — Composes home timelines; reads from pre-computed Redis caches or fetches live for high-follower-count users.</li>
+   <li><strong>Fanout Worker</strong> — Consumes tweet events from Kafka and propagates to follower timeline caches asynchronously.</li>
+   <li><strong>Engagement Service</strong> — Handles likes, retweets, replies; uses Redis counters for high-speed increments.</li>
+   <li><strong>Media Service</strong> — Chunked upload API, stores originals in S3/GCS, serves via CDN (Cloudflare/Akamai).</li>
+   <li><strong>Notification Service</strong> — Pushes activity alerts (new follower, mention) via Kafka-driven async workers.</li>
+  </ul>
+
+  <p><strong>Key Design Decisions:</strong></p>
+  <ul class="feature-list">
+   <li><strong>NoSQL for tweets and timelines</strong> — Cassandra or DynamoDB provides the write throughput and horizontal scalability that relational DBs cannot match at this volume.</li>
+   <li><strong>Redis for hot timelines</strong> — Top-N tweets per user cached as a sorted set; O(log n) inserts and range reads.</li>
+   <li><strong>Async everything non-critical</strong> — Fanout, media processing, and notifications are async via Kafka. Only the tweet write itself is synchronous.</li>
+   <li><strong>Sync vs. async communication</strong> — Timeline fetch and engagement submission are synchronous REST; fanout jobs and notification triggers are asynchronous event-driven.</li>
+  </ul>
+
+  <p><strong>Scaling Strategy:</strong> Shard Cassandra by user ID; partition Kafka topics by user ID for ordered fanout; use Kubernetes HPA on fanout workers; geo-replicate media via CDN edge nodes; rate-limit writes per user at the API Gateway to prevent abuse and write storms.</p>
+ </section>
+
+ <!-- ========== CASE STUDY: NOTIFICATION SYSTEM ========== -->
+ <section class="section-block reveal">
+  <h2>Case Study: Notification System</h2>
+  <p>Design a general-purpose notification system that accepts events from upstream services (orders, auth, marketing) and reliably delivers messages to users across multiple channels — Email, SMS, Push, and In-App — while respecting user preferences, handling retries, and operating at 100M+ notifications per day.</p>
+
+  <p><strong>Functional Requirements:</strong></p>
+  <ul class="feature-list">
+   <li><strong>Multi-source event ingestion</strong> — Accept events from any upstream service (order shipped, login alert, flash sale).</li>
+   <li><strong>Multi-channel delivery</strong> — Email (SendGrid/SES), SMS (Twilio), Push (Firebase FCM / APNs), In-App.</li>
+   <li><strong>User preference enforcement</strong> — Per-channel, per-event-type opt-in/opt-out, quiet hours, regional compliance (GDPR, DND).</li>
+   <li><strong>Template-based messages</strong> — Localized, parameterized templates; cache frequently used templates.</li>
+   <li><strong>Retry &amp; dead-letter handling</strong> — At-least-once delivery with idempotency; failed messages routed to DLQ after N retries.</li>
+   <li><strong>Admin API</strong> — Trigger bulk campaigns, view delivery reports, debug failed deliveries.</li>
+  </ul>
+
+  <p><strong>Non-Functional Requirements:</strong></p>
+  <ul class="feature-list">
+   <li><strong>Scalability</strong> — 10M active users × 5 events/day × 2 channels = 100M notifications/day; 3× burst capacity.</li>
+   <li><strong>Reliability</strong> — At-least-once delivery guarantee; no duplicates on retry (idempotency keys).</li>
+   <li><strong>Low latency</strong> — Notifications delivered within seconds of the triggering event.</li>
+   <li><strong>Observability</strong> — Logs, metrics, and traceability for audits; Prometheus + Grafana + CloudWatch.</li>
+   <li><strong>Extensibility</strong> — Add new channels (WhatsApp, Slack) with minimal code change.</li>
+  </ul>
+
+  <p><strong>High-Level Architecture (Event Flow):</strong></p>
+  <ul class="feature-list">
+   <li><strong>Event Ingestor</strong> — Receives events from upstream services; applies rate-limiting and buffering via Kafka or SQS before processing.</li>
+   <li><strong>Notification Orchestrator</strong> — Determines which notifications to trigger based on event type and user preferences; coordinates with Preference Service and Template Service.</li>
+   <li><strong>Preference Service</strong> — Stores per-user channel and event-type preferences in PostgreSQL; cached in Redis for high-QPS reads.</li>
+   <li><strong>Template Service</strong> — Generates localized messages using Handlebars/Liquid templates; caches rendered output.</li>
+   <li><strong>Channel Queues + Workers</strong> — Dedicated Kafka topics and consumer worker pools per channel (Email, SMS, Push, In-App); each worker calls the appropriate provider API.</li>
+   <li><strong>Delivery Tracker / DLQ</strong> — Tracks delivery status per notification; routes undeliverable messages to a Dead Letter Queue for manual inspection or alternative delivery.</li>
+  </ul>
+
+  <p><strong>Key Design Decisions:</strong></p>
+  <ul class="feature-list">
+   <li><strong>Kafka for buffering</strong> — Absorbs event bursts (flash sales, outages) without overwhelming downstream workers; enables replay if a channel worker fails.</li>
+   <li><strong>Idempotency keys</strong> — Each notification event carries a unique ID; workers check before delivery to prevent duplicates on retry.</li>
+   <li><strong>Channel isolation</strong> — SMS workers are separate from Email workers; a Twilio outage doesn't block email delivery.</li>
+   <li><strong>Redis preference cache</strong> — Preference lookups happen on every notification; caching reduces DB load by orders of magnitude during spikes.</li>
+   <li><strong>Cost awareness</strong> — SMS is the most expensive channel; route to SMS only when Email or Push is unavailable or explicitly preferred.</li>
+  </ul>
+
+  <p><strong>Scaling Strategy:</strong> Horizontally scale channel workers independently (SMS workers may need fewer instances than email); use Kafka consumer groups for parallel processing; use KEDA (Kubernetes Event-Driven Autoscaling) to scale workers based on queue depth; store templates in S3 and cache aggressively; archive delivery logs in cold storage after 30 days.</p>
+ </section>
+
+ <!-- ========== CASE STUDY: RENTAL PLATFORM (AIRBNB) ========== -->
+ <section class="section-block reveal">
+  <h2>Case Study: Rental Platform (Airbnb)</h2>
+  <p>Design an online rental marketplace where hosts list short-term accommodations and guests search, book, and pay for stays — with real-time availability, calendar synchronization, media-heavy listings, and a global user base of millions.</p>
+
+  <p><strong>Functional Requirements:</strong></p>
+  <ul class="feature-list">
+   <li><strong>Host capabilities</strong> — Create and update listings, upload photos/videos, set nightly pricing and availability via a calendar.</li>
+   <li><strong>Guest capabilities</strong> — Search listings with filters (location, dates, price, amenities), view details and reviews, book and pay.</li>
+   <li><strong>Availability calendar</strong> — Real-time sync with external calendars (Google Calendar, iCal) to prevent double-booking.</li>
+   <li><strong>Secure payments</strong> — Third-party gateway integration; host payouts after stay completion.</li>
+   <li><strong>Reviews &amp; ratings</strong> — Post-stay reviews from guests; moderated by the platform.</li>
+   <li><strong>Notifications</strong> — Booking confirmations, cancellations, and reminders via email and push.</li>
+  </ul>
+
+  <p><strong>Non-Functional Requirements:</strong></p>
+  <ul class="feature-list">
+   <li><strong>High availability</strong> — 24/7 uptime, especially during peak travel seasons.</li>
+   <li><strong>Performance</strong> — Search response &lt;300ms; geo-filtered results with Elasticsearch.</li>
+   <li><strong>Scalability</strong> — 5M DAU, 50M+ listings, 40–50M searches/day, 1M bookings/day.</li>
+   <li><strong>No double-booking</strong> — Atomic booking flow: availability lock → payment → confirmation.</li>
+   <li><strong>Localization</strong> — Multi-currency, multi-timezone, multi-language support.</li>
+  </ul>
+
+  <p><strong>Scale Estimates:</strong> 5M DAU, 100K concurrent users at peak; 50M+ listings (250 GB in PostgreSQL); 1M bookings/day (~1 TB/year); 500 TB of media storage (avg. 10 images × 1 MB × 50M listings); 1M payment transactions/day.</p>
+
+  <p><strong>High-Level Architecture:</strong></p>
+  <ul class="feature-list">
+   <li><strong>API Gateway</strong> — Routes requests, enforces JWT-based auth, rate limits.</li>
+   <li><strong>User Service</strong> — Registration, login, profiles, email verification.</li>
+   <li><strong>Listing Service</strong> — Manages property details, amenities, pricing; backed by PostgreSQL with Elasticsearch for search.</li>
+   <li><strong>Search Service</strong> — Geo-based, filtered search using Elasticsearch; Redis caches hot search results.</li>
+   <li><strong>Availability Service</strong> — Manages booking calendars; handles external calendar sync via iCal/Google Calendar API; PostgreSQL for consistency.</li>
+   <li><strong>Booking Service</strong> — Orchestrates the 6-step booking flow: lock availability → draft reservation → initiate payment → verify → finalize → notify.</li>
+   <li><strong>Payment Service</strong> — Stripe/PayPal integration; webhook callbacks for async confirmation.</li>
+   <li><strong>Media Service</strong> — Chunked image/video upload to S3; CDN delivery (Cloudflare/Akamai).</li>
+   <li><strong>Calendar Sync Service</strong> — Bidirectional sync with external calendar providers; resolves conflicts.</li>
+   <li><strong>Kafka</strong> — Async event bus for booking events, notifications, and payment webhooks.</li>
+  </ul>
+
+  <p><strong>Key Design Decisions:</strong></p>
+  <ul class="feature-list">
+   <li><strong>Atomic booking flow</strong> — Availability lock, payment, and calendar update must succeed or all roll back. Use a saga pattern with compensating transactions for distributed rollback.</li>
+   <li><strong>Elasticsearch for search</strong> — Supports geo-distance queries, full-text amenity search, and range filters (price, dates) with sub-300ms response.</li>
+   <li><strong>Eventual consistency for availability</strong> — Minor delays in availability propagation are acceptable; use optimistic locking on the availability table to prevent double-booking.</li>
+   <li><strong>CDN for media</strong> — All listing images served from CDN edge nodes; reduces origin load by 90%+.</li>
+   <li><strong>RabbitMQ/Kafka for async flows</strong> — Booking events, payment confirmations, and notification dispatches are fully async to prevent blocking the critical booking path.</li>
+  </ul>
+
+  <p><strong>Scaling Strategy:</strong> Horizontally scale each microservice on Kubernetes; use Azure/AWS multi-region deployment with load balancers; replicate PostgreSQL across availability zones; partition Elasticsearch by listing geography; use Redis cluster for session and search caches; enable CDN caching for media with long TTLs.</p>
+ </section>
+
+ <!-- ========== CASE STUDY: AUCTION PLATFORM (EBAY) ========== -->
+ <section class="section-block reveal">
+  <h2>Case Study: Auction Platform (eBay)</h2>
+  <p>Design a real-time auction platform where sellers list items with a timed auction window, bidders compete with live bid updates, and the system determines a winner and processes payment when the auction closes — all with sub-second bid acknowledgment and fairness guarantees even during last-second bidding frenzies.</p>
+
+  <p><strong>Functional Requirements:</strong></p>
+  <ul class="feature-list">
+   <li><strong>Item listing</strong> — Sellers set auction parameters: start time, end time, reserve price, buy-it-now price.</li>
+   <li><strong>Real-time bid placement</strong> — Bidders place bids; system validates (bid &gt; current highest), stores, and broadcasts instantly.</li>
+   <li><strong>Live bid updates</strong> — All watchers of an auction see the new highest bid in real-time via WebSockets.</li>
+   <li><strong>Auction lifecycle</strong> — State machine: scheduled → active → ended; controlled by a scheduler service.</li>
+   <li><strong>Outbid notifications</strong> — Previous highest bidder notified immediately when outbid.</li>
+   <li><strong>Post-auction payment</strong> — Winning bidder receives payment request; seller notified upon completion.</li>
+  </ul>
+
+  <p><strong>Non-Functional Requirements:</strong></p>
+  <ul class="feature-list">
+   <li><strong>Sub-second bid latency</strong> — Bid acceptance and broadcast must complete in &lt;500ms.</li>
+   <li><strong>Strong consistency for bids</strong> — No two bidders can simultaneously be the "highest bidder"; each bid must be serialized.</li>
+   <li><strong>High availability during peak</strong> — Popular auctions can have 10K concurrent watchers; system must not degrade.</li>
+   <li><strong>Fairness</strong> — Auction end time is enforced strictly; bids arriving after close are rejected.</li>
+   <li><strong>Security</strong> — Anti-bot protections; OAuth2 auth; PCI-compliant payment handling.</li>
+  </ul>
+
+  <p><strong>Scale Estimates:</strong> 5M registered users, 500K DAU; 1M ongoing auctions; 10M bids/day (~115/sec average); peak of 10K concurrent users on one popular auction; 100K payment transactions/day.</p>
+
+  <p><strong>High-Level Architecture:</strong></p>
+  <ul class="feature-list">
+   <li><strong>API Gateway</strong> — Entry point for all requests; auth, rate limiting, routing.</li>
+   <li><strong>Auction Service</strong> — Manages auction lifecycle and state transitions (scheduled → active → ended).</li>
+   <li><strong>Bid Service</strong> — Validates and records bids with concurrency control; publishes bid events to Kafka.</li>
+   <li><strong>WebSocket Server</strong> — Clients subscribe to auction channels; Bid Service events fan out to all watchers in real-time.</li>
+   <li><strong>Scheduler Service</strong> — Queue-based (SQS delay / Redis TTL) scheduler that fires auction start/end events at precise times.</li>
+   <li><strong>Listing Service</strong> — Item metadata, categories, media.</li>
+   <li><strong>Payment Service</strong> — Post-auction payment initiation via Stripe/PayPal; retry logic with idempotency.</li>
+   <li><strong>Notification Service</strong> — Outbid alerts, auction-won messages, payment reminders.</li>
+   <li><strong>Analytics &amp; Logging</strong> — Tracks bid trends, auction health, and fraud signals.</li>
+  </ul>
+
+  <p><strong>Key Design Decisions:</strong></p>
+  <ul class="feature-list">
+   <li><strong>Serialized bid processing</strong> — All bids for an auction pass through a single shard/partition in Kafka (keyed by auction ID), ensuring strict ordering without distributed locks.</li>
+   <li><strong>Optimistic locking on bid table</strong> — Each auction row carries a version number; a bid only succeeds if the version matches, preventing race conditions.</li>
+   <li><strong>WebSocket fan-out</strong> — Bid events published to Redis Pub/Sub; WebSocket gateway nodes subscribe and push to connected clients. Horizontal scaling: each WS server handles a subset of auction channels.</li>
+   <li><strong>Scheduler reliability</strong> — Auction end events are stored in Redis with TTL expiration AND backed by a delayed job queue (e.g., BullMQ, SQS). Both mechanisms must agree to close an auction, making the close idempotent.</li>
+   <li><strong>Async payment trigger</strong> — Payment is initiated asynchronously after auction close; a failure in payment does not roll back the auction result.</li>
+   <li><strong>Redis for hot auction state</strong> — Current highest bid and bidder ID cached in Redis for O(1) reads; DB is the source of truth but consulted only on write.</li>
+  </ul>
+
+  <p><strong>Scaling Strategy:</strong> Partition bid processing by auction ID across Kafka partitions; horizontally scale WebSocket servers behind a load balancer (sticky sessions or Redis Pub/Sub for cross-server fan-out); use PostgreSQL with row-level locking for bid writes; cache auction listings in Redis; auto-scale API and bid services on Kubernetes based on concurrent auction count.</p>
+ </section>
+
+ <!-- ========== CASE STUDY: CLOUD STORAGE (DROPBOX/GOOGLE DRIVE) ========== -->
+ <section class="section-block reveal">
+  <h2>Case Study: Cloud Storage (Dropbox / Google Drive)</h2>
+  <p>Design a cloud file storage system where users can upload files of any type, sync them across all their devices in near real-time, share with collaborators, and access previous versions — at a scale of 10M active users, 5B files, and 10 petabytes of stored data.</p>
+
+  <p><strong>Functional Requirements:</strong></p>
+  <ul class="feature-list">
+   <li><strong>File upload &amp; download</strong> — Support files up to 5 GB; use chunked, resumable uploads.</li>
+   <li><strong>Multi-device sync</strong> — Changes on one device propagate to all other connected devices within 5 seconds.</li>
+   <li><strong>File organization</strong> — Folders, nested directories, tags.</li>
+   <li><strong>Sharing &amp; collaboration</strong> — Public/private links, per-user access levels (view/edit), shared folders.</li>
+   <li><strong>File versioning</strong> — Maintain version history; allow rollback to any previous version.</li>
+   <li><strong>Soft delete &amp; restore</strong> — Trash bin with restore option; permanent deletion after configurable period.</li>
+  </ul>
+
+  <p><strong>Non-Functional Requirements:</strong></p>
+  <ul class="feature-list">
+   <li><strong>Extreme durability</strong> — 99.999999999% ("eleven nines") — files must never be lost.</li>
+   <li><strong>Low latency</strong> — Fast uploads/downloads; metadata reads under 100ms.</li>
+   <li><strong>Sync latency &lt;5 seconds</strong> — Event-driven push, not polling.</li>
+   <li><strong>Security</strong> — End-to-end encryption option; fine-grained ACL; TLS in transit.</li>
+   <li><strong>Cost efficiency</strong> — Deduplication and lifecycle policies to avoid storing identical data twice.</li>
+  </ul>
+
+  <p><strong>Scale Estimates:</strong> 10M users × 500 files average = 5B total files; average file size 2 MB → 10 PB total; 2K uploads/sec peak; 10K sync events/sec peak.</p>
+
+  <p><strong>High-Level Architecture:</strong></p>
+  <ul class="feature-list">
+   <li><strong>Upload Service</strong> — Manages chunked/resumable uploads; initiates upload session, accepts chunk by chunk (PUT /upload/{id}/chunk), assembles on completion. Each chunk carries a checksum for integrity verification.</li>
+   <li><strong>Metadata Service</strong> — Stores file names, paths, ownership, permissions, version history; PostgreSQL for structured data, NoSQL for flexible attributes. Cached in Redis for high-QPS folder listings.</li>
+   <li><strong>Storage Service</strong> — Interfaces with cloud object storage (AWS S3 / Azure Blob / GCS); files stored as chunks with content-addressable naming (hash of content) enabling deduplication.</li>
+   <li><strong>Deduplication Service</strong> — Computes chunk fingerprints before upload; if a chunk already exists in the store, skip the upload and reference the existing chunk. Massive storage savings for common files.</li>
+   <li><strong>Sync Service</strong> — Pushes change events to connected devices via WebSocket or long-polling; uses Kafka for event fan-out across devices.</li>
+   <li><strong>Versioning Service</strong> — Tracks version metadata per file; stores deltas or full snapshots depending on file size; enables rollback via GET /files/{id}/version/{versionId}.</li>
+   <li><strong>Auth Service</strong> — OAuth2/JWT; validates permissions before every file operation.</li>
+  </ul>
+
+  <p><strong>Key Design Decisions:</strong></p>
+  <ul class="feature-list">
+   <li><strong>Chunked resumable uploads</strong> — Split files into 5 MB chunks; upload independently with checksum; resume from last successful chunk on failure. Eliminates the need to re-upload large files from scratch after a network interruption.</li>
+   <li><strong>Content-addressable storage</strong> — File chunks are named by their hash. Identical chunks (even across different users) are stored once. This is how Dropbox achieves dramatic storage efficiency.</li>
+   <li><strong>Metadata separate from content</strong> — Metadata DB (PostgreSQL) and blob storage (S3) are completely independent layers. Metadata reads are fast SQL queries; blob reads go directly to object storage or CDN.</li>
+   <li><strong>Event-driven sync</strong> — When a file changes, the Sync Service publishes a change event to Kafka; all connected devices for that user consume the event and pull the changed chunks. No polling required.</li>
+   <li><strong>CDN for shared links</strong> — Public/shared files are cached at CDN edge nodes; reduces origin egress costs and latency for recipients.</li>
+   <li><strong>SQL for structured, NoSQL for flexible metadata</strong> — User data, permissions, and file structure in PostgreSQL; chunk tracking and dynamic attributes in MongoDB for horizontal scalability.</li>
+  </ul>
+
+  <p><strong>Scaling Strategy:</strong> Shard the Metadata Service by user ID; replicate object storage across multiple availability zones (S3 handles this natively); scale Upload Service workers horizontally on Kubernetes; use Redis Cluster for metadata caching; implement lifecycle policies (move files to cold storage after 90 days of inactivity) to control cost at petabyte scale.</p>
+ </section>
+
+ <!-- ========== CASE STUDY: VIDEO SHARING (YOUTUBE) ========== -->
+ <section class="section-block reveal">
+  <h2>Case Study: Video Sharing Platform (YouTube)</h2>
+  <p>Design a video sharing platform where 100M users upload 10M videos per day, 500M daily views are served globally, and each video must be transcoded into multiple resolutions and delivered via CDN with adaptive bitrate streaming — while keeping upload-to-playback latency low and storage costs manageable at petabyte scale.</p>
+
+  <p><strong>Functional Requirements:</strong></p>
+  <ul class="feature-list">
+   <li><strong>Video upload</strong> — Chunked upload with progress tracking; supports files up to multi-GB.</li>
+   <li><strong>Video encoding</strong> — Transcode to multiple resolutions (240p, 480p, 720p, 1080p, 4K); generate thumbnails and HLS/DASH manifests for adaptive streaming.</li>
+   <li><strong>Video streaming</strong> — Adaptive bitrate streaming via CDN; quality adjusts to user bandwidth.</li>
+   <li><strong>Metadata &amp; discovery</strong> — Title, description, tags, category; keyword and tag-based search.</li>
+   <li><strong>Engagement</strong> — Likes, comments, shares, view counts, channel subscriptions.</li>
+   <li><strong>Personalized feed</strong> — Home feed recommendations based on watch history and subscriptions.</li>
+  </ul>
+
+  <p><strong>Non-Functional Requirements:</strong></p>
+  <ul class="feature-list">
+   <li><strong>Massive storage</strong> — 500 TB/day raw uploads; ~1.5 PB/day after encoding to 4 variants; 45 PB/month.</li>
+   <li><strong>Global CDN delivery</strong> — 10 Tbps peak egress; 135 PB/day streaming bandwidth.</li>
+   <li><strong>Low streaming latency</strong> — First-frame time &lt;2 seconds globally.</li>
+   <li><strong>High availability</strong> — Videos must be accessible even if encoding pipeline partially fails.</li>
+   <li><strong>Scalable search</strong> — Near-real-time indexing of 10M new videos/day.</li>
+  </ul>
+
+  <p><strong>High-Level Architecture:</strong></p>
+  <ul class="feature-list">
+   <li><strong>Upload &amp; Ingestion Service</strong> — Accepts chunked video uploads; generates a video ID; stores raw file in temporary blob storage; enqueues an encoding job via Kafka/SQS.</li>
+   <li><strong>Encoding &amp; Processing Pipeline</strong> — Consumes encoding jobs; transcodes to multiple resolutions using FFmpeg workers (GPU-accelerated); generates thumbnails and HLS/DASH manifest files; writes encoded chunks to final object storage.</li>
+   <li><strong>Video Storage + CDN</strong> — Encoded video chunks and manifests stored in S3/GCS; CDN (Cloudflare/CloudFront) caches at edge nodes worldwide. Players request manifests and fetch segments from the nearest CDN node.</li>
+   <li><strong>Metadata Service</strong> — Stores video title, tags, uploader, status, thumbnail URL; PostgreSQL for structured queries; Elasticsearch for full-text and tag search.</li>
+   <li><strong>User Service</strong> — Auth (OAuth2/JWT), channel management, subscription graph.</li>
+   <li><strong>Engagement Service</strong> — Async event logging for views, likes, comments; Redis counters for hot videos; aggregated periodically into analytics DB.</li>
+   <li><strong>Recommendation Engine</strong> — Consumes watch history events; generates personalized feed using collaborative filtering and content embeddings.</li>
+   <li><strong>Search &amp; Discovery</strong> — Elasticsearch index updated in near-real-time as new videos are published.</li>
+  </ul>
+
+  <p><strong>Key Design Decisions:</strong></p>
+  <ul class="feature-list">
+   <li><strong>Encoding pipeline as async queue</strong> — Upload completes in seconds; encoding takes minutes. Decoupling via Kafka ensures the upload API never blocks on encoding. Status polled via GET /videos/{id}/status.</li>
+   <li><strong>HLS/DASH for adaptive streaming</strong> — Video is split into 6–10 second segments at each resolution; clients switch quality tiers based on available bandwidth — no buffering spikes.</li>
+   <li><strong>Multi-tier storage</strong> — Popular videos on hot storage (fast SSD-backed S3 tier); older/rare videos moved to cold storage (Glacier/Archive) automatically via lifecycle policies.</li>
+   <li><strong>Engagement counters in Redis</strong> — View and like counts are high-frequency writes; Redis INCR is O(1) and handles millions of increments/sec. Periodically flushed to the relational DB.</li>
+   <li><strong>Elasticsearch for search</strong> — New videos are indexed asynchronously via a Kafka consumer; supports tag, title, and category queries at scale without hitting the metadata DB directly.</li>
+   <li><strong>Abuse prevention</strong> — Rate limit upload API per user; scan encoded video for copyright fingerprints (Content ID) and explicit content before publishing.</li>
+  </ul>
+
+  <p><strong>Scaling Strategy:</strong> Auto-scale FFmpeg encoding workers on GPU instances (Kubernetes + GPU node pools); partition Kafka encoding topics by video ID; shard PostgreSQL metadata by video ID; geo-replicate CDN manifests for global low-latency delivery; use read replicas for metadata queries; implement CDN cache warming for new viral videos.</p>
+ </section>
+
+ <!-- ========== CASE STUDY: SEARCH ENGINE (GOOGLE) ========== -->
+ <section class="section-block reveal">
+  <h2>Case Study: Search Engine (Google Search)</h2>
+  <p>Design a web-scale search engine that crawls billions of web pages, builds an inverted index for fast keyword lookup, ranks results by relevance using TF-IDF and PageRank, and responds to 50K queries per second with under 200ms end-to-end latency — while keeping the index fresh as the web changes.</p>
+
+  <p><strong>Functional Requirements:</strong></p>
+  <ul class="feature-list">
+   <li><strong>Web crawling</strong> — Continuously discover and fetch public web pages at scale, respecting robots.txt and rate limits.</li>
+   <li><strong>Indexing</strong> — Parse HTML, extract and normalize text, build forward and inverted indexes.</li>
+   <li><strong>Keyword search</strong> — Accept user queries and return a ranked list of relevant documents.</li>
+   <li><strong>Ranking</strong> — Score results by TF-IDF relevance, PageRank (link authority), and content freshness.</li>
+   <li><strong>Re-indexing</strong> — Periodically re-crawl pages to pick up content changes; prioritize high-churn sites.</li>
+  </ul>
+
+  <p><strong>Non-Functional Requirements:</strong></p>
+  <ul class="feature-list">
+   <li><strong>Performance</strong> — &lt;200ms total query response time (parsing &lt;5ms, index lookup &lt;20ms, ranking &lt;50ms).</li>
+   <li><strong>Scalability</strong> — Index 100B+ pages; handle 50K QPS; storage budget of petabytes.</li>
+   <li><strong>Freshness</strong> — Index updated within hours of a page changing.</li>
+   <li><strong>Fault tolerance</strong> — No single point of failure; crawler retries on fetch failure; index replicated.</li>
+   <li><strong>Storage efficiency</strong> — Raw HTML ~10 PB; compressed inverted index ~500–800 GB for 100M pages.</li>
+  </ul>
+
+  <p><strong>Scale Estimates:</strong> 100M pages for MVP (100B for full scale); 10M active users; 50M queries/day; peak 1,000–2,000 QPS. Crawl target: 100M pages in 7 days → 170 pages/sec with 500 workers.</p>
+
+  <p><strong>Core Components:</strong></p>
+  <ul class="feature-list">
+   <li><strong>URL Frontier &amp; Scheduler</strong> — Priority queue of URLs to crawl; partitioned by domain hash; respects crawl politeness (rate limits per domain); uses SimHash fingerprinting to detect near-duplicate content.</li>
+   <li><strong>Crawler Workers</strong> — Distributed workers (500+) that fetch pages, store raw HTML in the Document Store, extract outbound links back into the Frontier, and report crawl status.</li>
+   <li><strong>Content Extractor &amp; Parser</strong> — Strips HTML tags, tokenizes text, removes stop words, applies stemming; produces clean token lists per document.</li>
+   <li><strong>Indexer Service</strong> — Builds the forward index (docID → tokens + metadata) and the inverted index (token → list of docIDs with positions and frequencies). Indexes are partitioned and replicated across nodes.</li>
+   <li><strong>Document Store</strong> — Raw and parsed page content; stored in distributed file system (HDFS/S3) with columnar formats for compression.</li>
+   <li><strong>Query Service</strong> — Parses incoming query, looks up sharded inverted index, retrieves candidate document sets, scores and ranks them, returns top-N results. Backed by Redis cache for popular queries.</li>
+   <li><strong>Ranking Engine</strong> — Computes combined score: TF-IDF (term relevance) + PageRank (link authority) + freshness boost. Runs in-memory for speed.</li>
+  </ul>
+
+  <p><strong>Key Design Decisions:</strong></p>
+  <ul class="feature-list">
+   <li><strong>Sharded inverted index</strong> — Partitioned by term hash across many nodes; each shard handles a subset of the vocabulary. Queries fan out to all shards and results are merged and ranked centrally.</li>
+   <li><strong>Deduplication</strong> — SimHash fingerprinting detects near-duplicate pages before indexing, preventing the same content from appearing multiple times in results.</li>
+   <li><strong>Forward + inverted index separation</strong> — The inverted index enables fast term → document lookups; the forward index enables snippet generation and ranking feature extraction per document.</li>
+   <li><strong>Caching for hot queries</strong> — The top 1% of queries account for ~50% of traffic. Caching their results in Redis gives enormous throughput gains with minimal storage cost.</li>
+   <li><strong>Adaptive re-crawl scheduling</strong> — Pages that change frequently (news sites) are re-crawled every few hours; static pages are re-crawled weekly. Change-rate is tracked per domain.</li>
+   <li><strong>Kafka for pipeline coordination</strong> — Crawler → Parser → Indexer pipeline uses Kafka topics for decoupling; each stage processes independently and at its own rate.</li>
+  </ul>
+
+  <p><strong>Scaling Strategy:</strong> Horizontally scale crawler workers (partition by domain); shard inverted index by term hash with replication factor 3; cache top queries in Redis with TTL; use Elasticsearch as an alternative to custom inverted index for smaller-scale implementations; store raw content in S3 with lifecycle policies; use dedicated high-memory nodes for ranking engine.</p>
+ </section>
+
+ <!-- ========== CASE STUDY: E-COMMERCE (AMAZON) ========== -->
+ <section class="section-block reveal">
+  <h2>Case Study: E-Commerce Marketplace (Amazon)</h2>
+  <p>Design a multi-vendor e-commerce platform where buyers browse and purchase products, sellers manage inventory and listings, and the system handles secure checkout, payment processing, fraud detection, and order management — without ever overselling inventory, even during flash sales.</p>
+
+  <p><strong>Functional Requirements:</strong></p>
+  <ul class="feature-list">
+   <li><strong>Product catalog</strong> — Sellers create and manage product listings with descriptions, images, categories, and pricing.</li>
+   <li><strong>Search &amp; browse</strong> — Buyers search products by keyword, filter by category/price/rating; fast results expected.</li>
+   <li><strong>Shopping cart &amp; checkout</strong> — Add to cart, update quantities, apply coupons, initiate checkout with inventory reservation.</li>
+   <li><strong>Inventory management</strong> — Real-time stock tracking; prevent overselling through atomic reservation at checkout.</li>
+   <li><strong>Secure payment</strong> — Integration with Stripe/Razorpay; PCI-DSS compliance; fraud detection alerts.</li>
+   <li><strong>Order management</strong> — Order lifecycle: placed → confirmed → shipped → delivered; seller and buyer notifications.</li>
+   <li><strong>Seller dashboard</strong> — Sales analytics, product management, payout tracking.</li>
+  </ul>
+
+  <p><strong>Non-Functional Requirements:</strong></p>
+  <ul class="feature-list">
+   <li><strong>Performance</strong> — Product search &lt;300ms; cart/checkout &lt;500ms.</li>
+   <li><strong>Scalability</strong> — 1M registered users at launch; elastic growth; 100 requests/sec peak during sales.</li>
+   <li><strong>Availability</strong> — 99.9% uptime; fault-tolerant catalog, cart, and checkout services.</li>
+   <li><strong>Consistency</strong> — Strong consistency for inventory updates; no overselling under any concurrency.</li>
+   <li><strong>Security</strong> — OAuth2/JWT auth; encrypted payment records; GDPR compliance for user data.</li>
+  </ul>
+
+  <p><strong>High-Level Architecture:</strong></p>
+  <ul class="feature-list">
+   <li><strong>API Gateway</strong> — Routes requests, enforces auth, rate limits per user/IP.</li>
+   <li><strong>User Service</strong> — Registration, login (OAuth2/JWT), profile management; PostgreSQL.</li>
+   <li><strong>Product Catalog Service</strong> — CRUD for products; PostgreSQL as source of truth; Elasticsearch index for fast keyword search; Redis cache for popular product pages.</li>
+   <li><strong>Inventory Service</strong> — Tracks stock levels per product; uses PostgreSQL with row-level locking for atomic reservations; Redis for fast stock-level reads.</li>
+   <li><strong>Order Management Service</strong> — Cart management, checkout orchestration, order lifecycle; PostgreSQL for transactional consistency.</li>
+   <li><strong>Payment Service</strong> — Initiates payment via Stripe/Razorpay; verifies via webhook; stores encrypted payment records; idempotency keys prevent duplicate charges.</li>
+   <li><strong>Notification Service</strong> — Email/SMS via Kafka-driven async workers; decoupled from the checkout critical path.</li>
+   <li><strong>Admin Service</strong> — Seller onboarding, product moderation, dispute resolution.</li>
+  </ul>
+
+  <p><strong>Key Design Decisions:</strong></p>
+  <ul class="feature-list">
+   <li><strong>Atomic inventory reservation</strong> — At checkout, the Inventory Service executes a database transaction that decrements stock only if stock &gt; 0. Row-level locking in PostgreSQL ensures this is atomic even under concurrent requests.</li>
+   <li><strong>Elasticsearch for product search</strong> — Keyword search, faceted filtering (category, price range, rating), and typo tolerance are difficult to implement in PostgreSQL at scale. Elasticsearch is updated asynchronously when products change.</li>
+   <li><strong>Redis for hot data</strong> — Popular product pages, category listings, and session tokens cached in Redis; reduces PostgreSQL read load by 10–100× during traffic spikes.</li>
+   <li><strong>Event-driven async for non-critical flows</strong> — Order placement triggers Kafka events that drive inventory updates, email notifications, and seller alerts asynchronously. The buyer gets an order ID immediately; confirmation follows within seconds.</li>
+   <li><strong>Fraud detection</strong> — Rule-based (velocity checks, unusual amount patterns) at payment initiation; flag suspicious transactions for manual review rather than blocking (to avoid false positives hurting conversion).</li>
+   <li><strong>Saga pattern for checkout</strong> — Checkout spans multiple services (Inventory, Payment, Order). Use a saga with compensating transactions: if payment fails, release the inventory reservation and notify the buyer.</li>
+  </ul>
+
+  <p><strong>Scaling Strategy:</strong> Deploy each microservice independently on Kubernetes with HPA; shard PostgreSQL by user ID for user/order data and by product ID for catalog/inventory; use Elasticsearch cluster with multiple shards for product search; implement CDN for product images; scale Kafka consumer groups for notification workers based on queue depth; use managed cloud services (AWS RDS, ElastiCache, SQS) to reduce operational overhead.</p>
+ </section>
+
+ <!-- ========== CASE STUDY: COLLABORATIVE DOCS (GOOGLE DOCS) ========== -->
+ <section class="section-block reveal">
+  <h2>Case Study: Collaborative Document Editor (Google Docs)</h2>
+  <p>Design a web-based collaborative document editor where multiple users can edit the same document simultaneously, see each other's changes in real-time with under 100ms latency, and never see a conflicted or corrupted document state — backed by version history, access control, and autosave at a scale of 10M+ daily active users.</p>
+
+  <p><strong>Functional Requirements:</strong></p>
+  <ul class="feature-list">
+   <li><strong>Create, edit, delete documents</strong> — Rich text editing; basic formatting (bold, italic, headings, lists).</li>
+   <li><strong>Real-time multi-user collaboration</strong> — 2–50 users editing simultaneously; changes visible to all collaborators instantly.</li>
+   <li><strong>Conflict-free document state</strong> — No matter the order operations arrive, all clients converge to the same document.</li>
+   <li><strong>Version history &amp; change tracking</strong> — Full operation log; ability to revert to any prior state.</li>
+   <li><strong>Access control</strong> — Owner can grant view or edit access; shareable links with configurable permissions.</li>
+   <li><strong>Autosave</strong> — Periodic persistence to durable storage; crash recovery on reconnect.</li>
+  </ul>
+
+  <p><strong>Non-Functional Requirements:</strong></p>
+  <ul class="feature-list">
+   <li><strong>Ultra-low latency</strong> — Real-time sync with &lt;100ms latency for collaborators in the same region.</li>
+   <li><strong>Scalability</strong> — 10M+ DAU; 200K+ concurrent editors during peak; ~10B operations/day.</li>
+   <li><strong>High availability</strong> — 99.9% uptime; seamless reconnect after network loss; partial-operation recovery.</li>
+   <li><strong>Consistency</strong> — All clients must converge to the same document state even with out-of-order or concurrent operations.</li>
+   <li><strong>Security</strong> — TLS in transit; AES encryption at rest; OAuth2/JWT auth; permission checks on every operation.</li>
+  </ul>
+
+  <p><strong>The Core Challenge — Conflict Resolution:</strong> When Alice inserts "Hello" at position 5 and Bob simultaneously deletes the character at position 3, the naive approach (last-write-wins) produces a corrupted document. Two algorithmic approaches solve this:</p>
+  <ul class="feature-list">
+   <li><strong>Operational Transformation (OT)</strong> — Each operation is transformed against concurrent operations before being applied, so the end result is the same on all clients regardless of arrival order. Used by Google Docs historically. CPU-intensive but well-understood.</li>
+   <li><strong>CRDT (Conflict-Free Replicated Data Types)</strong> — Operations are designed so they commute — applying them in any order always yields the same result. Libraries like Yjs and Automerge implement this. More scalable and works offline; increasingly preferred.</li>
+  </ul>
+
+  <p><strong>High-Level Architecture:</strong></p>
+  <ul class="feature-list">
+   <li><strong>Client (browser/mobile)</strong> — Rich text editor (e.g., Quill, ProseMirror); maintains a local copy of the document; sends operations over WebSocket; applies incoming remote operations using OT/CRDT.</li>
+   <li><strong>API Gateway</strong> — Auth, routing, rate limiting for REST and WebSocket connections.</li>
+   <li><strong>Collab Service (Real-Time Sync)</strong> — Maintains a WebSocket connection per active document session; applies OT/CRDT transforms to incoming operations; broadcasts transformed operations to all collaborators on the document.</li>
+   <li><strong>Document Service</strong> — REST API for creating, loading, and saving documents; manages metadata and permissions; backed by PostgreSQL (metadata) and MongoDB (document content).</li>
+   <li><strong>Versioning Service</strong> — Stores operation log per document; takes snapshots every N operations to enable fast document reconstruction without replaying thousands of ops.</li>
+   <li><strong>Storage Layer</strong> — Hot storage (Redis for active document state), warm storage (PostgreSQL/MongoDB for recent documents), cold storage (S3 for archived documents and version history).</li>
+   <li><strong>Kafka (Messaging Layer)</strong> — Event fan-out for sync, async persistence, and audit logging. Collab Service publishes operation events; Versioning Service and Document Service consume asynchronously.</li>
+  </ul>
+
+  <p><strong>Real-Time Sync Flow:</strong></p>
+  <ul class="feature-list">
+   <li><strong>Step 1</strong> — User types; client generates an operation (insert/delete at position).</li>
+   <li><strong>Step 2</strong> — Operation sent over WebSocket to Collab Service with a document version number.</li>
+   <li><strong>Step 3</strong> — Collab Service applies OT/CRDT transform against any concurrent operations; appends to operation log.</li>
+   <li><strong>Step 4</strong> — Transformed operation broadcast to all other clients on the document.</li>
+   <li><strong>Step 5</strong> — Clients apply the operation locally; all clients converge to the same state.</li>
+   <li><strong>Step 6</strong> — Autosave: every 30 seconds (or every N operations), a snapshot is persisted to the Document Service.</li>
+  </ul>
+
+  <p><strong>Key Design Decisions:</strong></p>
+  <ul class="feature-list">
+   <li><strong>WebSocket for real-time communication</strong> — Persistent bidirectional connection eliminates the overhead of repeated HTTP handshakes; essential for &lt;100ms perceived latency.</li>
+   <li><strong>Stateful Collab Service</strong> — Each document session is pinned to one Collab Service instance (sticky routing). If that instance fails, clients reconnect and re-sync from the latest snapshot + operation log.</li>
+   <li><strong>Snapshot + delta model</strong> — Storing full document snapshots every 100 operations means reconstruction requires at most 100 operation replays, not thousands. Balances storage cost against recovery speed.</li>
+   <li><strong>gRPC for internal services</strong> — Document Service, Versioning Service, and Collab Service communicate via gRPC for low-latency, strongly-typed internal calls.</li>
+   <li><strong>Offline support</strong> — CRDT-based clients can accept edits offline and merge them when reconnected without conflicts, enabling offline editing that syncs seamlessly.</li>
+   <li><strong>Redis for hot document state</strong> — Active document's current content and operation queue kept in Redis for sub-millisecond access by the Collab Service; flushed to persistent store on close.</li>
+  </ul>
+
+  <p><strong>Scaling Strategy:</strong> Route documents to Collab Service instances by document ID (consistent hashing); scale Collab Service horizontally with Redis Pub/Sub for cross-instance operation fan-out on shared documents; use Kubernetes HPA based on active WebSocket connections; partition Kafka topics by document ID for ordered operation processing; archive version history to S3 after 90 days; use PostgreSQL read replicas for metadata queries.</p>
+ </section>
+
  <!-- ========== READING LINKS ========== -->
  <section class="section-block reveal">
  <h2>Further Reading</h2>

@@ -680,7 +680,8 @@
       el.style.background = o.color;
       el.style.setProperty('--orb-dur',   o.dur);
       el.style.setProperty('--orb-delay', o.delay);
-      document.body.appendChild(el);
+      /* Insert as FIRST children so DOM order ensures page content paints after */
+      document.body.insertBefore(el, document.body.firstChild);
     });
   }
 
