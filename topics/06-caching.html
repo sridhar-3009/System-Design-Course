@@ -415,6 +415,91 @@ r = redis.Redis()
  </div>
  </section>
 
+ <!-- ============ CACHING INTERVIEW QUESTIONS ============ -->
+ <section class="section-block reveal">
+  <div class="section-badge">Interview Prep</div>
+  <h2>Caching Interview Questions</h2>
+  <p>Key interview questions on caching strategies, implementation, and optimization.</p>
+
+  <h3 style="margin-top:1.6rem;margin-bottom:0.8rem;color:var(--topic-color)">Core Conceptual Questions</h3>
+  <div class="qa-list">
+   <div class="qa-item">
+    <button class="qa-question">What is caching and why is it important in system design? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>Caching is the technique of storing frequently accessed data in a faster storage layer (e.g., in-memory) to reduce data retrieval time. It helps <strong>minimize latency</strong>, <strong>reduce backend/database load</strong>, and <strong>improve system scalability and user experience</strong>. Caching is critical in high-traffic systems where performance and responsiveness are essential.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">Explain different types of caching and where they are used. <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>Client-side cache:</strong> Browser cache, service workers — used for static assets and localStorage. <strong>Server-side cache:</strong> In-memory stores like Redis or Memcached — used for API responses or session storage. <strong>CDN cache:</strong> Distributed edge servers cache static content like images, JS, and CSS. <strong>Database cache:</strong> Materialized views or query result caching — reduces repeated complex DB queries.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">What are write-through vs. write-back caching strategies? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>Write-through:</strong> Data is written to cache and database simultaneously. Ensures strong consistency but results in slower write performance because every write must complete in both layers before returning. <strong>Write-back (write-behind):</strong> Data is written to cache first; the database is updated later asynchronously. This gives faster writes but carries the risk of data loss if the cache fails before the write propagates to the DB.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">What is lazy loading (cache-aside) and when would you use it? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>Lazy loading (cache-aside)</strong> loads data into the cache only when it is needed. On a cache miss, the application fetches data from the database, populates the cache, and then returns the data. It is best used when not all data is frequently accessed or when cache storage is limited. This strategy gives fine-grained control over what is cached, but requires careful <strong>cache invalidation management</strong> to avoid serving stale data.</p>
+    </div>
+   </div>
+  </div>
+
+  <h3 style="margin-top:1.6rem;margin-bottom:0.8rem;color:var(--topic-color)">Scenario-Based Questions</h3>
+  <div class="qa-list">
+   <div class="qa-item">
+    <button class="qa-question">How would you use caching to optimize a product details page? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>Cache frequently viewed product data in <strong>Redis with a TTL</strong> so the cache auto-expires. Use <strong>lazy loading</strong> so that only requested products are cached, keeping memory usage efficient. Serve static assets such as product images via a <strong>CDN cache</strong>. On product updates, explicitly <strong>invalidate or refresh the cache entry</strong> to prevent stale data from being served. This combination reduces database hits dramatically and improves page load speed.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">What eviction strategy would you choose for a memory-limited system? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>LRU (Least Recently Used)</strong> is the default choice when recently accessed items are more likely to be used again — it evicts the item that has not been accessed for the longest time. <strong>LFU (Least Frequently Used)</strong> is preferable when certain items are accessed much more often than others, because it keeps the most popular items in cache regardless of recency. The eviction strategy should always be chosen to match your actual access patterns in order to minimize cache misses.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">How would you keep cache and database in sync? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>Use <strong>write-through</strong> caching to maintain strong consistency by writing to cache and DB simultaneously. When data changes, <strong>invalidate the cache entry</strong> manually or via message queues so the next read repopulates from the DB. Set <strong>appropriate TTLs</strong> to auto-refresh stale data as a fallback. For event-driven architectures, use <strong>Change Data Capture (CDC)</strong> mechanisms so that DB changes automatically trigger cache updates.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">What are the potential downsides or risks of aggressive caching? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>Stale data:</strong> Cached values may be outdated if not invalidated properly, causing users to see incorrect information. <strong>Cache stampede (thundering herd):</strong> Multiple requests for the same uncached data can simultaneously hit the backend, overwhelming it. <strong>Overuse of memory:</strong> A poor eviction strategy leads to inefficient memory usage and premature eviction of useful data. <strong>Increased complexity:</strong> Cache invalidation and consistency handling add significant engineering complexity and are a common source of subtle bugs.</p>
+    </div>
+   </div>
+  </div>
+
+  <h3 style="margin-top:1.6rem;margin-bottom:0.8rem;color:var(--topic-color)">Practical Implementation</h3>
+  <div class="qa-list">
+   <div class="qa-item">
+    <button class="qa-question">How would you implement Redis caching in a web application? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>Use Redis as a <strong>key-value store</strong> (e.g., <code>product:123</code> → serialized product data). On a cache miss, fetch the data from the database, store it in Redis with a <strong>TTL</strong>, and return it to the caller. On a cache hit, return directly from Redis without touching the database. Popular libraries include <strong>StackExchange.Redis</strong> (C#), <strong>redis-py</strong> (Python), and <strong>ioredis</strong> (Node.js). Structure keys consistently and version them (e.g., <code>v2:product:123</code>) so you can bulk-invalidate when data models change.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">How can you prevent cache stampedes or thundering herd problems? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>Use a <strong>lock or mutex during a cache miss</strong> so only one process or thread populates the cache while others wait (or return a slightly stale value). Apply <strong>stale-while-revalidate</strong> strategies: serve the old cached value while refreshing it in the background, so no request ever hits the backend cold. Use <strong>randomized TTL jitter</strong> (e.g., base TTL ± random seconds) to spread out cache expiry across many keys and avoid synchronized mass-expiration events.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">What tools can be used for distributed caching? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>Redis Cluster</strong> provides high availability, automatic partitioning, and replication across nodes. <strong>Memcached</strong> is a lightweight, simple in-memory key-value store suited to straightforward caching without data persistence. <strong>Hazelcast</strong> and <strong>Apache Ignite</strong> are in-JVM distributed caches suitable for enterprise Java applications. Use <strong>consistent hashing</strong> to distribute cache keys evenly across nodes, and configure <strong>replication</strong> to prevent data loss when a cache node goes down.</p>
+    </div>
+   </div>
+  </div>
+ </section>
+
  <section class="section-block reveal">
  <h2>Further Reading</h2>
  <div class="reading-links">

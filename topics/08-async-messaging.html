@@ -558,6 +558,57 @@ send_welcome_email.delay(user.id)</code></pre>
   </div>
  </section>
 
+ <!-- ============ MESSAGING & QUEUES INTERVIEW QUESTIONS ============ -->
+ <section class="section-block reveal">
+  <div class="section-badge">Interview Prep</div>
+  <h2>Messaging &amp; Queues Interview Questions</h2>
+  <p>Key interview questions on asynchronous messaging, queue design, and decoupling strategies.</p>
+  <div class="qa-list">
+   <div class="qa-item">
+    <button class="qa-question">Why would you use asynchronous messaging in a system? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>Asynchronous messaging <strong>decouples the sender and receiver</strong>, allowing them to operate independently. This improves <strong>scalability</strong> because producers don't wait for consumers; <strong>resilience</strong> because messages are queued even if the consumer is slow or down; <strong>performance</strong> because users get a fast response while background tasks (e.g., sending emails, processing orders) are offloaded; and <strong>loose coupling</strong> because systems can evolve independently without tight runtime dependencies. A classic example: sending a confirmation email after a purchase — there is no need to delay the user response for email delivery.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">What are the differences between RabbitMQ and Kafka? When would you use one over the other? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>RabbitMQ</strong> uses a queue-based push model with FIFO ordering per queue. Messages are deleted once consumed, making it ideal for <strong>real-time, transactional workloads</strong> that need per-message acknowledgment and complex routing (e.g., order processing, real-time updates). <strong>Kafka</strong> uses a log-based pull model with per-partition ordering and configurable retention — messages are kept even after consumption, enabling replay. Kafka is best for <strong>high-throughput data pipelines, event sourcing, and analytics</strong> (e.g., tracking user behavior at scale). RabbitMQ delivers at-most-once or at-least-once guarantees; Kafka can achieve exactly-once with the right configuration.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">Explain the different message delivery guarantees: At-least-once vs. Exactly-once vs. At-most-once — what are they and where do you apply them? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>At-most-once:</strong> The message is sent once and not retried on failure. It is fast and simple but can lose data, making it appropriate for non-critical logging or telemetry. <strong>At-least-once:</strong> The message is retried until acknowledged, which is the default in most systems. It may result in duplicates so consumers must be idempotent. Suitable for order placement and email dispatching. <strong>Exactly-once:</strong> The message is delivered exactly once with no duplication or loss. It is complex and expensive to implement but required for critical financial transactions such as bank transfers and billing systems.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">How do queues help improve system scalability and fault tolerance? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>Queues act as a <strong>buffer between producers and consumers</strong>, so producers can send messages quickly without waiting for slow consumers. Consumers can be <strong>scaled horizontally and independently</strong> of producers to keep up with load. For fault tolerance: if a consumer crashes, messages remain safely in the queue until it recovers or another consumer instance takes over. Queues also <strong>smooth traffic spikes</strong> — during high-traffic events like Black Friday, the queue absorbs the surge and lets backend systems catch up at their own pace without being overwhelmed.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">What problems might arise in a queue-based system under heavy load? How would you mitigate them? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>Common problems include <strong>queue backlog</strong> when consumers can't keep up, <strong>increased message delay</strong> leading to latency spikes, <strong>message duplication</strong> from retries, and <strong>resource exhaustion</strong> from CPU and memory strain caused by deep backlogs. Mitigations: <strong>scale consumers horizontally</strong> using auto-scaling groups; <strong>optimize message processing</strong> to reduce per-message work; use <strong>dead-letter queues (DLQ)</strong> to isolate and inspect poison messages that repeatedly fail; and implement <strong>rate limiting and backpressure mechanisms</strong> to signal producers to slow down when the system is under strain.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">How would you design an order processing system using a message queue? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>When a user places an order, the frontend service acts as a <strong>producer</strong> and publishes an order message to a queue. An <strong>Order Service (consumer)</strong> reads from the queue, validates stock, reserves inventory, and triggers downstream services for payment and confirmation emails — each of which may publish their own events in an event-driven chain. The queue provides value by <strong>decoupling payment and inventory logic from the frontend</strong> (users get an instant response), <strong>handling retries automatically</strong> on transient failures, and allowing each downstream service to <strong>scale independently</strong> based on its own load.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">How would you ensure idempotency in message consumers? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>Assign each message a <strong>unique message ID</strong> (e.g., Order ID or broker-generated Message ID) and maintain a <strong>processed-message store</strong> (in Redis or a database table) that tracks messages already handled. Before processing a message, check whether its ID already exists in the store — if so, skip it. Make business operations inherently idempotent: for example, "mark order as paid" should be a no-op if the order is already marked paid. Leverage <strong>built-in deduplication features</strong> where available (e.g., AWS SQS FIFO queues have a deduplication window). This is essential in <strong>at-least-once delivery</strong> scenarios where retries are expected.</p>
+    </div>
+   </div>
+  </div>
+ </section>
+
  <section class="section-block reveal">
  <h2>Further Reading</h2>
  <div class="reading-links">

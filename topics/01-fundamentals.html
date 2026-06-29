@@ -684,6 +684,210 @@ media: <span class="c-n">petabytes</span>/year → CDN mandatory</code></pre>
  </div>
  </section>
 
+ <!-- ============ SCALABILITY & PERFORMANCE INTERVIEW QUESTIONS ============ -->
+ <section class="section-block reveal">
+  <div class="section-badge">Interview Prep</div>
+  <h2>Scalability &amp; Performance Interview Questions</h2>
+  <p>Key interview questions covering scalability, scaling strategies, system performance, and autoscaling.</p>
+
+  <h3 style="margin-top:1.6rem;margin-bottom:0.8rem;color:var(--topic-color)">Scalability Questions</h3>
+  <div class="qa-list">
+   <div class="qa-item">
+    <button class="qa-question">What does scalability mean in the context of system design? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>Scalability</strong> is the ability of a system to handle increased load — whether that's more users, more data, or more traffic — without compromising performance or reliability. In system design, this often means the system can grow linearly or elastically with demand, using techniques like <strong>horizontal scaling</strong> (adding more machines) or <strong>vertical scaling</strong> (upgrading hardware). A scalable system maintains responsiveness, throughput, and availability as demand increases.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">Can you explain a real-world example where scalability was critical to success or failure? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>One famous example is <strong>Twitter</strong>. Initially, Twitter struggled to scale and became known for its "fail whale" downtime during traffic surges. Their early monolithic architecture couldn't handle rapid user growth. They later migrated to a distributed, microservices-based architecture to enable horizontal scaling.</p>
+     <p>Alternatively, <strong>Zoom</strong> successfully scaled during the COVID-19 pandemic, going from 10 million to over 300 million daily participants. Their use of cloud-native infrastructure and autoscaling allowed them to absorb the sudden spike in demand.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">What are the main challenges systems face as they scale? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>Some of the biggest challenges include:</p>
+     <p><strong>Latency</strong> — More components and network hops introduce delays. <strong>Bottlenecks</strong> — A single overloaded component can affect the entire system. <strong>Downtime</strong> — More nodes and dependencies increase the risk of failure. <strong>Cost</strong> — Scaling up infrastructure, especially in the cloud, can become expensive.</p>
+     <p>These challenges require proactive architectural planning, monitoring, and scaling policies to handle gracefully.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">How would you identify a bottleneck in a scalable architecture? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>To identify bottlenecks: (1) Use observability tools (like Prometheus, Grafana, Datadog) to monitor performance metrics. (2) Look for sudden spikes in CPU, memory, or latency. (3) Trace requests end-to-end using distributed tracing tools like OpenTelemetry or Jaeger. (4) Use load testing tools (like JMeter or k6) to simulate traffic and see where degradation begins. (5) Identify services or layers where queue lengths grow or response times increase disproportionately.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">Why does latency increase with scale, and how can you mitigate it? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>As systems scale: more services are added (more network calls), data is sharded or partitioned (aggregation needed), and dependency chains grow (longer request paths).</p>
+     <p><strong>Mitigation strategies:</strong> Caching frequently accessed data (e.g., Redis); asynchronous processing for non-critical tasks (queues, background jobs); reducing network hops via edge computing or CDNs; optimizing DB queries and reducing cross-service chatter.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">How do you balance scalability with cost in cloud-based systems? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>Balancing scalability with cost involves: using <strong>autoscaling</strong> with upper/lower bounds to prevent overprovisioning; choosing <strong>serverless or FaaS</strong> (like AWS Lambda) for event-driven workloads; implementing tiered caching to reduce load on primary databases; leveraging spot or reserved instances where possible; and monitoring and right-sizing infrastructure regularly based on usage patterns. A cost-effective system scales efficiently while only using resources when needed.</p>
+    </div>
+   </div>
+  </div>
+
+  <h3 style="margin-top:1.6rem;margin-bottom:0.8rem;color:var(--topic-color)">Scaling Strategies Questions</h3>
+  <div class="qa-list">
+   <div class="qa-item">
+    <button class="qa-question">What is the difference between horizontal and vertical scaling? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>Horizontal Scaling (Scaling Out)</strong> — Adding more machines or instances to distribute the load. Example: Adding more application servers behind a load balancer. Scales well for web apps and microservices, but adds complexity in state management, coordination, and deployment.</p>
+     <p><strong>Vertical Scaling (Scaling Up)</strong> — Increasing the resources (CPU, RAM, disk) of a single server. Example: Upgrading a database server from 16GB RAM to 64GB RAM. Simpler and faster to implement but has physical/OS limits and can be a single point of failure.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">What is diagonal scaling and when is it a good idea? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>Diagonal Scaling</strong> is a hybrid approach: start with vertical scaling (easier, cheaper for small scale), then move to horizontal scaling as load increases beyond a single machine's limits.</p>
+     <p><strong>Use cases:</strong> Startups — begin with minimal infra and gradually scale horizontally as demand grows. Systems with burst traffic — use vertical scaling for fast reactions, and horizontal for long-term elasticity. This approach balances simplicity and future-proofing, avoiding premature complexity.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">What are the trade-offs between horizontal and vertical scaling in terms of performance and complexity? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>Performance:</strong> Horizontal scaling can scale almost linearly (with effort); vertical scaling is limited by single machine capacity. <strong>Complexity:</strong> Horizontal requires distributed system design; vertical is easier to manage initially. <strong>Fault Tolerance:</strong> Horizontal is more resilient (failover possible); vertical is a single point of failure. <strong>Cost:</strong> Horizontal has higher operational cost and complexity; high-capacity machines for vertical are expensive. <strong>Deployment:</strong> Horizontal requires orchestration and load balancing; vertical has simple deploys with fewer moving parts.</p>
+     <p>Summary: Horizontal = more scalable, resilient, but complex. Vertical = quick wins, limited long-term.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">Can you describe a scenario where horizontal scaling wouldn't help? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>Horizontal scaling won't help when: the workload isn't parallelizable (e.g., a legacy monolithic app that relies on shared state or global locks); there's a non-distributable bottleneck like a single-threaded operation or a relational DB that doesn't scale well horizontally; or there's a stateful service without session persistence or sticky sessions in the load balancer.</p>
+     <p><strong>Real-world example:</strong> Scaling a PostgreSQL database for analytics queries — simply adding more nodes won't help unless sharding or read replicas are implemented.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">When would you choose vertical scaling over horizontal? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>Choose <strong>vertical scaling</strong> when: you need a quick fix without refactoring code; the system is monolithic or tightly coupled; your team lacks experience with distributed systems; you're in the early stages of a project/startup; or the system has low concurrency needs and doesn't warrant added complexity.</p>
+     <p>Vertical scaling is ideal when you don't need high elasticity or can't justify the cost/complexity of a distributed architecture.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">What challenges arise in horizontal scaling and how would you solve them? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>State Management</strong> — Solution: Use external stores like Redis or Memcached for sessions.</p>
+     <p><strong>Data Consistency</strong> — Solution: Implement distributed transactions, eventual consistency patterns, or use CQRS.</p>
+     <p><strong>Load Distribution</strong> — Solution: Use smart load balancers (e.g., with least-connections or IP hashing).</p>
+     <p><strong>Service Discovery</strong> — Solution: Use tools like Consul, Eureka, or cloud-native DNS-based discovery.</p>
+     <p><strong>Deployment &amp; Orchestration</strong> — Solution: Use containers (Docker) and orchestrators like Kubernetes for managing instances.</p>
+     <p><strong>Increased Latency</strong> — Solution: Minimize inter-service calls, implement caching, and optimize communication paths.</p>
+    </div>
+   </div>
+  </div>
+
+  <h3 style="margin-top:1.6rem;margin-bottom:0.8rem;color:var(--topic-color)">System Performance Questions</h3>
+  <div class="qa-list">
+   <div class="qa-item">
+    <button class="qa-question">What is the difference between latency and throughput? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>Latency</strong> is the time it takes for a system to respond to a request (e.g., response time in milliseconds). <strong>Throughput</strong> is the number of requests the system can handle in a given time (e.g., requests per second).</p>
+     <p>Analogy: If a highway is a system, latency is how fast one car can travel, while throughput is how many cars can pass per hour. These metrics often trade off — optimizing one can hurt the other.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">How do SLAs, SLOs, and SLIs differ? Provide real-world examples. <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>SLA (Service Level Agreement)</strong> — A contractual commitment (e.g., 99.9% uptime for a paid service). <strong>SLO (Service Level Objective)</strong> — Internal performance target (e.g., 95% of API requests respond &lt;200ms). <strong>SLI (Service Level Indicator)</strong> — The actual measured metric (e.g., current API latency = 92% &lt;200ms).</p>
+     <p>Example: An e-commerce platform might offer an SLA of 99.9% uptime, have an SLO of 99.95%, and monitor uptime via SLI metrics from uptime checks.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">Why are percentiles (like P95, P99) important in performance monitoring? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>Averages can hide outliers — 90% of requests might be fast, but 10% could be very slow. <strong>P95</strong> means 95% of requests are faster than this threshold. <strong>P99</strong> captures the tail latency — the slowest 1% of requests that often impact user experience.</p>
+     <p>Monitoring percentiles helps surface real-world slowness that affects users and drives better performance tuning.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">What strategies would you use to identify a system's performance bottleneck? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>Use profiling and monitoring tools (e.g., New Relic, Grafana, Datadog). Break down the request path: DB calls, service-to-service latency, cache hits/misses. Look at resource metrics: CPU, memory, disk I/O, network latency. Perform load testing to simulate pressure and expose limits. Analyze logs and distributed traces to locate slow operations.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">How would you ensure responsiveness in a highly scalable system? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>Use <strong>asynchronous processing</strong> for non-critical paths (e.g., background jobs). Implement <strong>caching layers</strong> (e.g., Redis, CDN) to reduce backend load. Apply <strong>rate limiting and load shedding</strong> to maintain system health. Ensure <strong>horizontal scalability</strong> of components (e.g., stateless services). Monitor tail latencies and auto-scale based on traffic.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">What tools or techniques have you used for performance testing and monitoring? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>Testing:</strong> JMeter, k6, Locust for load/stress testing. <strong>Monitoring:</strong> Prometheus + Grafana, New Relic, Datadog, AWS CloudWatch. Use APM tools to trace requests and identify slow spans. Use synthetic monitoring for uptime, and real user monitoring (RUM) for client-side performance. Set alerts on SLO breaches, CPU/memory spikes, or error rates.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">How would you design a system to handle sudden traffic spikes? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>Use <strong>autoscaling</strong> (e.g., AWS Auto Scaling Groups, Kubernetes HPA). Use <strong>CDNs</strong> to serve static content and reduce origin server load. Implement <strong>queueing systems</strong> (e.g., Kafka, SQS) for smoothing bursts. Apply <strong>circuit breakers</strong> to prevent cascading failures. Keep services <strong>stateless</strong> so they can scale out quickly.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">Explain the trade-offs between performance and cost in cloud environments. <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>Faster performance often requires more resources, which means higher cost (e.g., provisioned IOPS, larger instances). There is a trade-off between reserved vs. on-demand capacity. Caching and batching improve performance without linearly increasing cost. Auto-scaling and serverless can optimize cost-per-request, but might introduce cold start latencies. Cost-performance decisions should align with business SLAs/SLOs and traffic patterns.</p>
+    </div>
+   </div>
+  </div>
+
+  <h3 style="margin-top:1.6rem;margin-bottom:0.8rem;color:var(--topic-color)">Autoscaling &amp; Cloud Best Practices Questions</h3>
+  <div class="qa-list">
+   <div class="qa-item">
+    <button class="qa-question">What is autoscaling, and why is it important in distributed systems? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>Autoscaling</strong> is the automatic adjustment of compute resources based on current demand. It's critical in distributed systems because it ensures: <strong>high availability</strong> by scaling out during peak traffic; <strong>cost-efficiency</strong> by scaling in during idle times; and <strong>better user experience</strong> by minimizing latency and avoiding overload.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">How does predictive autoscaling work? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>Predictive autoscaling</strong> uses historical usage patterns and machine learning to forecast future demand. Based on this prediction, resources are provisioned in advance. Example: AWS Predictive Scaling uses past traffic patterns to scale EC2 instances proactively before load increases.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">How does autoscaling work in AWS, Azure, and GCP? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>AWS</strong> — Uses Auto Scaling Groups (ASGs) tied to CloudWatch metrics. Works with EC2, ECS, EKS, Lambda.</p>
+     <p><strong>Azure</strong> — Uses Virtual Machine Scale Sets (VMSS), App Service Plans, and AKS with rules from Azure Monitor.</p>
+     <p><strong>GCP</strong> — Uses Managed Instance Groups (MIGs), Cloud Functions, and Cloud Run with GCP Monitoring. GKE uses Horizontal Pod Autoscaler (HPA).</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">How would you set up autoscaling for a containerized application? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>Use an orchestrator like <strong>Kubernetes</strong> or ECS/EKS/AKS. Set up a <strong>Horizontal Pod Autoscaler</strong> based on CPU usage or custom metrics. Use a <strong>load balancer</strong> to distribute traffic across scaled pods. Configure monitoring and alerting to validate scaling behavior.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">What metrics would you monitor for effective autoscaling? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>Key metrics to monitor: <strong>CPU and memory usage</strong>; request rate per instance; <strong>queue depth</strong> (e.g., SQS, Kafka); <strong>latency and error rates</strong>; custom business metrics (e.g., active users, transactions/sec).</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">How can you ensure cost optimization when implementing autoscaling? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>Set scaling thresholds wisely to avoid unnecessary scaling. Use <strong>spot/preemptible instances</strong> for non-critical workloads. Employ <strong>scale-to-zero</strong> for idle services (Cloud Run, Lambda). Regularly rightsize instances based on usage. Use budgets and alerts to monitor cloud spending.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">What are some challenges with autoscaling in real-time systems? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>Scaling latency</strong> — Time taken to spin up new instances may cause temporary lag. <strong>Cold starts</strong> — Especially in serverless platforms like Lambda or Cloud Functions. <strong>Over-provisioning</strong> — Can lead to higher costs. <strong>Under-provisioning</strong> — If thresholds are too high or scaling is delayed, it can cause outages.</p>
+    </div>
+   </div>
+  </div>
+ </section>
+
  <!-- ============ FURTHER READING ============ -->
  <section class="section-block reveal">
  <h2>Further Reading</h2>

@@ -654,3 +654,192 @@
     initHeroCanvas();
   }
 })();
+
+/* ═══════════════════════════════════════════════════════
+   CRYSTAL AESTHETIC — aurora orbs + particle canvas
+   ═══════════════════════════════════════════════════════ */
+(function initCrystalAesthetic() {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  /* ── Aurora background orbs ─────────────────────────── */
+  function spawnAuroraOrbs() {
+    const orbs = [
+      { color:'rgba(124,58,237,0.22)',  w:560, h:420, top:'8%',  left:'12%', dur:'22s', delay:'0s'   },
+      { color:'rgba(6,182,212,0.14)',   w:480, h:360, top:'55%', left:'62%', dur:'28s', delay:'-8s'  },
+      { color:'rgba(236,72,153,0.10)',  w:400, h:340, top:'30%', left:'75%', dur:'20s', delay:'-4s'  },
+      { color:'rgba(16,185,129,0.10)',  w:380, h:280, top:'70%', left:'8%',  dur:'24s', delay:'-12s' },
+      { color:'rgba(167,139,250,0.12)', w:320, h:260, top:'20%', left:'42%', dur:'18s', delay:'-6s'  },
+    ];
+    orbs.forEach(function(o) {
+      var el = document.createElement('div');
+      el.className = 'aurora-orb';
+      el.style.width   = o.w + 'px';
+      el.style.height  = o.h + 'px';
+      el.style.top     = o.top;
+      el.style.left    = o.left;
+      el.style.background = o.color;
+      el.style.setProperty('--orb-dur',   o.dur);
+      el.style.setProperty('--orb-delay', o.delay);
+      document.body.appendChild(el);
+    });
+  }
+
+  /* ── Crystal particle canvas ────────────────────────── */
+  function initCrystalCanvas() {
+    var canvas = document.createElement('canvas');
+    canvas.id = 'crystal-canvas';
+    document.body.appendChild(canvas);
+    var ctx = canvas.getContext('2d');
+
+    function resize() {
+      canvas.width  = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    var COLORS = ['#7C3AED','#A78BFA','#06B6D4','#10B981','#EC4899','#F59E0B'];
+    var MAX = 38;
+    var particles = [];
+
+    function rand(a, b) { return a + Math.random() * (b - a); }
+
+    function spawnParticle() {
+      var color = COLORS[Math.floor(Math.random() * COLORS.length)];
+      var size  = rand(1.2, 4.2);
+      return {
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        vx: rand(-0.18, 0.18),
+        vy: rand(-0.32, -0.08),
+        size: size,
+        color: color,
+        alpha: 0,
+        alphaTarget: rand(0.3, 0.75),
+        life: 0,
+        maxLife: rand(180, 420),
+        spin: rand(-0.012, 0.012),
+        angle: Math.random() * Math.PI * 2,
+        shape: Math.random() < 0.5 ? 'diamond' : 'hex',
+      };
+    }
+
+    for (var i = 0; i < MAX; i++) {
+      var p = spawnParticle();
+      p.life = Math.random() * p.maxLife;
+      particles.push(p);
+    }
+
+    function drawDiamond(c, x, y, s, a) {
+      c.save(); c.translate(x, y); c.rotate(a);
+      c.beginPath();
+      c.moveTo(0, -s); c.lineTo(s*0.6, 0); c.lineTo(0, s); c.lineTo(-s*0.6, 0);
+      c.closePath(); c.restore();
+    }
+
+    function drawHex(c, x, y, s, a) {
+      c.save(); c.translate(x, y); c.rotate(a);
+      c.beginPath();
+      for (var i = 0; i < 6; i++) {
+        var ang = (Math.PI / 3) * i;
+        if (i === 0) c.moveTo(s * Math.cos(ang), s * Math.sin(ang));
+        else         c.lineTo(s * Math.cos(ang), s * Math.sin(ang));
+      }
+      c.closePath(); c.restore();
+    }
+
+    function tick() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (var i = 0; i < particles.length; i++) {
+        var p = particles[i];
+        p.life++; p.x += p.vx; p.y += p.vy; p.angle += p.spin;
+
+        var progress = p.life / p.maxLife;
+        if      (progress < 0.15) p.alpha = p.alphaTarget * (progress / 0.15);
+        else if (progress > 0.75) p.alpha = p.alphaTarget * ((1 - progress) / 0.25);
+        else                      p.alpha = p.alphaTarget;
+
+        ctx.save();
+        ctx.globalAlpha = p.alpha;
+        ctx.strokeStyle = p.color;
+        ctx.fillStyle   = p.color + '28';
+        ctx.lineWidth   = 0.8;
+
+        if (p.shape === 'diamond') drawDiamond(ctx, p.x, p.y, p.size, p.angle);
+        else                       drawHex(ctx, p.x, p.y, p.size, p.angle);
+        ctx.fill(); ctx.stroke();
+
+        /* inner glint */
+        ctx.globalAlpha = p.alpha * 0.5;
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(p.x - p.size * 0.2, p.y - p.size * 0.2, p.size * 0.18, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        if (p.life >= p.maxLife || p.y < -20 || p.x < -20 || p.x > canvas.width + 20) {
+          particles[i] = spawnParticle();
+        }
+      }
+      requestAnimationFrame(tick);
+    }
+    tick();
+  }
+
+  /* ── Sparkle burst on topic card hover ──────────────── */
+  function initCardSparkles() {
+    /* inject keyframe */
+    if (!document.getElementById('crystal-kf')) {
+      var style = document.createElement('style');
+      style.id = 'crystal-kf';
+      style.textContent = '@keyframes sparkleParticle{0%{transform:scale(0) translate(0,0);opacity:1}100%{transform:scale(1.4) translate(var(--sx,0px),var(--sy,-24px));opacity:0}}';
+      document.head.appendChild(style);
+    }
+
+    document.querySelectorAll('.topic-card').forEach(function(card) {
+      card.addEventListener('mouseenter', function() {
+        var rect = card.getBoundingClientRect();
+        for (var i = 0; i < 6; i++) {
+          (function(idx) {
+            setTimeout(function() {
+              var s = document.createElement('span');
+              var hue = 260 + Math.random() * 80;
+              var dx  = (Math.random() - 0.5) * 50;
+              var dy  = -12 - Math.random() * 32;
+              s.style.cssText =
+                'position:fixed;pointer-events:none;z-index:9999;border-radius:50%;' +
+                'width:5px;height:5px;' +
+                'left:' + (rect.left + Math.random() * rect.width)  + 'px;' +
+                'top:'  + (rect.top  + Math.random() * rect.height) + 'px;' +
+                'background:hsl(' + hue + ',85%,72%);' +
+                '--sx:' + dx + 'px;--sy:' + dy + 'px;' +
+                'animation:sparkleParticle 0.7s ease forwards;';
+              document.body.appendChild(s);
+              setTimeout(function() { s.remove(); }, 750);
+            }, idx * 65);
+          })(i);
+        }
+      });
+    });
+  }
+
+  /* ── Stagger shimmer delays ──────────────────────────── */
+  function staggerShimmers() {
+    document.querySelectorAll('.section-block').forEach(function(el, i) {
+      el.style.setProperty('--shimmer-delay', (i * 1.1 % 9) + 's');
+    });
+  }
+
+  function init() {
+    spawnAuroraOrbs();
+    initCrystalCanvas();
+    initCardSparkles();
+    staggerShimmers();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();

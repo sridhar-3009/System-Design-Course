@@ -587,6 +587,89 @@
   </div>
  </section>
 
+ <!-- ============ CONCURRENCY & PARALLELISM INTERVIEW QUESTIONS ============ -->
+ <section class="section-block reveal">
+  <div class="section-badge">Interview Prep</div>
+  <h2>Concurrency &amp; Parallelism Interview Questions</h2>
+  <p>Key interview questions on concurrency models, thread safety, and scalable async design.</p>
+
+  <h3 style="margin-top:1.6rem;margin-bottom:0.8rem;color:var(--topic-color)">Conceptual Questions</h3>
+  <div class="qa-list">
+   <div class="qa-item">
+    <button class="qa-question">What is the difference between concurrency and parallelism? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>Concurrency</strong> is the ability of a system to handle multiple tasks at once by managing context switching and task progress — even if those tasks are not literally executing at the same instant. A single-core CPU interleaving execution between multiple tasks is concurrent but not parallel. <strong>Parallelism</strong> means executing multiple tasks simultaneously, typically by leveraging multiple CPU cores. A multi-core CPU running four threads at the same physical instant is truly parallel. Concurrency is about <em>structure</em>; parallelism is about <em>execution</em>.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">How do threads differ from processes? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>Processes</strong> are isolated execution environments with their own independent memory space; a crash in one process does not directly corrupt another. <strong>Threads</strong> share the same memory space within a process but have their own stack and program counter. Threads are lighter and faster to create and destroy compared to processes, and inter-thread communication is easier via shared memory. However, this also introduces risks like <strong>race conditions</strong> and <strong>deadlocks</strong> when multiple threads access shared mutable state without proper synchronization.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">What is a thread pool, and why is it preferred over creating new threads for each task? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>A <strong>thread pool</strong> is a collection of pre-created, reusable threads that are kept alive and assigned tasks from a queue. It is preferred because it <strong>reduces the overhead</strong> of repeatedly creating and destroying threads (which is expensive in CPU and memory terms), <strong>prevents excessive thread creation</strong> that could exhaust system resources, and <strong>improves response time and throughput</strong> by reusing idle threads. Thread pools are used ubiquitously in web servers, background workers, and async processing engines. In .NET, the <strong>Task Parallel Library (TPL)</strong> and <code>ThreadPool</code> manage this automatically.</p>
+    </div>
+   </div>
+  </div>
+
+  <h3 style="margin-top:1.6rem;margin-bottom:0.8rem;color:var(--topic-color)">Practical Scenarios</h3>
+  <div class="qa-list">
+   <div class="qa-item">
+    <button class="qa-question">How would you design a web server to handle thousands of concurrent requests? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>Use <strong>asynchronous non-blocking I/O</strong> (e.g., <code>async/await</code> in .NET or the event loop in Node.js) so that threads are not blocked waiting for network or disk operations. Employ a <strong>thread pool for CPU-bound work</strong> to avoid spawning unbounded threads. Place a <strong>reverse proxy or load balancer</strong> in front to distribute incoming connections across multiple server instances. Use <strong>connection pooling</strong> to reuse database connections, <strong>caching</strong> to avoid redundant computation, and <strong>queue-based job processing</strong> to handle bursty workloads gracefully.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">Describe how you would implement background job processing in a scalable system. <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>Use a <strong>message queue</strong> (e.g., RabbitMQ, Kafka, or Azure Queue Storage) as the work queue. <strong>Worker services consume tasks</strong> from the queue and process them asynchronously, completely decoupled from the request-handling path. <strong>Scale horizontally</strong> by spinning up additional worker instances when the queue depth grows. Ensure each job is <strong>idempotent</strong> and includes <strong>retry logic</strong> with exponential backoff so that transient failures are handled gracefully without duplicating side effects. Monitor queue depth, consumer lag, and error rates via dashboards and alerting tools to detect backlogs early.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">How would you debug and resolve a deadlock in a multithreaded application? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>To <strong>diagnose</strong> a deadlock, capture a process dump and analyze thread stacks, or use a debugger (e.g., Visual Studio Debugger or <code>jstack</code> on the JVM) to inspect which threads are waiting on which locks. Look for a <strong>circular wait</strong> where Thread A holds Lock 1 and waits on Lock 2, while Thread B holds Lock 2 and waits on Lock 1. To <strong>fix</strong>: establish a <strong>consistent global lock acquisition order</strong> so all threads always acquire locks in the same sequence; use <strong>timeout-based locks</strong> (e.g., <code>Monitor.TryEnter</code>) to detect and recover from deadlocks; <strong>minimize lock scope</strong> by locking only the smallest critical section; and prefer <strong>concurrent collections or lock-free data structures</strong> when possible.</p>
+    </div>
+   </div>
+  </div>
+
+  <h3 style="margin-top:1.6rem;margin-bottom:0.8rem;color:var(--topic-color)">Pitfall Awareness</h3>
+  <div class="qa-list">
+   <div class="qa-item">
+    <button class="qa-question">What is a race condition, and how can you prevent it? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>A <strong>race condition</strong> occurs when multiple threads access and modify shared data concurrently without proper synchronization, causing behavior that depends on the unpredictable order of execution. For example, two threads both reading a counter value of 5, incrementing it, and writing 6 — when the correct result should be 7. Prevention strategies: use <strong>locks/mutexes</strong> (e.g., <code>lock</code> in C#) to serialize access; use <strong>thread-safe collections</strong> like <code>ConcurrentDictionary</code>; use <strong>atomic operations</strong> (e.g., <code>Interlocked.Increment</code>) for simple numeric updates; and adopt <strong>functional or stateless programming</strong> patterns that avoid shared mutable state altogether.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">How do you ensure thread-safe operations in a shared-memory environment? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>Synchronize access to shared resources using <strong><code>lock</code> or <code>Monitor</code></strong> in C# for exclusive access, or <strong><code>ReaderWriterLockSlim</code></strong> in read-heavy scenarios to allow multiple concurrent readers while blocking writers. Use <strong>thread-safe API types</strong> (e.g., <code>ConcurrentDictionary</code>, <code>ConcurrentQueue</code>) instead of wrapping unsynchronized types with locks. Prefer <strong>immutable objects</strong> and avoid shared state where possible, since immutable data needs no synchronization. Leverage the <strong>Task Parallel Library (TPL)</strong> and <code>async/await</code> to avoid manual thread management and reduce the surface area for synchronization bugs.</p>
+    </div>
+   </div>
+  </div>
+
+  <h3 style="margin-top:1.6rem;margin-bottom:0.8rem;color:var(--topic-color)">Advanced Questions</h3>
+  <div class="qa-list">
+   <div class="qa-item">
+    <button class="qa-question">How does the event loop work in Node.js or similar environments? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>Node.js uses a <strong>single-threaded event loop</strong> powered by libuv. The call stack executes synchronous JavaScript code. When the code encounters a blocking operation (I/O, timers, network), Node.js <strong>offloads it to the libuv thread pool or OS kernel</strong> and continues executing other work. When the blocking operation completes, its callback is placed in the <strong>event queue</strong>. The event loop picks up callbacks from the queue when the call stack is empty and executes them. This architecture enables <strong>high concurrency without multi-threading</strong> — thousands of simultaneous connections can be handled with a single thread because threads are never blocked waiting for I/O.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">What is the difference between parallelism using threads vs. async I/O? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>Thread-based parallelism</strong> is used for <strong>CPU-bound operations</strong>: work that requires significant computation (image processing, data crunching). Multiple threads execute on different CPU cores simultaneously. <strong>Async I/O</strong> is used for <strong>I/O-bound operations</strong>: network requests, disk reads, database queries. Instead of blocking a thread while waiting for the operation to complete, async I/O uses callbacks, promises, or futures to resume execution when the result is ready — freeing the thread to do other work. Best practice: combine both — use <strong>async I/O</strong> for fast, scalable networking and request handling, and use <strong>thread parallelism</strong> for compute-heavy background processing.</p>
+    </div>
+   </div>
+  </div>
+ </section>
+
  <section class="section-block reveal">
  <h2>Further Reading</h2>
  <div class="reading-links">
