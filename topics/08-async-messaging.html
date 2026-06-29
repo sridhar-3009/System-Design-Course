@@ -448,6 +448,116 @@ send_welcome_email.delay(user.id)</code></pre>
  </div>
  </section>
 
+ <!-- ============ EVENT-DRIVEN ARCHITECTURE OVERVIEW ============ -->
+ <section class="section-block reveal">
+  <h2>Event-Driven Architecture — Core Concepts</h2>
+  <p>Event-Driven Architecture (EDA) is a system design pattern where components communicate through events rather than direct synchronous calls. When something happens in one service, it publishes an event; other services listen and react asynchronously — without the producer knowing who consumes it.</p>
+  <p><strong>Key Characteristics:</strong> Asynchronous processing (non-blocking workflows); Loose coupling (services only share event contracts, not direct dependencies); Scalability &amp; flexibility (new consumers can be added without modifying producers).</p>
+  <p><strong>Synchronous vs. Asynchronous:</strong> In synchronous (request-response) systems, the caller blocks until a response arrives — tight coupling, simple to reason about. In EDA, the producer fires an event and continues — the consumer processes it independently, enabling higher throughput and resilience.</p>
+  <p><strong>Pub-Sub vs. Event Streaming:</strong> Pub-Sub (RabbitMQ, AWS SNS) broadcasts events to subscribers — events are transient, consumed once, and have no strict ordering. Event Streaming (Kafka, AWS Kinesis) persists events in an ordered log that consumers can replay — ideal for audit trails, event sourcing, and reprocessing historical data.</p>
+  <p><strong>Key components:</strong> Event Producers generate events; Event Brokers (Kafka, RabbitMQ, AWS EventBridge) transmit and optionally store them; Event Consumers process events asynchronously; Event Store provides log-based persistence for replaying events.</p>
+  <p><strong>Best Practices:</strong> Use idempotent event processing to handle duplicate deliveries safely; implement Dead-Letter Queues (DLQs) for failed messages; version events using a schema registry to handle schema evolution without breaking consumers.</p>
+ </section>
+
+ <!-- ============ EVENT-DRIVEN ARCHITECTURE INTERVIEW QUESTIONS ============ -->
+ <section class="section-block reveal">
+  <div class="section-badge">Interview Prep</div>
+  <h2>Event-Driven Architecture Interview Questions</h2>
+  <p>Key interview questions covering EDA fundamentals, scalability, implementation technologies, and real-world use cases.</p>
+
+  <h3 style="margin-top:1.6rem;margin-bottom:0.8rem;color:var(--topic-color)">Fundamentals</h3>
+  <div class="qa-list">
+   <div class="qa-item">
+    <button class="qa-question">What is Event-Driven Architecture (EDA), and how does it differ from traditional request-response architectures? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>Event-Driven Architecture (EDA) is a software architecture pattern where system components communicate through events rather than direct synchronous calls. Instead of services invoking each other directly, they publish events when something happens, and other services listen for and react to those events asynchronously.</p>
+     <p><strong>Differences from Request-Response:</strong> Decoupling — in REST-based systems, services depend on each other directly; in EDA services are decoupled and interact only through events. Scalability — EDA scales better as new consumers can subscribe to events without modifying producers. Asynchronous Processing — traditional architectures require waiting for responses; EDA enables non-blocking workflows.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">Explain the difference between Pub-Sub and Event Streaming models. <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>Pub-Sub (RabbitMQ, AWS SNS, Redis Pub/Sub):</strong> One-to-many event distribution. Events are transient — once consumed, they are gone. No strict ordering guarantee. Best for real-time notifications where consumers need only the latest event.</p>
+     <p><strong>Event Streaming (Apache Kafka, AWS Kinesis):</strong> Events are stored and can be replayed. Maintains strict event order within partitions. Events persist for later processing. Best for processing historical data, event sourcing, and audit logs where consumers may need to replay past events.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">What are the key components of an event-driven system? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>1. <strong>Event Producers:</strong> Emit events when something happens (e.g., a user places an order, a sensor reports a reading).</p>
+     <p>2. <strong>Event Brokers:</strong> Middleware that routes events — examples: Kafka, RabbitMQ, AWS EventBridge. Acts as the communication backbone between producers and consumers.</p>
+     <p>3. <strong>Event Consumers:</strong> Services that process events asynchronously and react (update a database, send a notification, trigger a workflow).</p>
+     <p>4. <strong>Event Store (optional):</strong> A persistent log of all events used for auditing, debugging, or event replay to reconstruct past system state.</p>
+    </div>
+   </div>
+  </div>
+
+  <h3 style="margin-top:1.6rem;margin-bottom:0.8rem;color:var(--topic-color)">Scalability &amp; Fault Tolerance</h3>
+  <div class="qa-list">
+   <div class="qa-item">
+    <button class="qa-question">What are some challenges of Event-Driven Architecture, and how do you handle eventual consistency? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>Challenges:</strong> Eventual Consistency — events propagate asynchronously so data may not be updated instantly across all services; Event Ordering — ensuring correct sequence in distributed systems; Debugging Complexity — events flow across many services making it hard to trace issues; Handling Failures — consumers may fail while processing events.</p>
+     <p><strong>Handling Eventual Consistency:</strong> Use idempotent operations to avoid duplicate updates; implement Sagas (orchestration/choreography patterns) to ensure business logic correctness; leverage Event Sourcing to reconstruct system state from the ordered event log if inconsistency is detected.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">How can you ensure event ordering in distributed event processing? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>Partitioning:</strong> Kafka uses partitions to ensure ordering within each partition — events for the same key (e.g., same user ID) always go to the same partition.</p>
+     <p><strong>Event Versioning:</strong> Maintain a version number in events and process them sequentially, rejecting out-of-order versions.</p>
+     <p><strong>Global Ordering Service:</strong> Use a dedicated ordering service that assigns sequence numbers to events before they reach consumers.</p>
+     <p><strong>Deduplication:</strong> Implement unique event IDs so consumers can detect and discard already-processed or out-of-order duplicate events.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">What are dead-letter queues (DLQs), and why are they important? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>A Dead-Letter Queue (DLQ) is a separate queue where failed or unprocessable messages are sent after exhausting retry attempts.</p>
+     <p><strong>Importance:</strong> Prevents infinite retries — avoids a faulty message being retried indefinitely and blocking the queue; Facilitates debugging — developers can inspect dead-lettered events to identify root causes; Ensures reliability — prevents faulty messages from blocking the main queue and causing backpressure across the system.</p>
+     <p>In Kafka, a dedicated topic stores dead-lettered messages for later analysis and reprocessing after the root cause is fixed.</p>
+    </div>
+   </div>
+  </div>
+
+  <h3 style="margin-top:1.6rem;margin-bottom:0.8rem;color:var(--topic-color)">Implementation &amp; Technologies</h3>
+  <div class="qa-list">
+   <div class="qa-item">
+    <button class="qa-question">What are the differences between Kafka, RabbitMQ, and AWS EventBridge? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>Apache Kafka:</strong> Event Streaming type. Stores events for replay with guaranteed ordering within partitions. Highly scalable with partitions. Best for large-scale event processing and analytics pipelines.</p>
+     <p><strong>RabbitMQ:</strong> Pub-Sub type. Transient messages (once consumed, gone). No strict ordering guarantee. Scales horizontally. Best for real-time messaging and task queues where replay is not needed.</p>
+     <p><strong>AWS EventBridge:</strong> Managed Event Bus. No persistence. No strict ordering. Scales with AWS infrastructure. Best for cloud-native event integration between AWS services and external SaaS applications.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">How do you make event processing idempotent to avoid duplicate execution? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>Idempotency ensures that processing the same event multiple times does not produce unintended side effects — critical in at-least-once delivery systems.</p>
+     <p><strong>Use Unique Event IDs:</strong> Track processed event IDs in a database or cache to prevent re-processing the same event twice. <strong>Store Processed States:</strong> Maintain a "processed" flag in the database for each event. <strong>Ensure Business Logic is Idempotent:</strong> Avoid unconditional increments or timestamps — check current state first. <strong>Leverage Broker Deduplication:</strong> Kafka allows deduplication via log compaction; SQS has a deduplication ID feature.</p>
+    </div>
+   </div>
+  </div>
+
+  <h3 style="margin-top:1.6rem;margin-bottom:0.8rem;color:var(--topic-color)">Use Cases &amp; Real-World Applications</h3>
+  <div class="qa-list">
+   <div class="qa-item">
+    <button class="qa-question">Can you give a real-world example where Event-Driven Architecture is a better choice than a traditional architecture? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>E-commerce Order Processing System:</strong> When a customer places an order, multiple actions must happen: the Order Service records the order, the Payment Service processes payment, the Inventory Service updates stock, and the Notification Service sends a confirmation.</p>
+     <p>Using EDA, each service listens for order events asynchronously, with no direct dependencies on each other. Benefits: scalability (each service scales independently), fault isolation (a payment failure does not crash inventory), and flexibility (new services like fraud detection or analytics can be added by simply subscribing to order events without modifying existing code).</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">What strategies can you use to handle schema evolution in an event-driven system? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>When events change over time (adding/removing fields), breaking changes can occur. Best practices:</p>
+     <p><strong>Backward Compatibility:</strong> Ensure new consumers can still process older event formats. <strong>Versioning:</strong> Include a schema_version field in events and maintain handlers for different versions. <strong>Schema Registry:</strong> Use tools like Kafka Schema Registry (with Avro or Protobuf) to validate schema changes before they reach consumers. <strong>Field Deprecation:</strong> Instead of removing fields immediately, mark them as deprecated and stop producing them gradually over multiple releases. <strong>Event Transformation Layer:</strong> Introduce an intermediary service that translates older event schemas to the new format for legacy consumers.</p>
+    </div>
+   </div>
+  </div>
+ </section>
+
  <section class="section-block reveal">
  <h2>Further Reading</h2>
  <div class="reading-links">

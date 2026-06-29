@@ -317,6 +317,276 @@
  </div>
  </section>
 
+ <!-- ============ SOFTWARE ARCHITECTURE PATTERNS CONTENT ============ -->
+ <section class="section-block reveal">
+  <h2>Software Architecture Patterns &amp; Styles</h2>
+  <p>Software architecture is the high-level structure of a system — it defines components, their relationships, and how they interact. Architectural choices directly influence scalability, maintainability, performance, and system behavior.</p>
+  <p><strong>Monolithic Architecture</strong> packages all components (UI, business logic, data access) into a single deployable unit. It is simple to develop and deploy, making it ideal for small applications and startups. However, it becomes hard to scale and maintain as the codebase grows — a single bug can bring down the entire system.</p>
+  <p><strong>Layered (N-Tier) Architecture</strong> splits the system into distinct layers: Presentation, Business Logic, and Data Access. Each layer has clear responsibilities, promoting separation of concerns. It works well for enterprise applications and CRMs, though communication between layers can introduce performance overhead.</p>
+  <p><strong>Client-Server Architecture</strong> models a server providing resources or services and a client requesting them. It is simpler than layered architecture but focuses on the direct client-to-server interaction rather than broad separation of concerns.</p>
+  <p><strong>Microservices Architecture</strong> breaks the application into small, independently deployable services each owning a specific business capability. Services communicate via REST, gRPC, or event-driven messaging. It provides excellent scalability, fault isolation, and technology flexibility — but introduces complexity in communication, data consistency, and DevOps overhead.</p>
+  <p><strong>Event-Driven Architecture</strong> uses events (messages) instead of direct calls so components communicate asynchronously. This creates a loosely coupled, highly scalable system ideal for real-time processing, IoT, and financial platforms — at the cost of harder debugging and eventual consistency challenges.</p>
+  <p><strong>Selecting an architecture</strong> depends on: the business problem being solved, expected traffic and growth (scalability), how quickly the system must respond (performance), and how easily it can evolve (maintainability).</p>
+ </section>
+
+ <!-- ============ MULTI-TIER ARCHITECTURE CONTENT ============ -->
+ <section class="section-block reveal">
+  <h2>Multi-Tier Architecture</h2>
+  <p>Multi-Tier Architecture structures an application into multiple layers (tiers), each with a specific responsibility. This separation enhances scalability, maintainability, and security.</p>
+  <p><strong>2-Tier Architecture</strong> consists of a Client Layer and a Database Layer with the client interacting directly with the database. It is simple and fast for small-scale applications, but has poor scalability and security risks from direct database access. Example: a desktop application querying an SQL database directly.</p>
+  <p><strong>3-Tier Architecture</strong> introduces a middle Business Logic Layer (API Server) between the UI and the database. The frontend talks to the API, which then queries the database. This improves scalability, security, and separation of concerns at the cost of slightly higher latency. It is the standard for traditional web applications.</p>
+  <p><strong>N-Tier Architecture</strong> extends beyond 3-Tier by adding specialized layers such as caching (Redis, Memcached), an API Gateway, a Load Balancer, and a Microservices Layer. This handles high traffic and complex business logic while allowing independent scaling of each layer. It is used in large-scale enterprise software and cloud-native systems.</p>
+  <p><strong>Performance &amp; Scalability:</strong> More layers can increase latency if not optimized — mitigated by caching and load balancing. Scaling strategies include vertical scaling (adding CPU/RAM to a server) and horizontal scaling (adding more server instances behind a load balancer). Each tier can also be scaled independently.</p>
+ </section>
+
+ <!-- ============ ARCHITECTURE PATTERNS INTERVIEW QUESTIONS ============ -->
+ <section class="section-block reveal">
+  <div class="section-badge">Interview Prep</div>
+  <h2>Architecture Patterns Interview Questions</h2>
+  <p>Key interview questions covering software architecture patterns, microservices design, and multi-tier systems.</p>
+
+  <h3 style="margin-top:1.6rem;margin-bottom:0.8rem;color:var(--topic-color)">Software Architecture Patterns &amp; Styles</h3>
+  <div class="qa-list">
+   <div class="qa-item">
+    <button class="qa-question">What is the difference between Monolithic and Microservices architecture? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>Monolithic Architecture:</strong> All components (UI, business logic, database access) are tightly integrated into a single codebase and deployed as one unit. Pros: simple to develop and deploy, easier to manage for small apps. Cons: difficult to scale (entire app must scale together), tightly coupled components make updates harder, one failure can bring down the whole system. Best for small applications or startups.</p>
+     <p><strong>Microservices Architecture:</strong> Splits the application into small, independently deployable services each responsible for a specific business capability. Services communicate via APIs or messaging. Pros: independent scaling, fault tolerance (one service failing does not affect others), flexibility to use different tech stacks per service. Cons: increased complexity in communication and data management, requires robust DevOps pipelines, challenging to maintain data consistency. Best for large-scale, complex applications.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">When would you choose a Layered architecture over Microservices? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>Choose Layered (N-Tier) over Microservices when: the system is simpler with fewer components and does not need significant independent scaling; when cost and time are constrained (microservices require more infrastructure and DevOps overhead); or when working with legacy systems already structured in layers where refactoring to microservices would be impractical.</p>
+     <p><strong>Use Cases:</strong> Enterprise applications, CRMs, or systems where different concerns (presentation, business logic, data access) need clear separation but not independent scaling.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">What are the pros and cons of Event-Driven Architecture? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>Event-Driven Architecture uses events (messages) to trigger actions, creating a decoupled system where components do not directly communicate.</p>
+     <p><strong>Pros:</strong> Loose coupling — components do not depend on one another; Asynchronous processing — supports decoupled workflows improving performance; Scalability — easily scales for high event volumes (IoT, financial systems).</p>
+     <p><strong>Cons:</strong> Complexity — debugging and tracing events across services is difficult; Data consistency — ensuring consistency across asynchronously reacting services is hard; Overhead — requires a messaging system and event buses adding operational complexity.</p>
+     <p><strong>Use Cases:</strong> Real-time systems, IoT platforms, financial trading applications, and systems requiring high scalability.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">How does architecture impact system scalability and performance? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>Scalability:</strong> The architecture defines how well the system handles increasing load. Microservices allow independent scaling of individual components, making them ideal for high-traffic systems. Monolithic architectures require scaling the entire application together, leading to inefficiencies.</p>
+     <p><strong>Performance:</strong> Event-Driven architectures enable asynchronous processing, improving responsiveness. Layered architectures may introduce overhead from inter-layer communication, while microservices may face latency from inter-service calls. In short, architecture directly affects how much traffic the system can handle (scalability) and how quickly it responds (performance).</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">How do business requirements influence architectural decisions? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>Business Needs:</strong> The architecture should align with business goals. Rapid development and product flexibility favor Microservices; speed to market with a tight deadline favors Monolithic.</p>
+     <p><strong>Scalability &amp; Growth:</strong> Businesses expecting high growth benefit from Microservices or Event-Driven architectures. Smaller businesses with limited resources may choose simpler Monolithic or Layered approaches.</p>
+     <p><strong>Cost Considerations:</strong> Microservices require more infrastructure investment; startups or budget-constrained teams often start monolithic and migrate later as scale demands it.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">Can you explain the key differences between Layered and Client-Server architectures? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>Layered Architecture:</strong> Divides the system into layers (Presentation, Business Logic, Data), each with distinct responsibilities. Promotes separation of concerns and is easier to manage as the application grows. Works well in enterprise applications where each layer handles specific tasks independently.</p>
+     <p><strong>Client-Server Architecture:</strong> Involves a server providing resources or services and a client requesting them. Typically simpler than layered, focusing on the direct client-server interaction. It may not have the same degree of separation of concerns as a layered approach.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">What are the main challenges in maintaining a Monolithic system as it grows? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>Tightly Coupled Components:</strong> As the codebase grows, it becomes harder to update specific components without affecting others.</p>
+     <p><strong>Scaling Issues:</strong> The entire application must scale together, causing inefficiencies when only certain components need more resources.</p>
+     <p><strong>Deployment Complexity:</strong> Any update or bug fix requires redeploying the entire system, which is risky and time-consuming.</p>
+     <p><strong>Slower Development:</strong> As more developers work on a single codebase, coordination becomes harder and velocity slows down.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">How do you decide between Monolithic and Microservices for a new system? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>Choose Monolithic</strong> for small to medium-sized applications where the complexity and scale do not justify microservices overhead. It allows faster initial development and simpler deployment.</p>
+     <p><strong>Choose Microservices</strong> for large-scale applications with multiple independent modules that will scale and evolve separately. Use microservices when you need high scalability, independent development teams, and fault tolerance.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">What role does fault tolerance play in Microservices architecture? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>Fault tolerance is a key advantage of microservices. Since each service is independent, failures in one service do not affect others. Circuit breakers, retry logic, and load balancing are used to ensure that a failure in one service does not cascade and bring down the entire system. With fault tolerance built in, microservices can continue operating even when individual services experience issues, improving overall system reliability.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">How do event-driven systems handle real-time data? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>Real-Time Data Processing:</strong> Events are processed as soon as they are generated, allowing real-time updates across the system.</p>
+     <p><strong>Asynchronous Processing:</strong> Events are published and subscribed to asynchronously, enabling the system to respond to high volumes of data quickly without blocking processes.</p>
+     <p><strong>Message Queues:</strong> Event-driven systems rely on message queues (e.g., Kafka, RabbitMQ) to handle and route events efficiently, ensuring all components can react to events as they occur.</p>
+    </div>
+   </div>
+  </div>
+
+  <h3 style="margin-top:1.6rem;margin-bottom:0.8rem;color:var(--topic-color)">Microservices Architecture Questions</h3>
+  <div class="qa-list">
+   <div class="qa-item">
+    <button class="qa-question">What are microservices, and how do they differ from monolithic architecture? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>Microservices architecture is a software design pattern where an application is built as a collection of small, loosely coupled services, each responsible for a specific business function. Each microservice runs independently, communicates via well-defined APIs, and can be developed, deployed, and scaled separately.</p>
+     <p><strong>Key differences:</strong> Scalability — microservices scale individual services independently vs monolith requires scaling the entire app; Deployment — microservices allow independent deployments vs full redeployment; Technology — microservices can use different languages/frameworks per service (polyglot) vs single stack; Fault Tolerance — one microservice failure is isolated vs one failure can bring down the monolith; Development — microservices enable faster parallel team development vs slower single codebase coordination.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">What are the key benefits and challenges of microservices? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>Benefits:</strong> Scalability — services scale independently based on demand; Faster Development — different teams can build and deploy services separately; Technology Flexibility — each service uses the most suitable tech stack; Fault Isolation — one failing microservice does not crash the whole system; Continuous Deployment — enables faster, more frequent releases.</p>
+     <p><strong>Challenges:</strong> Increased Complexity — more services means more coordination and deployment challenges; Data Management — maintaining consistency across distributed databases is difficult; Inter-Service Communication — requires efficient API communication (REST, gRPC, event-driven messaging); Monitoring &amp; Debugging — distributed systems need tools like Jaeger, Zipkin, Prometheus for observability.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">How do you identify and design microservices in a system? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>1. <strong>Business Domain Decomposition:</strong> Use Domain-Driven Design (DDD) to break down an application into business functions (Order Service, Payment Service, User Service).</p>
+     <p>2. <strong>Single Responsibility Principle (SRP):</strong> Each service should have a clear, focused responsibility and do one thing well.</p>
+     <p>3. <strong>Database Per Service:</strong> Each microservice manages its own database to avoid tight coupling.</p>
+     <p>4. <strong>Loosely Coupled Services:</strong> Services communicate via well-defined APIs (REST, gRPC, or event-driven messaging).</p>
+     <p>5. <strong>Scalability Considerations:</strong> Services that handle high traffic (Search, Payments) are designed to scale independently.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">What is an API Gateway, and why is it used in microservices? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>An API Gateway is a reverse proxy that acts as a single entry point for all external requests in a microservices architecture.</p>
+     <p><strong>Why use it:</strong> Centralized Authentication &amp; Security — handles auth, SSL termination, and access control; Load Balancing — distributes traffic evenly across service instances; Request Routing &amp; Aggregation — routes API calls to appropriate microservices and combines responses; Rate Limiting &amp; Monitoring — protects services from excessive load.</p>
+     <p><strong>Examples:</strong> Kong, Nginx, Apigee, AWS API Gateway.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">How do microservices communicate with each other? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>Synchronous Communication:</strong> REST (HTTP-based APIs) — simple and widely used but adds latency; gRPC — more efficient than REST, uses binary format for lower latency.</p>
+     <p><strong>Asynchronous Communication:</strong> Event-Driven Messaging (Kafka, RabbitMQ, SNS/SQS) — reduces direct service dependencies and improves scalability; Pub/Sub Model — services publish events to a message broker and other services subscribe to relevant events.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">How can you ensure data consistency in a microservices architecture? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>Since each microservice has its own database, achieving consistency can be challenging. Key strategies:</p>
+     <p><strong>Eventual Consistency:</strong> Instead of strong consistency, services accept that updates will propagate over time. <strong>SAGA Pattern:</strong> Manages distributed transactions using compensating actions in case of failures. <strong>Two-Phase Commit (2PC):</strong> Used for strong consistency but is less scalable. <strong>Event Sourcing:</strong> Stores changes as a sequence of events to ensure reliable updates.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">What are common deployment strategies for microservices? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>CI/CD Pipelines:</strong> Automates testing and deployment of services. <strong>Blue-Green Deployment:</strong> Runs two versions (Blue = Current, Green = New) and switches traffic when the new version is ready. <strong>Canary Deployment:</strong> Rolls out updates to a small percentage of users before full release. <strong>Service Mesh (Istio, Linkerd):</strong> Enhances security, observability, and inter-service communication.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">What are some scaling strategies for microservices? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>Horizontal Scaling:</strong> Add more instances of a service behind a Load Balancer. <strong>Auto-Scaling (Kubernetes, AWS ECS):</strong> Automatically adjust resources based on traffic. <strong>Database Sharding:</strong> Distribute database load across multiple shards. <strong>Read Replicas:</strong> Improve database read performance by distributing queries across replica instances.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">What are real-world examples of companies using microservices? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>Netflix:</strong> Uses microservices for content delivery, recommendations, and personalization — each function runs as an independent service that can be scaled and updated separately.</p>
+     <p><strong>Uber:</strong> Scales ride-matching, payments, and navigation independently, allowing each domain to evolve at its own pace.</p>
+     <p><strong>Amazon:</strong> Handles product search, payments, and shipping via separate services — famously decomposed from a monolith into microservices to achieve the scale AWS now supports.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">What are some best practices for monitoring and debugging microservices? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>Centralized Logging:</strong> Use ELK Stack (Elasticsearch, Logstash, Kibana) or Graylog to aggregate logs from all services in one place.</p>
+     <p><strong>Distributed Tracing:</strong> Tools like Jaeger and Zipkin track requests as they flow across multiple services, making it possible to identify latency hotspots and failures.</p>
+     <p><strong>Metrics &amp; Monitoring:</strong> Prometheus &amp; Grafana provide real-time service health monitoring and alerting.</p>
+     <p><strong>Health Checks:</strong> Implement liveness and readiness probes (used by Kubernetes) to detect and automatically restart failing services.</p>
+    </div>
+   </div>
+  </div>
+
+  <h3 style="margin-top:1.6rem;margin-bottom:0.8rem;color:var(--topic-color)">Multi-Tier Architecture Questions</h3>
+  <div class="qa-list">
+   <div class="qa-item">
+    <button class="qa-question">What is Multi-Tier Architecture, and why is it used? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>Multi-Tier Architecture is a software design pattern that divides an application into multiple layers (tiers), each with a specific responsibility. It improves scalability, maintainability, and modularity by separating concerns.</p>
+     <p>Common tiers include: Presentation (UI), Business Logic (API/backend), and Data (Database, Storage). It is used in web applications, enterprise systems, and distributed applications where clear layer boundaries improve development, testing, and scaling.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">How does a 2-Tier architecture differ from a 3-Tier architecture? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>2-Tier:</strong> Client ↔ Database directly. Simple to implement and fast for small-scale apps, but has poor scalability (limited to few users) and security risks from direct database access. Example: a desktop app querying MySQL directly.</p>
+     <p><strong>3-Tier:</strong> Client ↔ Business Logic ↔ Database. The API/backend layer sits between client and database. More scalable, more secure (database hidden behind API), and optimized for large-scale applications. Example: a web app with React frontend, Node.js API, and PostgreSQL database.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">What are the key components of a 3-Tier architecture? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>Presentation Layer:</strong> The user interface (UI) that interacts with the user (e.g., React, Angular, mobile apps). <strong>Business Logic Layer:</strong> The backend processing logic that handles rules and workflows (e.g., Java, .NET, Node.js, Python). <strong>Data Layer:</strong> The database that stores application data (e.g., PostgreSQL, MongoDB, MySQL). Each layer is independent, making the system more scalable and maintainable.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">Can you give an example of a real-world application that follows an N-Tier architecture? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>A banking system is a great example: Presentation Layer — mobile app, web portal (React, Swift, Kotlin); Business Layer — API services for transactions and authentication (Java, .NET, Node.js); Data Layer — customer data and transaction history in SQL databases.</p>
+     <p>Additional tiers include: Security Layer (OAuth, JWT authentication); Caching Layer (Redis, Memcached for performance); Load Balancing Layer (NGINX, AWS ELB for traffic distribution). Together these ensure high availability, performance, and security.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">How does scalability improve in a multi-tier system? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>Multi-tier architecture improves scalability through: <strong>Horizontal Scaling</strong> — adding more instances of a tier (multiple web servers behind a load balancer); <strong>Vertical Scaling</strong> — increasing CPU/RAM of individual servers; <strong>Decoupling Layers</strong> — each tier can be scaled independently (caching layer can scale separately from the database); <strong>Load Balancing</strong> — distributes requests evenly across multiple servers; <strong>Microservices Approach</strong> — allows different services within a tier to scale independently.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">What are the challenges of adding more tiers in an application? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>Increased Latency:</strong> More network hops means slower response times. <strong>Deployment Complexity:</strong> More moving parts make deployments harder to coordinate. <strong>Data Consistency Issues:</strong> More layers increase the risk of synchronization problems. <strong>Higher Costs:</strong> More infrastructure and maintenance is required. <strong>Security Challenges:</strong> Each additional tier introduces new attack vectors that must be secured.</p>
+     <p>These are mitigated with caching, load balancing, and database sharding.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">How does load balancing work in an N-Tier architecture? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>Load balancing ensures efficient distribution of traffic to prevent overload at any tier.</p>
+     <p><strong>Between Presentation &amp; Business Layer:</strong> A load balancer (NGINX, AWS ELB) directs traffic across multiple backend servers. <strong>Between Business Layer &amp; Data Layer:</strong> Requests are routed to replicated database servers to distribute read load.</p>
+     <p><strong>Common Algorithms:</strong> Round Robin — each request goes to the next available server; Least Connections — sends traffic to the least busy server; IP Hashing — routes a user to the same backend for session consistency.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">What strategies can be used to reduce latency in a multi-tier application? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>Caching:</strong> Store frequent query results in Redis or Memcached to avoid repeated database calls. <strong>CDN (Content Delivery Network):</strong> Reduce frontend latency by serving static content from edge locations close to users. <strong>Asynchronous Processing:</strong> Use message queues (Kafka, RabbitMQ) to handle tasks asynchronously, freeing request threads. <strong>Connection Pooling:</strong> Reduce database connection overhead by reusing existing connections. <strong>Minimizing Network Hops:</strong> Use API gateways to centralize and consolidate requests.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">In a large-scale system, when would you choose microservices over a traditional N-Tier architecture? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>Microservices are the better choice when: you need independent scaling (each service scales separately); you have a large team (different teams manage different services); you want technology flexibility (each service can use different languages/frameworks); you need faster deployments (microservices allow independent updates without coordinated releases).</p>
+     <p>However, N-Tier is simpler and appropriate for small-to-medium applications that don't yet face microservices' complexity overhead.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">How would you secure inter-tier communication in a distributed multi-tier system? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>1. <strong>Use HTTPS/TLS:</strong> Encrypt all data between tiers. 2. <strong>Authentication &amp; Authorization:</strong> Use JWT, OAuth, or API keys to secure APIs. 3. <strong>Zero Trust Security:</strong> Enforce strict identity-based access between layers — never trust by default. 4. <strong>Firewalls &amp; Network Segmentation:</strong> Isolate critical services so the database is not directly accessible from the internet. 5. <strong>Intrusion Detection Systems (IDS):</strong> Monitor unusual traffic patterns between tiers for early threat detection.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">How would you design a fault-tolerant multi-tier system for a high-traffic application like Netflix or Amazon? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>Use multiple data centers: distribute traffic across global regions. Auto-scaling: dynamically scale servers based on traffic spikes. Load balancing: ensure even traffic distribution across services. Database replication: Primary-Replica setup so replicas handle reads and the primary handles writes, with automatic failover. Circuit Breaker Pattern: prevent cascading failures in microservices. Retry Mechanisms: automatically retry failed requests with exponential backoff. Event-driven architecture: decouple services using Kafka or RabbitMQ to absorb traffic bursts.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">If you had to build a highly available banking application, what architectural pattern would you choose and why? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>A distributed N-Tier architecture with microservices is ideal for banking because: <strong>Security</strong> — each tier has strict access control and the database is never exposed directly; <strong>Scalability</strong> — independent services for transactions, fraud detection, and customer data can each scale as needed; <strong>Resilience</strong> — failover mechanisms and circuit breakers ensure 24/7 uptime even when individual services fail; <strong>Data Consistency</strong> — ACID-compliant databases with replication ensure that financial transactions are never lost or duplicated.</p>
+    </div>
+   </div>
+  </div>
+ </section>
+
  <section class="section-block reveal">
  <h2>Further Reading</h2>
  <div class="reading-links">
