@@ -406,6 +406,536 @@
  </section>
 
  <section class="section-block reveal">
+  <h2>Storage in System Design</h2>
+  <p>Every system generates and consumes data — choosing the right storage layer is one of the most consequential decisions in system design. Storage impacts performance, reliability, cost, and scalability. The goal is to match your data's shape and access patterns to the right storage primitive.</p>
+
+  <h3 style="margin-top:1.6rem;margin-bottom:0.8rem;color:var(--topic-color)">Structured vs. Unstructured Data</h3>
+  <ul class="feature-list">
+   <li><strong>Structured data</strong> — Organized in a predefined schema (rows and columns). Examples: customer records, transaction logs, inventory tables. SQL databases excel here.</li>
+   <li><strong>Unstructured data</strong> — No fixed schema; stored as raw files or blobs. Examples: images, videos, audio, documents, social media posts. Object storage excels here.</li>
+  </ul>
+
+  <h3 style="margin-top:1.6rem;margin-bottom:0.8rem;color:var(--topic-color)">Categories of Storage</h3>
+  <ul class="feature-list">
+   <li><strong>Database storage (SQL/NoSQL)</strong> — For structured and semi-structured data. Supports queries, transactions, and relationships. Examples: PostgreSQL, MySQL, MongoDB, Cassandra.</li>
+   <li><strong>Object storage</strong> — Flat address space (buckets), accessed via APIs, optimized for large unstructured data. Infinite horizontal scale. Examples: Amazon S3, Google Cloud Storage, Azure Blob Storage.</li>
+   <li><strong>File storage</strong> — Hierarchical directory structure. Ideal for shared drives and POSIX-compatible workloads. Examples: NFS, SMB, Amazon EFS.</li>
+   <li><strong>Block storage</strong> — Raw storage volumes, fast random I/O, no inherent metadata. Used by databases and virtual machines that manage their own file systems. Examples: Amazon EBS, iSCSI, SAN.</li>
+  </ul>
+
+  <h3 style="margin-top:1.6rem;margin-bottom:0.8rem;color:var(--topic-color)">Core Storage Properties</h3>
+  <ul class="feature-list">
+   <li><strong>Durability</strong> — Data persists even after hardware failures, crashes, or power loss. Achieved through replication, checksums, and redundant storage (e.g., S3's 11 nines durability via cross-AZ replication).</li>
+   <li><strong>Availability</strong> — The system continues to respond to read and write requests even during partial failures. Traded against consistency under the CAP theorem.</li>
+   <li><strong>Consistency</strong> — Every read returns the most recent committed write. Strong consistency is critical for financial systems; eventual consistency is acceptable for social feeds or CDN-cached content.</li>
+   <li><strong>Atomicity</strong> — Operations are all-or-nothing. Crucial in transactional storage where partial updates (e.g., a half-completed money transfer) would corrupt data integrity.</li>
+  </ul>
+
+  <h3 style="margin-top:1.6rem;margin-bottom:0.8rem;color:var(--topic-color)">The CAP Theorem</h3>
+  <p>In any distributed system, you can only fully guarantee two of the three properties simultaneously:</p>
+  <ul class="feature-list">
+   <li><strong>Consistency (C)</strong> — Every read receives the latest write across all nodes.</li>
+   <li><strong>Availability (A)</strong> — Every request receives a (non-error) response, even if it may return stale data.</li>
+   <li><strong>Partition Tolerance (P)</strong> — The system continues operating despite network failures splitting nodes apart.</li>
+  </ul>
+  <p>In practice, network partitions are unavoidable at scale, so real-world systems must choose between <strong>Consistency</strong> and <strong>Availability</strong> when a partition occurs:</p>
+  <ul class="feature-list">
+   <li><strong>CP systems</strong> — Reject requests during a partition to avoid returning stale data. Data is correct when available. Example: <strong>HBase</strong> — won't serve a read if it can't confirm the latest write across replicas. Use case: banking, financial ledgers, inventory.</li>
+   <li><strong>AP systems</strong> — Remain available during a partition, potentially returning stale data. Example: <strong>DynamoDB</strong> (default eventual consistency), <strong>Cassandra</strong>. Use case: social media feeds, product catalogs, content delivery.</li>
+   <li><strong>CA systems</strong> — Only achievable on a single node or tightly coupled cluster where partitions never occur. Example: standalone <strong>PostgreSQL</strong>. Not realistic for distributed systems.</li>
+  </ul>
+
+  <h3 style="margin-top:1.6rem;margin-bottom:0.8rem;color:var(--topic-color)">The Fundamental Trade-offs: Scalability vs. Reliability vs. Performance</h3>
+  <p>No storage system maximizes all three simultaneously. Understanding the trade-off triangle is essential for every design interview:</p>
+  <ul class="feature-list">
+   <li><strong>Scale vs. Reliability</strong> — Distributing data across many nodes increases scale but introduces more failure points; replication adds cost and consistency complexity.</li>
+   <li><strong>Scale vs. Performance</strong> — More nodes mean more network hops. Object storage scales infinitely but has higher latency than local block storage.</li>
+   <li><strong>Reliability vs. Performance</strong> — Synchronous replication ensures durability but adds write latency. Async replication is faster but risks data loss on leader failure.</li>
+  </ul>
+
+  <h3 style="margin-top:1.6rem;margin-bottom:0.8rem;color:var(--topic-color)">Real-World Storage Selection Patterns</h3>
+  <ul class="feature-list">
+   <li><strong>E-commerce</strong> — Product catalog (structured SQL or NoSQL document store), product images (object storage), inventory counts (SQL with strong consistency).</li>
+   <li><strong>Streaming services</strong> — Media files (object storage + CDN), user watch history (NoSQL columnar), billing (SQL with ACID).</li>
+   <li><strong>Log aggregation</strong> — Raw logs (object storage or HDFS), metrics (time-series DB like InfluxDB or Druid), search (Elasticsearch).</li>
+   <li><strong>Photo-sharing app</strong> — Photos in object storage (S3), user metadata and social graph in relational or document DB, activity feeds in NoSQL.</li>
+  </ul>
+ </section>
+
+ <section class="section-block reveal">
+  <div class="section-badge">Interview Prep</div>
+  <h2>Storage &amp; Database Interview Questions</h2>
+  <p>Key questions covering storage systems, database performance, and advanced database topics — drawn from course Q&amp;A material across all storage-related modules.</p>
+
+  <h3 style="margin-top:1.6rem;margin-bottom:0.8rem;color:var(--topic-color)">Introduction to Storage Questions</h3>
+  <div class="qa-list">
+   <div class="qa-item">
+    <button class="qa-question">Why is storage a critical component in system design? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>Storage is essential because it ensures <strong>data persistence</strong> across sessions and failures. All applications — from simple blogs to enterprise systems — need a reliable mechanism to store, retrieve, and update data. The choice of storage impacts <strong>scalability, performance, availability, and cost</strong> of the overall system.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">How would you differentiate between structured and unstructured data? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>Structured data</strong> is highly organized and stored in a predefined schema (e.g., tables in SQL databases). Examples: customer records, transaction logs.</p>
+     <p><strong>Unstructured data</strong> lacks a fixed schema and is usually stored as raw files or blobs. Examples: images, videos, documents, social media posts.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">What are the different types of storage systems and their use cases? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>Databases (SQL/NoSQL):</strong> For structured data, supporting queries and transactions.</p>
+     <p><strong>Object Storage:</strong> For unstructured data like media and backups (e.g., Amazon S3).</p>
+     <p><strong>File Storage:</strong> Hierarchical storage, like shared drives (e.g., NFS, SMB).</p>
+     <p><strong>Block Storage:</strong> Raw storage volumes for high-performance apps (e.g., databases, VM disks).</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">What do durability, availability, and consistency mean in the context of storage? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>Durability:</strong> Data remains intact and recoverable after crashes or failures.</p>
+     <p><strong>Availability:</strong> System continues to respond to requests even during failures.</p>
+     <p><strong>Consistency:</strong> Clients always see the latest committed data after a write.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">What is atomicity, and where is it relevant? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>Atomicity ensures that operations are <strong>all-or-nothing</strong> — they either complete fully or have no effect. It's crucial in transactional systems like databases where partial updates can lead to corruption (e.g., transferring money between accounts where only the debit completes).</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">Can a system be both highly available and strongly consistent? Why or why not? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>Not always — the <strong>CAP theorem</strong> states that in the presence of a network partition, a distributed system must choose between consistency and availability. A system cannot guarantee both during failures. Trade-offs are necessary based on business requirements: financial systems demand consistency; social apps can tolerate availability with eventual consistency.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">What is the CAP theorem? Why is it important in distributed system design? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>The CAP theorem states that a distributed system can only guarantee two out of three properties: <strong>Consistency</strong>, <strong>Availability</strong>, and <strong>Partition Tolerance</strong>.</p>
+     <p>It's important because it guides architects in choosing trade-offs when designing distributed storage — especially under failure conditions. Since network partitions are unavoidable at scale, systems must choose between consistency and availability when a partition occurs.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">Explain the difference between CP and AP systems with examples. <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>CP (Consistency + Partition Tolerance):</strong> Prioritizes data accuracy over uptime. During a partition the system may reject requests to avoid inconsistent reads. Example: <strong>HBase</strong> — won't serve a read without confirming the latest write.</p>
+     <p><strong>AP (Availability + Partition Tolerance):</strong> Prioritizes uptime, even if data is stale. Example: <strong>DynamoDB</strong>, <strong>Couchbase</strong> — will serve requests during a partition but may return eventually consistent data.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">Why is CA considered rare or impractical in distributed systems? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>Because <strong>network partitions are inevitable</strong> in real-world distributed systems. Without partition tolerance a system can't remain fault-tolerant. CA systems only work in centralized or tightly coupled environments (e.g., single-node PostgreSQL). As soon as you distribute, partition tolerance becomes non-negotiable.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">How would you decide between consistency and availability when designing a real-world system? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>It depends on the use case:</p>
+     <p>For <strong>financial systems</strong>, consistency is non-negotiable — partial or stale data causes real monetary harm.</p>
+     <p>For <strong>social apps or media streaming</strong>, availability is preferred — users can tolerate slight delays or stale views (e.g., a like count being off by a few for a moment).</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">You're building a photo-sharing app. How would you design storage for photos vs. user metadata? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>Photos:</strong> Store in object storage (e.g., S3), optimized for large unstructured files. Use a CDN in front for fast global delivery. Store multiple resolutions for adaptive loading.</p>
+     <p><strong>Metadata (likes, comments, users):</strong> Store in a NoSQL or relational database depending on query patterns and consistency needs. User relationships might use a graph DB; counts could use Redis for low-latency increments.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">What kind of storage system would you choose for an analytics pipeline handling logs and metrics? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>Use append-optimized storage with horizontal scalability:</p>
+     <p><strong>Object storage</strong> for raw logs (e.g., S3) — cheap, durable, scalable.</p>
+     <p><strong>Columnar or time-series DBs</strong> for metrics (e.g., Apache Druid, InfluxDB) — fast range scans over time.</p>
+     <p><strong>Distributed file systems</strong> like HDFS for batch processing workloads.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">How does object storage differ from file and block storage in terms of access patterns and scalability? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>Object storage:</strong> Flat namespace, API-based access, virtually unlimited scale, optimized for large sequential reads. Best for media, backups, data lakes.</p>
+     <p><strong>File storage:</strong> Hierarchical directories, POSIX-compliant, good for shared drives across multiple compute nodes.</p>
+     <p><strong>Block storage:</strong> Raw I/O blocks, very fast random reads/writes, no inherent metadata. Best for databases and OS-level operations where the application manages its own filesystem.</p>
+    </div>
+   </div>
+  </div>
+
+  <h3 style="margin-top:1.6rem;margin-bottom:0.8rem;color:var(--topic-color)">Database Performance Optimization Questions</h3>
+  <div class="qa-list">
+   <div class="qa-item">
+    <button class="qa-question">What is database replication, and why is it important for performance? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>Database replication involves creating <strong>copies of a database across multiple servers</strong>. This ensures high availability and fault tolerance. Replication improves performance by distributing read queries across multiple replicas, reducing load on a single server — particularly useful in read-heavy applications like content delivery or reporting. However, replication adds overhead for write operations because data must be synchronized across replicas.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">Can you explain the difference between sharding and partitioning in databases? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>Sharding:</strong> Distributes data across multiple databases or servers (shards), often based on a specific key (e.g., user ID). Sharding scales horizontally — each shard operates independently, potentially on separate machines. Cross-shard queries are expensive.</p>
+     <p><strong>Partitioning:</strong> Divides a database table into smaller pieces within a single database instance, based on a range or list of values (e.g., by date). Improves query performance by narrowing the search scope without distributing across machines.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">How does the CAP theorem impact database performance decisions? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>The CAP theorem forces a performance trade-off: in systems requiring <strong>high availability</strong>, you may accept eventual consistency (e.g., NoSQL databases like Cassandra deliver high throughput by relaxing consistency guarantees). In systems needing <strong>strong consistency</strong> (e.g., banking), availability may be sacrificed during network partitions — which can degrade perceived performance under failures.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">What are some common types of indexes, and when would you use them? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>B-Tree Indexes:</strong> The most common type, ideal for equality and range queries (<code>WHERE age &gt; 30</code>). Use for general-purpose indexing on high-cardinality columns.</p>
+     <p><strong>Hash Indexes:</strong> Optimized for exact-match equality queries (<code>WHERE id = 123</code>). Faster for point lookups but do not support range queries.</p>
+     <p><strong>Full-Text Indexes:</strong> Used for keyword and phrase searches in text-heavy fields. Ideal for content search applications (e.g., Elasticsearch, Postgres <code>tsvector</code>).</p>
+     <p><strong>Bitmap Indexes:</strong> Suitable for low-cardinality columns (e.g., gender, boolean flags). Improve analytics query performance.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">What is the difference between normalization and denormalization, and how do they affect performance? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>Normalization:</strong> Organizes a database into multiple tables to reduce redundancy and ensure data integrity. Minimizes anomalies but increases query complexity (more joins) and can reduce read performance.</p>
+     <p><strong>Denormalization:</strong> Combines tables or adds redundant data to improve read performance by reducing joins. Useful in reporting or read-heavy systems, but risks data inconsistency and increases storage requirements.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">How does connection pooling improve database performance? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>Connection pooling reuses database connections from a <strong>pre-established pool</strong> rather than creating and tearing down a connection per request. Establishing a new DB connection is expensive (TCP handshake, authentication, session setup). Pooling improves throughput by allowing many application requests to share a smaller set of persistent connections, dramatically reducing latency under high concurrency.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">What is query optimization, and how would you approach optimizing a slow query? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>Query optimization is improving SQL execution time and resource usage. Approach:</p>
+     <p>1. <strong>Analyze the execution plan</strong> (<code>EXPLAIN ANALYZE</code>) — look for full table scans or inefficient joins.</p>
+     <p>2. <strong>Add indexes</strong> on columns used in <code>WHERE</code>, <code>JOIN</code>, and <code>ORDER BY</code> clauses.</p>
+     <p>3. <strong>Avoid <code>SELECT *</code></strong> — select only necessary columns to reduce I/O.</p>
+     <p>4. <strong>Use appropriate joins</strong> — prefer <code>INNER JOIN</code> over <code>OUTER JOIN</code> when possible.</p>
+     <p>5. <strong>Paginate results</strong> using <code>LIMIT</code> / cursor-based pagination instead of fetching millions of rows.</p>
+     <p>6. <strong>Denormalize</strong> for read-heavy systems where join cost is consistently high.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">What are materialized views, and how do they enhance performance? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>A <strong>materialized view</strong> is a precomputed query result stored as a physical table. Instead of re-executing an expensive query on every request, results are retrieved from the cached view and refreshed periodically. Particularly useful in <strong>reporting and data warehousing</strong> where slightly stale data is acceptable and query complexity is high (e.g., aggregations over billions of rows).</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">How would you handle large datasets in your application? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>Data Partitioning and Sharding:</strong> Split data across multiple storage systems or partitions for horizontal scalability.</p>
+     <p><strong>Pagination:</strong> Return data in pages using cursor-based pagination rather than loading everything at once.</p>
+     <p><strong>Caching:</strong> Use Redis or Memcached to store frequently accessed data and reduce database reads.</p>
+     <p><strong>Batch Processing:</strong> Use batch jobs for large data transformations to avoid overloading the database with many small concurrent operations.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">What are the trade-offs between consistency and performance in distributed databases? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>The trade-off stems from the CAP theorem. Prioritizing <strong>consistency</strong> (e.g., MySQL with synchronous replication) may sacrifice availability or performance during network partitions. Prioritizing <strong>performance and availability</strong> leads to eventual consistency — data may not be immediately synchronized across all nodes, but allows faster reads and higher throughput (e.g., Cassandra). The right choice depends on whether your business can tolerate stale reads.</p>
+    </div>
+   </div>
+  </div>
+
+  <h3 style="margin-top:1.6rem;margin-bottom:0.8rem;color:var(--topic-color)">Advanced Database Questions</h3>
+  <div class="qa-list">
+   <div class="qa-item">
+    <button class="qa-question">What are the key differences between SQL and NoSQL databases? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>SQL (Relational):</strong> Fixed predefined schema, tables with rows and columns, SQL query language, strong ACID compliance, vertical scaling, best for banking/ERP/inventory.</p>
+     <p><strong>NoSQL (Non-Relational):</strong> Flexible or dynamic schema, documents/key-value/wide-column/graph structures, varies by type, often BASE/eventual consistency, horizontal scaling, best for IoT/analytics/real-time apps.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">Explain ACID vs. BASE. <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>ACID (SQL databases):</strong> <em>Atomicity</em> — all operations in a transaction complete or none do. <em>Consistency</em> — data stays valid and follows rules. <em>Isolation</em> — simultaneous transactions don't interfere. <em>Durability</em> — committed data survives crashes.</p>
+     <p><strong>BASE (NoSQL databases):</strong> <em>Basically Available</em> — system always responds. <em>Soft state</em> — data may not be immediately consistent. <em>Eventually consistent</em> — data consistency achieved over time.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">What are the different types of NoSQL databases, and when would you use each? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>Document (e.g., MongoDB):</strong> JSON-like documents. Use for content management, user profiles, flexible schemas.</p>
+     <p><strong>Key-Value (e.g., Redis, DynamoDB):</strong> Keyed access, extremely fast. Use for caching, session storage, config stores.</p>
+     <p><strong>Columnar (e.g., Cassandra, HBase):</strong> Stores by columns. Use for time-series data, analytics, logs.</p>
+     <p><strong>Graph (e.g., Neo4j):</strong> Nodes and relationships. Use for social graphs, fraud detection, recommendation systems.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">When would you prefer MongoDB over PostgreSQL? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>Prefer MongoDB when: the data structure is flexible or evolving (e.g., user profiles with varying fields); you're storing nested JSON documents; you need fast development cycles with dynamic schemas; or you're okay with eventual consistency or per-operation consistency tuning. Prefer PostgreSQL when ACID guarantees, complex joins, or strong schema enforcement are required.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">What are the trade-offs in the CAP theorem and where do SQL and NoSQL fit? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>CP:</strong> No availability during partitions. Example: HBase. <strong>AP:</strong> Allows stale reads to stay available. Example: DynamoDB, Cassandra. <strong>CA:</strong> Only achievable without partitions (rare in distributed systems).</p>
+     <p><strong>SQL (PostgreSQL, MySQL):</strong> Typically CP in distributed mode — prioritize consistency. <strong>NoSQL:</strong> DynamoDB/Couchbase are AP; MongoDB is tunable between CP and AP; Cassandra leans AP but is tunable; Neo4j is CP (graph integrity is critical).</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">What database model would you choose for a financial ledger, a product catalog, and a real-time chat app? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>Financial ledger:</strong> SQL (PostgreSQL or MySQL) — requires strong consistency and transactional integrity (ACID compliance).</p>
+     <p><strong>Product catalog:</strong> NoSQL Document DB (MongoDB) — schema flexibility for varying product attributes, frequent updates, nested structures.</p>
+     <p><strong>Real-time chat app:</strong> NoSQL Key-Value or Document DB (Redis or DynamoDB) — low latency, high throughput, can tolerate eventual consistency for message ordering.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">What are the limitations of relational databases in modern distributed systems? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>Poor <strong>horizontal scalability</strong> — sharding is complex and often manual. <strong>Rigid schemas</strong> — not ideal for evolving data structures or rapid iteration. <strong>Expensive distributed joins</strong> across shards. <strong>Lower throughput</strong> for high-velocity, high-volume workloads. Potential <strong>single point of failure</strong> if not properly clustered with failover.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">What is polyglot persistence and why is it useful? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>Polyglot persistence</strong> is the use of multiple types of databases in a single system, each chosen to best fit the needs of a specific component. For example: SQL for transactional data, Redis for caching, Elasticsearch for full-text search, Cassandra for write-heavy time-series. It lets you optimize each data access pattern independently, though it adds operational complexity.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">How does data modeling differ between SQL and NoSQL systems? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>SQL:</strong> Highly normalized across multiple related tables. Predefined schemas. Focus on reducing data duplication. Design is driven by the <em>data shape</em>.</p>
+     <p><strong>NoSQL:</strong> Denormalized or nested structures. Schema-less or dynamic schema. Data is modeled around <em>access patterns</em> — how you read and write the data — rather than minimizing duplication.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">What is the difference between horizontal and vertical scaling? When would you prefer one over the other? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>Vertical Scaling (Scale-Up):</strong> Increase CPU, RAM, or SSD on a single server. Simpler to implement; works well with traditional SQL databases. Has a hard ceiling.</p>
+     <p><strong>Horizontal Scaling (Scale-Out):</strong> Add more servers or nodes. Common with NoSQL databases that support distributed architecture. No theoretical ceiling but introduces coordination complexity.</p>
+     <p>Use vertical scaling when simplicity matters and your workload fits on one machine. Use horizontal scaling for large-scale systems where traffic or data exceeds a single server's capacity.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">Explain leader-follower replication. How does it impact consistency and availability? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>All <strong>writes go to a leader node</strong>, which then replicates data to one or more followers. Reads can be served from followers to reduce leader load.</p>
+     <p><strong>Consistency impact:</strong> Asynchronous replication can leave followers slightly behind (eventual consistency). Synchronous replication provides strong consistency but adds write latency.</p>
+     <p><strong>Availability impact:</strong> If the leader fails, a new leader must be elected, potentially causing brief downtime during the failover.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">What are the pros and cons of read replicas? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>Pros:</strong> Improves read scalability by offloading traffic from the primary. Increases fault tolerance — if the primary goes down, some reads can continue from replicas.</p>
+     <p><strong>Cons:</strong> Data on replicas may be eventually consistent due to replication lag. Adds routing complexity (which queries go where). Does not improve write scalability — all writes still hit the primary.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">Compare range-based and hash-based sharding. What are the trade-offs? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>Range-Based Sharding:</strong> Data split by key range (e.g., user IDs 1–1000 on shard 1). Pros: easy range queries and predictable key placement. Cons: can create hot spots if one range receives disproportionate traffic.</p>
+     <p><strong>Hash-Based Sharding:</strong> A hash function on the shard key determines the shard. Pros: better load distribution, avoids hot spots. Cons: makes range queries difficult and complicates data locality debugging.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">Why is consistent hashing important in distributed databases? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>In standard hashing (<code>key % N</code>), adding or removing a node remaps the majority of keys — causing massive data movement. <strong>Consistent hashing</strong> arranges nodes on a virtual ring so that only a small fraction of keys need to be remapped when nodes join or leave. This dramatically improves elasticity and availability. Used in Cassandra, DynamoDB, and Redis clusters for partitioning and rebalancing.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">How do systems like Netflix or Uber use a mix of database technologies in production? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>Netflix:</strong> Cassandra for write-heavy workloads and geo-distribution; MySQL for billing and transactional data; Elasticsearch for real-time search; DynamoDB for metadata and resilience.</p>
+     <p><strong>Uber:</strong> PostgreSQL and MySQL for core business data; Redis for geolocation and session caching; BigQuery and Hadoop for analytics.</p>
+     <p>Both use <strong>polyglot persistence</strong> — each database type is chosen to best fit the specific data needs of a component, optimizing for performance, scalability, and structure.</p>
+    </div>
+   </div>
+  </div>
+
+  <h3 style="margin-top:1.6rem;margin-bottom:0.8rem;color:var(--topic-color)">File Systems &amp; Distributed Storage Questions</h3>
+  <div class="qa-list">
+   <div class="qa-item">
+    <button class="qa-question">What is the difference between a file system and a distributed file system? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>A <strong>traditional file system</strong> (e.g., ext4, NTFS) manages files on a single physical disk or volume, limited by one machine's storage and processing capacity.</p>
+     <p>A <strong>distributed file system (DFS)</strong> — like HDFS or CephFS — spreads data across multiple machines (nodes), providing scalability, fault tolerance, and high availability. Multiple clients can access files as if they were local, even though data is physically distributed across nodes.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">How does HDFS ensure fault tolerance and reliability? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>HDFS ensures fault tolerance through <strong>block replication</strong>: each file is split into blocks (default 128MB or 256MB) and each block is replicated across different DataNodes (default: 3 copies). If a node fails, HDFS retrieves the block from another replica. The NameNode tracks all block locations but does not store actual data — DataNodes periodically send heartbeats to confirm liveness.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">What roles do NameNode and DataNodes play in distributed file systems? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>NameNode:</strong> The central metadata server. Stores file hierarchy, block locations, and replication metadata. Does not store actual file data. It is the coordination brain of the cluster.</p>
+     <p><strong>DataNodes:</strong> Store the actual data blocks. Periodically send heartbeat signals and block reports to the NameNode to confirm they are alive and what data they hold.</p>
+     <p>The NameNode is the coordinator; DataNodes are the storage workhorses. NameNode is also a single point of failure unless configured with HA (standby NameNode).</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">Explain the trade-offs between latency and throughput in distributed storage systems. <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>Latency</strong> — time to retrieve or write a piece of data. In distributed systems, latency is higher due to network hops and coordination overhead (e.g., NameNode communication, quorum consensus).</p>
+     <p><strong>Throughput</strong> — total data processed over time. Distributed systems excel at high throughput through parallel reads and writes across many nodes.</p>
+     <p><strong>Trade-off:</strong> Optimizing for high throughput (batch analytics) typically increases latency for small, frequent reads (OLTP). Choose systems based on whether your workload is latency-sensitive or throughput-oriented.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">In what scenarios would you use CephFS or GlusterFS over HDFS? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>CephFS</strong> when you need POSIX-compliant file system access, fine-grained metadata control, or unified object/block/file storage through a single Ceph cluster.</p>
+     <p><strong>GlusterFS</strong> for simpler setup on commodity hardware, scale-out file storage with minimal configuration, or shared volumes in container environments (e.g., serving media files).</p>
+     <p><strong>HDFS</strong> when you're primarily running batch analytics workloads (Hadoop, Spark) with a write-once-read-many access pattern and tight integration with the Hadoop ecosystem.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">How would you handle scaling storage in a high-throughput analytics system? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>Use a <strong>distributed file system</strong> like HDFS or CephFS. Partition and replicate data to distribute load and prevent bottlenecks. Scale horizontally by adding new DataNodes as needed. Implement <strong>data locality awareness</strong> — run compute jobs close to where data resides (avoid cross-node data shuffling). Use <strong>compression and efficient columnar file formats</strong> (Parquet, ORC) to reduce I/O. Monitor access patterns and employ auto-scaling where supported.</p>
+    </div>
+   </div>
+  </div>
+
+  <h3 style="margin-top:1.6rem;margin-bottom:0.8rem;color:var(--topic-color)">Object Storage Questions</h3>
+  <div class="qa-list">
+   <div class="qa-item">
+    <button class="qa-question">What is object storage and how is it different from file or block storage? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>Object storage</strong> stores data as discrete units (objects), each with a unique identifier and rich metadata, in a flat address space (buckets). Ideal for scalability, metadata-driven organization, and unstructured data.</p>
+     <p><strong>File storage</strong> uses a hierarchical folder/directory structure — good for shared file systems requiring POSIX semantics.</p>
+     <p><strong>Block storage</strong> breaks data into fixed-sized blocks without inherent metadata — used in databases and virtual machines where the application manages the filesystem for fast random I/O.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">When would you choose object storage over a traditional file system? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>Choose object storage when: dealing with large amounts of <strong>unstructured data</strong> (media, backups, logs); <strong>scalability</strong> is critical across regions; you need to serve static assets over the internet via CDN integration; or <strong>cost efficiency</strong> over long-term storage matters more than real-time access latency.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">Explain the structure of an object in object storage. What role does metadata play? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>An object consists of: the <strong>data payload</strong> (e.g., an image file); a <strong>unique ID/key</strong> used to retrieve it; and <strong>metadata</strong> — user-defined or system-generated attributes (file type, permissions, timestamps, tags, custom labels). Metadata enables powerful organization, filtering, lifecycle policies (auto-tiering, expiration), and search capabilities without requiring a separate metadata database.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">Design a media hosting platform (e.g., YouTube). How would you use object storage for video uploads and streaming? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>Store uploaded videos in object storage (S3). Organize by user ID or content type using bucket prefixes or tags. Use <strong>presigned URLs</strong> for secure, time-limited upload/download. Integrate with a <strong>CDN</strong> (CloudFront, Akamai) for fast global delivery. Store different video resolutions as separate objects to support <strong>adaptive bitrate streaming</strong> (HLS, DASH).</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">How would you architect a cost-efficient backup system for petabytes of logs using Amazon S3? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>Use <strong>S3 lifecycle rules</strong> to automatically transition logs through storage tiers: S3 Standard → S3 Infrequent Access → Glacier → Glacier Deep Archive. Enable <strong>versioning and Object Lock</strong> for immutability and compliance. Use batch processing (AWS Batch or Lambda) to compress and archive logs before upload. Monitor access patterns with <strong>S3 Storage Class Analysis</strong> to optimize tier assignments.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">In a microservices system, how would services securely share large files using object storage? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>Upload files to object storage and generate <strong>presigned URLs</strong> for limited-time access — no credentials need to be shared between services. Apply <strong>IAM policies</strong> for fine-grained per-service access control. Encrypt objects using <strong>SSE-S3 or SSE-KMS</strong>. Track access via CloudTrail or S3 access logs for audit trails.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">What are the performance trade-offs of using object storage for real-time access? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>Object storage has <strong>higher latency</strong> than block storage, especially for small, random reads/writes. Some regions exhibit <strong>eventual consistency</strong> for overwrites or deletes. It is not suitable for real-time transactional systems. Better suited for <strong>warm or cold data</strong> — static assets, media, backups — where latency of tens of milliseconds per request is acceptable.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">How do storage class tiers (e.g., S3 Standard vs. Glacier) influence design decisions? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>S3 Standard:</strong> High availability and low latency — for frequently accessed content.</p>
+     <p><strong>S3 IA / One Zone IA:</strong> Cheaper but with retrieval fees — for infrequently accessed backups.</p>
+     <p><strong>S3 Glacier / Deep Archive:</strong> Very cheap, but high retrieval latency (hours) — for compliance archives and long-term retention.</p>
+     <p>The key trade-off is <strong>cost vs. access time</strong>. Good lifecycle management automatically transitions data to cheaper tiers as access frequency drops.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">How would you implement access control for user-specific data stored in object storage? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>Use <strong>bucket policies or IAM roles</strong> scoped to individual users or applications. Use <strong>object-level permissions or presigned URLs</strong> for user-specific upload/download without exposing credentials. Enable <strong>logging and monitoring</strong> (CloudTrail, S3 access logs) to detect unauthorized access. Encrypt objects and manage keys using <strong>KMS or customer-managed encryption keys (CMKs)</strong> for data protection at rest.</p>
+    </div>
+   </div>
+  </div>
+
+  <h3 style="margin-top:1.6rem;margin-bottom:0.8rem;color:var(--topic-color)">Big Data Questions</h3>
+  <div class="qa-list">
+   <div class="qa-item">
+    <button class="qa-question">What are the 5 V's of Big Data? Why are they important? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>The 5 V's define the challenges and opportunities in Big Data systems:</p>
+     <p><strong>Volume</strong> — Massive amounts of data (e.g., Facebook: 4+ PB/day). Systems must scale horizontally.</p>
+     <p><strong>Velocity</strong> — Speed at which data flows in (IoT sensors, trading platforms). Requires real-time tools like Kafka and Flink.</p>
+     <p><strong>Variety</strong> — Structured, semi-structured, and unstructured data (JSON, images, logs). Systems must ingest diverse formats.</p>
+     <p><strong>Veracity</strong> — Data quality and accuracy. Requires validation, cleaning, and data lineage.</p>
+     <p><strong>Value</strong> — Business insights derived from data. Justifies investment in big data infrastructure.</p>
+     <p>These characteristics shape how systems are architected — from storage to processing to analytics.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">Why do traditional databases struggle with Big Data workloads? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>Traditional RDBMSs are built for structured data and vertical scaling. They struggle with: <strong>Scalability</strong> — can't easily scale horizontally across commodity hardware. <strong>Flexibility</strong> — rigid schemas don't support semi/unstructured data. <strong>Performance</strong> — bottlenecks under high write/read loads and complex joins at scale. <strong>Cost</strong> — proprietary solutions become expensive to scale. Big Data systems (Hadoop, NoSQL, Spark) are designed to overcome these limitations through distributed architectures.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">Compare HDFS and S3. In what scenarios would you choose one over the other? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>HDFS:</strong> Tightly coupled with the Hadoop ecosystem; optimized for high-throughput batch workloads; on-premises or private cloud; requires manual scaling and management.</p>
+     <p><strong>S3:</strong> Cloud-native, fully managed, 11-nines durability; supports decoupled compute (Athena, EMR, Redshift Spectrum); auto-scales and is cost-effective for elastic workloads; serverless-friendly.</p>
+     <p>Choose <strong>HDFS</strong> for controlled, on-prem clusters with traditional Hadoop jobs. Choose <strong>S3</strong> for scalable cloud-native pipelines needing flexibility, reliability, and lower operational overhead.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">What types of workloads qualify as Big Data problems? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>Workloads involving high <strong>Volume</strong> (terabytes to petabytes — application logs, CCTV footage), high <strong>Velocity</strong> (continuous streams — sensor data, financial transactions), or high <strong>Variety</strong> (heterogeneous sources — web logs, social media, audio). Examples: clickstream analysis, fraud detection, predictive maintenance with IoT data, training ML models on large datasets, real-time ad bidding. When traditional systems break down due to size, speed, or complexity — it's a Big Data problem.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">What is the difference between batch and stream processing? Which would you use for fraud detection? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>Batch Processing:</strong> Processes data in chunks (e.g., nightly reports). High throughput, higher latency. Examples: Hadoop MapReduce, Spark batch. Use for model training, historical analysis, ETL.</p>
+     <p><strong>Stream Processing:</strong> Processes events as they arrive with low latency. Examples: Apache Flink, Kafka Streams. Use for real-time alerts, monitoring, dashboards.</p>
+     <p><strong>For fraud detection:</strong> Stream processing is ideal — immediate detection is critical. Kafka ingests transactions → Flink applies fraud detection logic → alerts raised in real time. Batch processing is still used to train and update fraud detection models on historical data.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">What is Delta Lake and how does it improve upon traditional data lakes? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>Delta Lake</strong> is an open-source storage layer built on top of data lakes (S3, HDFS) that adds: <strong>ACID transactions</strong> — reliable concurrent reads/writes; <strong>Schema enforcement</strong> — prevents corrupt or invalid data; <strong>Time travel</strong> — rollback and historical data access for debugging and auditing; <strong>Performance optimizations</strong> — caching, indexing, and file compaction. Traditional data lakes lack consistency and governance. Delta Lake bridges that gap, making data lakes production-ready for analytics and ML pipelines.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">How would you design a system to process terabytes of log data daily? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>A scalable, fault-tolerant pipeline:</p>
+     <p><strong>Ingestion:</strong> Kafka or AWS Kinesis to ingest logs in real time at high throughput.</p>
+     <p><strong>Storage:</strong> Raw logs in S3 or Delta Lake for cost-effective, durable, scalable storage.</p>
+     <p><strong>Processing:</strong> Spark (batch) for ETL and aggregation; Flink (stream) for real-time alerting or filtering.</p>
+     <p><strong>Querying:</strong> Presto, Athena, or Redshift Spectrum for ad-hoc SQL analytics on the stored data.</p>
+     <p><strong>Visualization:</strong> Grafana, Superset, or Tableau for dashboards and insights. The design ensures horizontal scalability, data durability, and supports both real-time and batch workflows.</p>
+    </div>
+   </div>
+   <div class="qa-item">
+    <button class="qa-question">What storage and processing frameworks would you use for a big data system and why? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>Storage:</strong> S3 or Delta Lake — scalable, low-cost, supports schema enforcement and time travel. HDFS for on-prem tightly coupled Hadoop workloads. NoSQL (Cassandra, MongoDB) for high-velocity semi-structured data with low-latency reads.</p>
+     <p><strong>Processing:</strong> Apache Spark for large-scale batch ETL and machine learning. Apache Flink or Kafka Streams for real-time low-latency processing. Presto/Trino for federated interactive SQL queries across large datasets.</p>
+     <p>Tool choice depends on <strong>latency requirements, data structure, scale, and whether the workload is batch, stream, or hybrid</strong>.</p>
+    </div>
+   </div>
+  </div>
+
+ </section>
+
+ <section class="section-block reveal">
  <h2>Further Reading</h2>
  <div class="reading-links">
  <a class="reading-link-card" href="https://use-the-index-luke.com" target="_blank" rel="noopener">
