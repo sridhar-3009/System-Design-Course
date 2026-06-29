@@ -479,6 +479,173 @@ media: <span class="c-n">petabytes</span>/year → CDN mandatory</code></pre>
  </div>
  </section>
 
+ <!-- ============ INTERVIEW QUESTIONS ============ -->
+ <section class="section-block reveal">
+ <div class="section-badge">Interview Prep</div>
+ <h2>Fundamentals Interview Questions</h2>
+ <p>All key questions and answers from this topic that appear in system design interviews.</p>
+
+ <h3 style="margin-top:1.6rem;margin-bottom:0.8rem;color:var(--topic-color)">IP Addresses Questions</h3>
+ <div class="qa-list">
+  <div class="qa-item">
+   <button class="qa-question">What is the difference between IPv4 and IPv6? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p><strong>IPv4</strong> is a 32-bit address (e.g., 192.168.1.1) supporting ~4.3 billion unique addresses. It is the most widely used today but is running out of available addresses.</p>
+    <p><strong>IPv6</strong> is a 128-bit address (e.g., 2001:db8::1) supporting approximately 340 undecillion addresses. It was created to solve IPv4 exhaustion and has built-in security features (IPSec).</p>
+    <p><strong>Key difference:</strong> IPv4 uses dotted decimal notation (32-bit); IPv6 uses hexadecimal notation separated by colons (128-bit) and has a vastly larger address space.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">What are private IP addresses and why do we need them? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p>Private IP addresses are reserved ranges not routable on the public internet. They are used within local networks (LANs) to allow multiple devices to share a single public IP.</p>
+    <p><strong>Private IP ranges:</strong> 10.0.0.0–10.255.255.255, 172.16.0.0–172.31.255.255, 192.168.0.0–192.168.255.255.</p>
+    <p><strong>Why needed:</strong> IPv4 address exhaustion — billions of devices share a limited pool of public IPs. Private IPs also improve security by hiding internal network topology from the internet.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">What is NAT (Network Address Translation), and how does it work? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p>NAT translates private IP addresses into a public IP address when traffic leaves a local network, and reverses the translation for incoming responses.</p>
+    <p><strong>How it works:</strong> A device with private IP 192.168.1.10 sends a request. The router translates this to its public IP (e.g., 203.0.113.5) and tracks the mapping in a NAT table. When the response arrives, the router maps it back to the original private device.</p>
+    <p><strong>Why it matters:</strong> NAT allows many devices to share one public IP, conserving IPv4 addresses while providing an additional security layer (internal addresses are hidden from the internet).</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">How do load balancers use IP addresses? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p>A load balancer sits between clients and backend servers and uses IP addresses to route traffic efficiently.</p>
+    <p><strong>Virtual IP (VIP)</strong> — The load balancer exposes a single public IP (VIP) to clients. All incoming traffic goes to this address.</p>
+    <p><strong>Backend IPs</strong> — The load balancer distributes requests to multiple backend servers using their private IPs.</p>
+    <p><strong>Source NAT</strong> — The load balancer may replace the client's IP with its own when forwarding requests, or preserve the original IP using X-Forwarded-For headers.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">How does DNS work alongside IP addresses in large-scale systems? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p>DNS translates human-readable domain names (e.g., google.com) into IP addresses that computers use to communicate.</p>
+    <p><strong>In large-scale systems:</strong> DNS can return multiple IP addresses for a single domain (round-robin DNS load balancing). Geo-DNS routes users to the nearest server based on their IP location. Low TTL values allow rapid failover when server IPs change. DNS-based health checks remove failed server IPs from responses.</p>
+    <p>DNS and IP addresses together are the backbone of request routing in distributed systems.</p>
+   </div>
+  </div>
+ </div>
+
+ <h3 style="margin-top:2rem;margin-bottom:0.8rem;color:var(--topic-color)">Client-Server Model Questions</h3>
+ <div class="qa-list">
+  <div class="qa-item">
+   <button class="qa-question">What is the client-server model in system design? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p>The client-server model is an architectural pattern where two components — the client and the server — communicate over a network. The <strong>client</strong> is any device or application that requests a service or resource. The <strong>server</strong> is a system that receives the client's request, processes it, and returns a response.</p>
+    <p>Most internet-based applications (websites, mobile apps, APIs) follow this model. It enables scalable service delivery by centralizing logic and data on servers.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">How does a client communicate with a server? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p>Clients communicate with servers using network protocols, most commonly HTTP/HTTPS. The flow: (1) Client sends a request (e.g., HTTP GET). (2) Request travels over the network using TCP/IP. (3) Server receives and processes the request. (4) Server sends back a response with data and a status code. (5) Client receives and renders or processes the response.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">Give real-world examples of the client-server model. <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p><strong>Web Browsing</strong> — Browser (client) requests a page from a web server. <strong>Email</strong> — Email client (Outlook, Gmail app) talks to an email server. <strong>Mobile Apps</strong> — Uber app (client) fetches ride data from Uber's servers. <strong>Gaming</strong> — Game client connects to game servers for real-time multiplayer. <strong>Databases</strong> — Application server (client) queries a database server.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">What is the difference between a client and a server? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p><strong>Client:</strong> Initiates communication; sends requests; typically handles UI/UX (browser, mobile app); has limited processing power.</p>
+    <p><strong>Server:</strong> Responds to client requests; always available and listening; handles business logic, database queries, authentication; high processing power and storage capacity.</p>
+    <p>Note: A machine can be both — a web server (serving clients) can itself be a client when querying a database server.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">How does the HTTP request-response cycle work? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p>The HTTP request-response cycle is the foundation of web communication:</p>
+    <p><strong>1.</strong> Client resolves the domain via DNS → gets the server IP. <strong>2.</strong> Client establishes a TCP connection (three-way handshake). <strong>3.</strong> Client sends an HTTP request (method, headers, optional body). <strong>4.</strong> Server processes the request (queries DB, runs logic). <strong>5.</strong> Server returns HTTP response (status code, headers, body). <strong>6.</strong> Client processes the response and renders the result.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">What is the difference between synchronous and asynchronous communication? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p><strong>Synchronous:</strong> Client waits for server response before continuing. Simpler but can block the user. Example: Traditional HTTP request/response — the browser waits for the page to load.</p>
+    <p><strong>Asynchronous:</strong> Client sends request and continues doing other work; processes response when it arrives. More complex but non-blocking. Example: AJAX calls — the page stays interactive while data loads in the background. WebSockets — real-time updates without the client polling.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">How does a browser load a webpage step by step? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p><strong>1. DNS Resolution</strong> — Browser resolves the domain name to an IP address. <strong>2. TCP Connection</strong> — Browser establishes a TCP connection (three-way handshake). <strong>3. HTTP Request</strong> — Browser sends a GET request for the page. <strong>4. Server Response</strong> — Server returns HTML, CSS, JS files. <strong>5. Rendering</strong> — Browser parses HTML, loads CSS/JS, executes scripts, and renders the page. <strong>6. Sub-resources</strong> — Browser makes additional requests for images, fonts, and APIs.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">What is the difference between stateless and stateful servers? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p><strong>Stateless Server</strong> — Does not retain information between requests. Each request is independent and must contain all necessary data. Easier to scale horizontally. Example: RESTful APIs — every request includes auth tokens and required parameters.</p>
+    <p><strong>Stateful Server</strong> — Retains client state between requests (e.g., session data). More complex to scale (sessions must be tied to a specific server). Example: Traditional session-based login systems.</p>
+    <p>Modern large-scale systems prefer stateless servers and offload state to distributed caches (Redis) or databases.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">How does caching improve client-server performance? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p>Caching stores frequently requested data at various layers to avoid redundant processing:</p>
+    <p><strong>Browser Cache</strong> — Stores static assets (CSS, images) locally so the browser doesn't re-download them.</p>
+    <p><strong>CDN Cache</strong> — Edge servers store content closer to users, reducing latency.</p>
+    <p><strong>Server-Side Cache (Redis/Memcached)</strong> — Stores query results in memory to avoid hitting the database on every request.</p>
+    <p><strong>Database Query Cache</strong> — Frequently run queries are cached at the DB level.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">How do load balancers fit into the client-server model? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p>A load balancer sits between clients and servers, distributing incoming requests across multiple server instances. From the client's perspective, it communicates with a single address (the load balancer). The load balancer routes each request to the least busy or most appropriate server. This improves availability (server failures are handled transparently), scalability (add more servers to handle more load), and performance (requests go to healthy, available instances).</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">What are the main security challenges in the client-server model? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p><strong>Man-in-the-Middle (MITM) Attacks</strong> — An attacker intercepts communication. Solution: Use HTTPS/TLS encryption.</p>
+    <p><strong>DDoS Attacks</strong> — Flooding the server with excessive requests. Solution: Rate limiting, CDN, firewalls.</p>
+    <p><strong>SQL Injection</strong> — Malicious SQL in client input affects the database. Solution: Parameterized queries, input validation.</p>
+    <p><strong>Unauthorized Access</strong> — Clients accessing resources without permission. Solution: Authentication (JWT, OAuth) and authorization (RBAC).</p>
+    <p><strong>Data Breaches</strong> — Sensitive data stolen in transit or at rest. Solution: Encryption at rest and in transit.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">How does WebSockets differ from HTTP in the client-server model? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p><strong>HTTP</strong> — Client initiates every request; connection closes after each response; one-directional (client pulls data). Suitable for standard web pages and REST APIs.</p>
+    <p><strong>WebSockets</strong> — Persistent, full-duplex connection; both client and server can send messages at any time; low overhead after initial handshake. Suitable for real-time applications: chat, live feeds, collaborative tools, multiplayer games.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">What are the limitations of the client-server model? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p><strong>Server Dependency</strong> — If the server goes down, clients cannot access services.</p>
+    <p><strong>Scalability Challenges</strong> — A single server can become a bottleneck under high load.</p>
+    <p><strong>Latency</strong> — Geographic distance between client and server adds latency.</p>
+    <p><strong>Cost</strong> — High-availability, scalable server infrastructure is expensive.</p>
+    <p><strong>Security Surface</strong> — Centralized servers are prime targets for attacks.</p>
+    <p>Solutions include horizontal scaling, CDNs, distributed architectures, and caching layers.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">How would you design a scalable client-server architecture for a global application? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p><strong>Global Load Balancers</strong> — Route users to the nearest data center using GeoDNS.</p>
+    <p><strong>CDN</strong> — Serve static content (images, CSS, JS) from edge locations close to users.</p>
+    <p><strong>Horizontal Scaling</strong> — Multiple server instances behind a load balancer; auto-scaling based on traffic.</p>
+    <p><strong>Caching Layer</strong> — Redis/Memcached to reduce database load for repeated queries.</p>
+    <p><strong>Database Replication</strong> — Read replicas close to users; write to primary database.</p>
+    <p><strong>Microservices</strong> — Decompose monolithic server into independent services for independent scaling.</p>
+    <p><strong>Monitoring &amp; Auto-Recovery</strong> — Health checks, alerting, and automatic failover.</p>
+   </div>
+  </div>
+ </div>
+ </section>
+
  <!-- ============ FURTHER READING ============ -->
  <section class="section-block reveal">
  <h2>Further Reading</h2>

@@ -469,6 +469,171 @@
  </div>
  </section>
 
+ <!-- ============ INTERVIEW QUESTIONS ============ -->
+ <section class="section-block reveal">
+ <div class="section-badge">Interview Prep</div>
+ <h2>Load Balancers &amp; Proxies Interview Questions</h2>
+ <p>All key questions and answers from this topic that appear in system design interviews.</p>
+
+ <h3 style="margin-top:1.6rem;margin-bottom:0.8rem;color:var(--topic-color)">Load Balancing Questions</h3>
+ <div class="qa-list">
+  <div class="qa-item">
+   <button class="qa-question">What problem does load balancing solve? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p>Load balancing solves the problem of handling increasing traffic in a scalable and reliable manner. As the number of users grows, a single server can become overwhelmed by incoming requests. A load balancer distributes traffic across multiple servers, ensuring no single server carries all the workload. This improves system performance, enables scalability, and helps maintain availability even when individual servers experience issues.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">Why does a single server eventually become a bottleneck? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p>Every server has finite resources: CPU, memory, storage, and network bandwidth. As user traffic increases, these resources become increasingly utilized until the server reaches its capacity limits. Once this happens, response times increase, requests begin to queue, and users experience timeouts or failures. Regardless of how powerful a server is, there is always a maximum capacity it can handle.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">What is the difference between vertical scaling and horizontal scaling? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p><strong>Vertical Scaling</strong> — Increasing the resources of an existing server: more CPU cores, memory, or storage. Simpler because the application remains on a single machine, but has physical and financial limits.</p>
+    <p><strong>Horizontal Scaling</strong> — Adding more servers and distributing the workload across them. Requires additional infrastructure and traffic distribution mechanisms (load balancers) but provides significantly greater scalability and fault tolerance — the preferred approach for large-scale systems.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">Why is horizontal scaling often preferred over vertical scaling? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p>Horizontal scaling provides a more sustainable path for long-term growth. While vertical scaling can temporarily increase capacity, there is always a limit to how much a single server can be upgraded, and larger servers become increasingly expensive. By adding more servers, organizations can continue increasing capacity as demand grows. Horizontal scaling also improves fault tolerance because the system can continue operating even if one server fails.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">What challenge arises when an application is deployed across multiple servers? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p>Once multiple application servers are introduced, incoming requests must be distributed among them efficiently. Users should not need to know which server to connect to, and traffic should be directed in a way that makes effective use of available resources. Without a mechanism to manage this distribution, some servers may become overloaded while others remain underutilized. This challenge creates the need for a load balancer.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">What role does a load balancer play in a distributed system? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p>A load balancer acts as a single entry point for incoming requests. Instead of clients connecting directly to individual application servers, they send requests to the load balancer, which then forwards those requests to one of the available backend servers. This abstraction simplifies client interactions, enables horizontal scaling, and allows the system to distribute traffic efficiently. It also provides a foundation for improving availability and reliability within distributed architectures.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">How does load balancing improve availability? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p>Load balancing improves availability by reducing dependency on any single server. When multiple servers are available to handle requests, the system can continue operating even if one server becomes unavailable. This redundancy minimizes downtime and ensures users can continue accessing the application despite infrastructure failures, maintenance activities, or unexpected outages.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">What happens if one server fails in a load-balanced architecture? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p>In a load-balanced architecture, a failed server can be removed from active traffic routing, allowing requests to be directed to the remaining healthy servers. The application continues serving users with minimal disruption. A single server failure no longer causes the entire application to become unavailable — the impact of failures is isolated, making the system more resilient.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">Why is load balancing considered a foundational component of modern system design? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p>Load balancing enables many characteristics expected from modern applications: scalability, high availability, reliability, and fault tolerance. As systems grow beyond a single server, a mechanism is needed to distribute traffic and manage multiple instances. Load balancing provides this capability and serves as a critical building block for distributed systems, cloud-native architectures, and large-scale applications.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">When should you introduce a load balancer into a system? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p>A load balancer should be introduced when a single server can no longer meet performance, scalability, or availability requirements. This typically occurs when traffic increases significantly, when multiple application servers are required, or when the business demands higher uptime and reliability. Introducing a load balancer becomes especially valuable when adopting horizontal scaling strategies.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">Walk me through the evolution from a single-server application to a load-balanced architecture. <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p>Most applications begin with a single server — simple and cost-effective. As traffic grows, that server reaches its capacity limits, leading to performance issues and reduced reliability.</p>
+    <p>The first response is often vertical scaling by upgrading the server's resources. However, this approach eventually reaches practical limits.</p>
+    <p>To continue growing, additional application servers are introduced through horizontal scaling. Once multiple servers exist, traffic must be distributed among them efficiently. A load balancer is added in front of the servers to act as a single entry point and route requests appropriately. This evolution enables the system to handle larger workloads, improve availability, and become more resilient to failures.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">How does load balancing improve scalability? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p>Load balancing improves scalability by allowing traffic to be distributed across multiple servers rather than relying on a single machine. As traffic increases, additional servers can be added to the system, and the load balancer can begin routing requests to them. This approach enables capacity to grow incrementally and helps organizations handle increasing workloads without requiring major architectural changes or constant hardware upgrades.</p>
+   </div>
+  </div>
+ </div>
+
+ <h3 style="margin-top:2rem;margin-bottom:0.8rem;color:var(--topic-color)">Forward Proxy vs. Reverse Proxy Questions</h3>
+ <div class="qa-list">
+  <div class="qa-item">
+   <button class="qa-question">What is a proxy server, and why is it used? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p>A proxy server is an intermediary system that sits between a client and a destination server. When a client makes a request, the proxy server forwards it to the destination, receives the response, and relays it back to the client.</p>
+    <p><strong>Security &amp; Privacy</strong> — Hides the client's or server's identity by masking IP addresses.</p>
+    <p><strong>Caching &amp; Performance</strong> — Frequently requested content is stored and served faster.</p>
+    <p><strong>Traffic Control &amp; Load Balancing</strong> — Helps distribute traffic evenly across multiple servers.</p>
+    <p><strong>Content Filtering</strong> — Blocks access to restricted or harmful content.</p>
+    <p><strong>Compression &amp; Optimization</strong> — Reduces bandwidth consumption.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">What are the key differences between a forward proxy and a reverse proxy? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p><strong>Forward Proxy</strong> — Sits between clients and the internet. The client connects to the forward proxy, which forwards the request to the target server. Used by clients to access external resources securely or anonymously. Common uses: hiding user identity, bypassing geo-restrictions, caching content. Examples: Squid Proxy, VPNs, Tor.</p>
+    <p><strong>Reverse Proxy</strong> — Sits between users and backend servers. The user connects to the reverse proxy, which forwards the request to an appropriate backend server. Used by servers to manage, secure, and optimize incoming traffic. Common uses: load balancing, caching, SSL termination, DDoS protection. Examples: Nginx, HAProxy, Cloudflare, AWS Elastic Load Balancer.</p>
+    <p>Key distinction: Forward proxy protects clients; reverse proxy protects servers.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">How does a forward proxy improve security and privacy? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p><strong>Hiding Client Identity</strong> — A forward proxy masks the client's IP address so the target website only sees the proxy's IP. This enables anonymous browsing and bypassing geo-blocking restrictions.</p>
+    <p><strong>Encryption of Traffic</strong> — VPN-based forward proxies encrypt internet traffic, preventing ISPs and hackers from spying on user activities.</p>
+    <p><strong>Content Filtering &amp; Malware Protection</strong> — Organizations use forward proxies to block malicious websites and prevent phishing attacks.</p>
+    <p><strong>Access Control</strong> — Companies restrict employee access to specific websites using forward proxies.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">How does a reverse proxy help in load balancing and caching? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p><strong>Load Balancing</strong> — A reverse proxy distributes incoming requests across multiple backend servers using algorithms such as Round Robin, Least Connections, and IP Hashing.</p>
+    <p><strong>Caching</strong> — Frequently requested content (HTML pages, images, videos) is stored in the reverse proxy's cache. Subsequent requests are served from cache rather than the backend, reducing response time and server load.</p>
+    <p><strong>Security &amp; DDoS Protection</strong> — Reverse proxies block malicious traffic before it reaches backend servers. Example: Cloudflare protects websites from DDoS attacks by filtering traffic at the proxy level.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">When should you use a forward proxy vs. a reverse proxy? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p>Use a <strong>forward proxy</strong> when: clients need anonymous or secure access to external resources (e.g., VPNs, corporate web filtering, bypassing geo-restrictions, blocking access to certain websites).</p>
+    <p>Use a <strong>reverse proxy</strong> when: backend servers need protection, load balancing, caching, or SSL termination (e.g., CDN services, API gateways, high-traffic web applications).</p>
+    <p>Both types can be used for caching content to improve performance.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">How does a reverse proxy protect backend servers from DDoS attacks? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p><strong>Traffic Filtering</strong> — Analyzes requests and blocks malicious IPs and bots before they reach backend servers.</p>
+    <p><strong>Rate Limiting</strong> — Limits the number of requests from a single IP to prevent excessive traffic.</p>
+    <p><strong>Anomaly Detection</strong> — Uses AI-based traffic analysis to detect attack patterns.</p>
+    <p><strong>Load Distribution</strong> — Distributes traffic across multiple servers to prevent overload during high-traffic attacks.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">How does SSL termination work in a reverse proxy? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p>SSL termination is the process where the reverse proxy decrypts HTTPS traffic before forwarding it to backend servers (which then communicate over plain HTTP internally).</p>
+    <p><strong>Benefits:</strong> Reduces backend server CPU load (no SSL decryption needed), improves performance with faster response times, and provides centralized SSL certificate management at the proxy level. Example: Cloudflare handles SSL termination for websites, reducing the burden on origin servers.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">What are some real-world examples of forward and reverse proxies? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p><strong>Forward Proxy Examples:</strong> VPN Services (NordVPN, ExpressVPN) mask user identity and allow access to blocked websites; Corporate Web Filters restrict access to non-work-related websites; Tor Network provides anonymous browsing.</p>
+    <p><strong>Reverse Proxy Examples:</strong> Cloudflare CDN acts as a reverse proxy to optimize website performance and security; Nginx handles high web traffic loads efficiently; AWS Elastic Load Balancer distributes incoming requests across multiple cloud servers.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">What are the advantages of Cloudflare, Nginx, and HAProxy as reverse proxies? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p><strong>Cloudflare</strong> — DDoS protection, CDN caching, global load balancing, and managed SSL. Best for internet-facing services needing global edge presence.</p>
+    <p><strong>Nginx</strong> — High-performance web server and reverse proxy, easy to configure, great for static content caching and microservices. Best for self-managed infrastructure.</p>
+    <p><strong>HAProxy</strong> — Enterprise-grade load balancing with advanced health checks, session persistence, and high availability. Best for high-throughput, low-latency L4/L7 balancing.</p>
+   </div>
+  </div>
+ </div>
+ </section>
+
  <section class="section-block reveal">
  <h2>Further Reading</h2>
  <div class="reading-links">

@@ -398,6 +398,194 @@
  </div>
  </section>
 
+ <!-- ============ INTERVIEW QUESTIONS ============ -->
+ <section class="section-block reveal">
+ <div class="section-badge">Interview Prep</div>
+ <h2>DNS &amp; CDN Interview Questions</h2>
+ <p>All key questions and answers from this topic that appear in system design interviews.</p>
+
+ <h3 style="margin-top:1.6rem;margin-bottom:0.8rem;color:var(--topic-color)">DNS Questions</h3>
+ <div class="qa-list">
+  <div class="qa-item">
+   <button class="qa-question">Explain the DNS resolution process step by step. <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p>DNS resolution converts a domain name (e.g., www.example.com) into an IP address through these steps:</p>
+    <p><strong>1. User Query</strong> — The user types a domain into a browser.</p>
+    <p><strong>2. Browser Cache Check</strong> — The browser checks its local cache for a stored IP.</p>
+    <p><strong>3. OS Cache Check</strong> — If not in the browser cache, the OS DNS resolver is queried.</p>
+    <p><strong>4. Local DNS Resolver</strong> — If the OS doesn't have it, the query goes to the ISP-provided resolver.</p>
+    <p><strong>5. Root DNS Servers</strong> — If uncached, the resolver queries one of the 13 root DNS servers.</p>
+    <p><strong>6. TLD Server Query</strong> — The root server directs to the TLD server (e.g., .com, .org).</p>
+    <p><strong>7. Authoritative DNS Server</strong> — The TLD server provides the authoritative DNS server's address.</p>
+    <p><strong>8. IP Address Retrieval</strong> — The authoritative server responds with the correct IP.</p>
+    <p><strong>9. Response Caching</strong> — The resolver caches the result for future queries.</p>
+    <p><strong>10. Website Access</strong> — The browser connects to the web server using the IP.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">What is the difference between authoritative and recursive DNS servers? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p><strong>Recursive DNS Server:</strong> Acts as an intermediary between the user and other DNS servers. It performs the full DNS lookup process on behalf of the client. Typically provided by ISPs or third-party DNS providers (e.g., Google Public DNS 8.8.8.8, Cloudflare 1.1.1.1).</p>
+    <p><strong>Authoritative DNS Server:</strong> Stores actual DNS records (A, CNAME, MX, etc.) for a domain. It provides the final, definitive answer in the DNS resolution process and is managed by domain owners or hosting providers.</p>
+    <p>In short: recursive servers fetch data, while authoritative servers store and provide the definitive DNS records.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">How does DNS caching improve performance? Where does it occur? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p>DNS caching reduces lookup latency by storing previously retrieved DNS results. Benefits:</p>
+    <p><strong>Reducing latency</strong> — Eliminates repeated queries for frequently accessed websites.</p>
+    <p><strong>Lower DNS server load</strong> — Fewer queries reach upstream DNS servers.</p>
+    <p><strong>Better user experience</strong> — Websites load faster when queries resolve locally.</p>
+    <p>Caching occurs at three levels: <strong>Browser Cache</strong> (stores responses for recently visited sites), <strong>OS Cache</strong> (maintains a local DNS cache for frequently accessed domains), and <strong>Recursive Resolver Cache</strong> (ISP resolvers cache responses to serve many users efficiently).</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">What is TTL in DNS, and why is it important? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p>TTL (Time-To-Live) is a setting in DNS records that defines how long a record is valid before it must be refreshed.</p>
+    <p><strong>Short TTL (e.g., 60 seconds)</strong> — Ensures frequent updates but increases query load on DNS servers.</p>
+    <p><strong>Long TTL (e.g., 24 hours)</strong> — Reduces query frequency but delays propagation of changes (e.g., IP migrations).</p>
+    <p>TTL balances performance and accuracy. Always reduce TTL well before planned IP migrations, then restore it afterward.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">How does DNS-based load balancing work in large-scale systems? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p>DNS-based load balancing distributes traffic across multiple servers by returning different IP addresses for the same domain:</p>
+    <p><strong>Round-Robin DNS</strong> — Each DNS query gets a different server IP in a rotating order.</p>
+    <p><strong>Geolocation-based Routing</strong> — Directs users to the closest data center to minimize latency.</p>
+    <p><strong>Failover DNS</strong> — If a server fails, the DNS resolver removes it from the list and redirects traffic to healthy servers.</p>
+    <p><strong>Anycast DNS</strong> — Uses the same IP address across multiple locations, routing requests to the nearest server.</p>
+    <p>This approach improves reliability, availability, and performance in large-scale applications.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">What are common DNS-related security threats, and how can they be mitigated? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p><strong>DNS Spoofing / Cache Poisoning</strong> — Attackers inject false DNS records, redirecting users to malicious websites. Mitigation: Use DNSSEC to verify DNS records.</p>
+    <p><strong>DDoS Attacks on DNS Servers</strong> — Attackers overload DNS servers with traffic, making domains unreachable. Mitigation: Rate limiting, Anycast DNS, and load balancing.</p>
+    <p><strong>Man-in-the-Middle Attacks</strong> — Intercept DNS queries to manipulate responses. Mitigation: Use DNS-over-HTTPS (DoH) or DNS-over-TLS (DoT).</p>
+    <p><strong>NXDOMAIN Attack</strong> — Floods DNS resolvers with queries for non-existent domains. Mitigation: Deploy response rate limiting (RRL) and DNS firewalls.</p>
+   </div>
+  </div>
+ </div>
+
+ <h3 style="margin-top:2rem;margin-bottom:0.8rem;color:var(--topic-color)">CDN Questions</h3>
+ <div class="qa-list">
+  <div class="qa-item">
+   <button class="qa-question">What is a CDN, and how does it work? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p>A Content Delivery Network (CDN) is a distributed network of servers that deliver content to users efficiently. The primary goal is to reduce latency by caching content at multiple geographically distributed edge servers (PoPs — Points of Presence).</p>
+    <p><strong>How it works:</strong> (1) A user requests content. (2) The request is routed to the nearest CDN edge server based on geographic location, network latency, and server load. (3) If cached (<strong>Cache Hit</strong>), content is served instantly. (4) If not cached (<strong>Cache Miss</strong>), the edge fetches from the origin server, stores it, then serves it.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">Why do we need CDNs in system design? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p>Without a CDN, content is served directly from the origin server, leading to:</p>
+    <p><strong>High latency</strong> due to geographic distance between user and server.</p>
+    <p><strong>Overloaded origin servers</strong>, causing slower responses and downtime.</p>
+    <p><strong>Bandwidth constraints</strong> leading to slow page loads and higher costs.</p>
+    <p><strong>Security risks</strong> including DDoS attacks and malicious traffic.</p>
+    <p>CDNs solve these by distributing traffic across edge locations, caching frequently accessed content, and protecting against cyber threats.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">What are the key benefits of using a CDN? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p><strong>Reduced Latency</strong> — Faster content delivery by serving from the closest PoP.</p>
+    <p><strong>Lower Bandwidth Costs</strong> — Caching reduces requests to the origin, minimizing data transfer costs.</p>
+    <p><strong>Increased Availability &amp; Load Balancing</strong> — Distributes traffic across multiple servers, preventing overload.</p>
+    <p><strong>Enhanced Security</strong> — Protects against DDoS attacks, traffic filtering, and SSL/TLS encryption at the edge.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">What is the difference between an origin server and an edge server in a CDN? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p><strong>Origin Server:</strong> The central server that hosts the original content. It is responsible for serving content when a cache miss occurs.</p>
+    <p><strong>Edge Server (PoP):</strong> A geographically distributed server that caches content closer to users to reduce latency.</p>
+    <p>Analogy: The origin server is like a main warehouse, while edge servers are local distribution centers that store frequently accessed goods.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">What is a PoP (Point of Presence) in a CDN? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p>A PoP (Point of Presence) is a CDN data center that contains edge servers to store and serve cached content to users. The more PoPs a CDN has, the faster and more reliable the content delivery.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">How does request routing work in a CDN? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p>CDNs use various routing strategies to direct user requests to the optimal edge server:</p>
+    <p><strong>Geo-Based Routing</strong> — Users are directed to the closest PoP.</p>
+    <p><strong>Latency-Based Routing</strong> — Requests go to the PoP with the lowest network latency.</p>
+    <p><strong>Load-Aware Routing</strong> — Traffic is balanced across multiple PoPs to prevent overload.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">What is a cache hit vs. cache miss, and how does a CDN handle them? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p><strong>Cache Hit:</strong> The requested content is found in the CDN cache and served immediately — fast and cheap.</p>
+    <p><strong>Cache Miss:</strong> The content is not in the cache, so it is fetched from the origin server, stored at the edge, and then served to the user. Slower on first request, but cached for subsequent users.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">What are cache invalidation strategies, and why are they important? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p><strong>Manual Purge</strong> — Manually removes outdated content from CDN caches immediately.</p>
+    <p><strong>Stale-While-Revalidate</strong> — Serves stale content while fetching fresh content in the background.</p>
+    <p><strong>Versioning</strong> — Appends version numbers (e.g., image_v2.png) to URLs to force cache updates without purging.</p>
+    <p>Cache invalidation is critical to ensure users receive updated content without waiting for TTL to expire.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">How do CDNs use load balancing to improve reliability? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p>CDNs distribute traffic across multiple PoPs using round-robin balancing, latency-based routing, and geo-based routing. If a CDN PoP fails, the CDN automatically reroutes traffic to the next best PoP, ensuring uninterrupted service.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">What compression and minification techniques do CDNs use? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p><strong>Gzip &amp; Brotli Compression</strong> — Reduces file size for transmission.</p>
+    <p><strong>Minification of CSS/JS</strong> — Removes unnecessary characters (whitespace, comments) to reduce file size.</p>
+    <p><strong>Image Optimization</strong> — Converts images to modern formats like WebP and AVIF for better compression.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">How does a CDN protect against DDoS attacks? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p><strong>Rate Limiting</strong> — Blocks excessive requests from a single source.</p>
+    <p><strong>Traffic Filtering</strong> — Identifies and drops malicious requests before they reach the origin.</p>
+    <p><strong>Anycast Routing</strong> — Distributes attack traffic across multiple PoPs to absorb the impact, preventing any single location from being overwhelmed.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">What is SSL/TLS offloading in a CDN, and why is it useful? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p>SSL/TLS offloading means the CDN handles encryption/decryption at the edge, reducing the computational burden on the origin server. Benefits include: reduced origin CPU load, faster response times, and centralized certificate management at the edge.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">How does a multi-CDN architecture work? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p>A multi-CDN strategy uses multiple CDN providers simultaneously for better redundancy, performance, and failover handling. If one CDN provider experiences an outage or poor performance in a region, traffic is automatically routed to an alternate CDN. This is used by large platforms like Netflix and Cloudflare to guarantee uptime.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">How would you design a CDN for a large-scale video streaming platform? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p><strong>Segmented Caching</strong> — Store different video chunks (segments) at different PoPs based on popularity.</p>
+    <p><strong>Adaptive Bitrate Streaming</strong> — Adjusts video quality dynamically based on the user's available bandwidth.</p>
+    <p><strong>Load Balancing</strong> — Distributes viewers across multiple edge servers to prevent overload.</p>
+    <p><strong>Multi-CDN</strong> — Use multiple CDN providers for geographic coverage and failover.</p>
+    <p>Example: Netflix uses its Open Connect CDN with custom edge servers placed inside ISP networks to minimize last-mile latency.</p>
+   </div>
+  </div>
+ </div>
+ </section>
+
  <!-- ============ FURTHER READING ============ -->
  <section class="section-block reveal">
  <h2>Further Reading</h2>

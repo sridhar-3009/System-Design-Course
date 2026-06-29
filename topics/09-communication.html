@@ -425,6 +425,616 @@ DELETE /users/42 <span class="c-c"># remove user 42</span></code></pre>
  </div>
  </section>
 
+ <!-- ============ INTERVIEW QUESTIONS ============ -->
+ <section class="section-block reveal">
+ <div class="section-badge">Interview Prep</div>
+ <h2>Communication Protocols Interview Questions</h2>
+ <p>All key questions and answers from this topic that appear in system design interviews.</p>
+
+ <h3 style="margin-top:1.6rem;margin-bottom:0.8rem;color:var(--topic-color)">HTTP Questions</h3>
+ <div class="qa-list">
+  <div class="qa-item">
+   <button class="qa-question">What is HTTP, and how does it work? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p>HTTP (HyperText Transfer Protocol) is the foundation of communication on the web. It enables the transfer of resources such as web pages, images, and API responses.</p>
+    <p><strong>How it works:</strong> A client (browser, mobile app, API client) sends an HTTP request to a web server. The server processes the request and returns an HTTP response containing data or an error message. The client receives the response and renders the requested resource.</p>
+    <p><strong>Example:</strong> When you type a URL in a browser, the browser sends a GET request to the web server. The server responds with the HTML of the webpage. The browser displays it to the user.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">Why is HTTP considered a stateless protocol? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p>HTTP does not retain memory of previous requests between the client and server. Each request is treated as independent — the server does not store session information.</p>
+    <p><strong>Challenges:</strong> Maintaining user sessions (e.g., staying logged in), and every request must include necessary information (e.g., authentication tokens).</p>
+    <p><strong>Solutions to maintain state:</strong> Cookies (stored in the browser and sent with requests), Sessions (server-side storage with a session ID), and Tokens like JWT and OAuth (used for authentication and API security).</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">What are the key differences between HTTP and HTTPS? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p><strong>Security:</strong> HTTP sends data in plain text; HTTPS encrypts data using SSL/TLS.</p>
+    <p><strong>Encryption:</strong> HTTP has no encryption; HTTPS uses SSL/TLS encryption.</p>
+    <p><strong>Port:</strong> HTTP uses port 80; HTTPS uses port 443.</p>
+    <p><strong>Data Integrity:</strong> HTTP data can be intercepted and modified; HTTPS data is protected from tampering.</p>
+    <p><strong>Use Case:</strong> HTTP is suitable for non-sensitive data; HTTPS is essential for secure websites (banking, login pages, any site handling user data).</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">Explain the HTTP request-response cycle with an example. <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p>The HTTP request-response cycle is the fundamental pattern by which clients and servers communicate:</p>
+    <p><strong>Step 1 — Client sends a request:</strong> The browser or API client sends an HTTP request specifying a method (GET, POST, etc.), a URL, headers (user-agent, content-type, auth tokens), and optionally a body (for POST/PUT).</p>
+    <p><strong>Step 2 — Server processes the request:</strong> The web server receives the request, authenticates/authorizes if needed, retrieves or computes the requested resource (querying a database, calling another service, reading a file, etc.).</p>
+    <p><strong>Step 3 — Server sends a response:</strong> The server responds with a status code (e.g., 200 OK, 404 Not Found), response headers (content-type, cache-control, etc.), and a body containing the data (HTML, JSON, image, etc.).</p>
+    <p><strong>Step 4 — Client renders the response:</strong> The browser parses and renders HTML, or the API client parses the JSON payload and updates the application state.</p>
+    <p><strong>Example:</strong> A user visits a blog. The browser sends <code>GET /articles/123 HTTP/1.1</code>. The server queries the database, finds the article, and responds with <code>200 OK</code> and the article HTML. The browser renders the page.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">What are HTTP methods? When would you use PUT vs. PATCH? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p><strong>GET</strong> — Retrieve a resource. <strong>POST</strong> — Create a new resource. <strong>PUT</strong> — Update an entire resource (idempotent). <strong>PATCH</strong> — Partially update a resource. <strong>DELETE</strong> — Remove a resource.</p>
+    <p><strong>PUT vs. PATCH:</strong> Use PUT when replacing an entire resource (e.g., updating a full user profile with all fields). Use PATCH when making partial updates (e.g., changing only the email address of a user without modifying the name or password).</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">What are HTTP status codes? Give examples of 2xx, 3xx, 4xx, and 5xx codes. <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p><strong>1xx — Informational:</strong> Request received and processing continues.</p>
+    <p><strong>2xx — Success:</strong> 200 OK (successful request), 201 Created (new resource created), 204 No Content (success with no response body).</p>
+    <p><strong>3xx — Redirection:</strong> 301 Moved Permanently (resource has a new permanent URL, search engines update it), 302 Found (temporary redirect, search engines keep original URL), 304 Not Modified (use cached version).</p>
+    <p><strong>4xx — Client Errors:</strong> 400 Bad Request (invalid syntax), 401 Unauthorized (authentication required), 403 Forbidden (lacks permission), 404 Not Found (resource doesn't exist).</p>
+    <p><strong>5xx — Server Errors:</strong> 500 Internal Server Error (generic server failure), 503 Service Unavailable (server temporarily overloaded or down).</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">How do cookies, sessions, and tokens help maintain state in HTTP? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p><strong>Cookies:</strong> Small pieces of data stored in the client's browser. Automatically sent with every request to the server. Used for tracking user sessions, preferences, and authentication.</p>
+    <p><strong>Sessions:</strong> Server-side storage of user data. The client is assigned a session ID stored in a cookie. Common in login-based applications.</p>
+    <p><strong>Tokens (JWT, OAuth):</strong> JSON Web Tokens (JWT) are used in stateless authentication. OAuth tokens provide secure API access. Tokens are stored in local storage or cookies and sent in request headers.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">How does caching work in HTTP, and which headers control it? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p>HTTP caching reduces server load and improves performance by allowing browsers to store copies of resources.</p>
+    <p><strong>Cache-Control</strong> — <code>Cache-Control: max-age=3600</code> (cache for 1 hour), <code>Cache-Control: no-cache</code> (always fetch fresh data), <code>Cache-Control: private</code> (don't cache in shared caches).</p>
+    <p><strong>ETag</strong> — A unique identifier for a resource version, used for conditional requests to check if content has changed.</p>
+    <p><strong>Expires</strong> — Defines the expiration date/time for cached content (older mechanism, Cache-Control preferred).</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">What security risks are associated with HTTP, and how can they be mitigated? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p><strong>Risks:</strong> Man-in-the-middle attacks (data interception), phishing attacks (fake websites), data tampering (modifying HTTP messages), session hijacking (stealing session cookies).</p>
+    <p><strong>Mitigations:</strong> Use HTTPS to encrypt data with SSL/TLS. Use HttpOnly and Secure cookie flags. Implement Content Security Policy (CSP) to prevent XSS. Use JWT or OAuth for secure API access. Validate all user input to prevent injection attacks.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">What is the difference between 301 (Moved Permanently) and 302 (Found) redirections? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p>Both are 3xx redirect status codes that tell the client to look for the resource at a different URL, but they differ in permanence and caching behavior:</p>
+    <p><strong>301 Moved Permanently</strong> — The resource has been permanently moved to a new URL. Browsers and search engines cache this redirect. Future requests go directly to the new URL without asking the original server. Search engine "link juice" is transferred to the new URL.</p>
+    <p><strong>302 Found (Moved Temporarily)</strong> — The resource is temporarily at a different URL. Browsers do NOT cache this redirect by default. The original URL remains authoritative; future requests still go to the original URL first. Search engines do NOT transfer ranking to the temporary URL.</p>
+    <p><strong>When to use which:</strong> Use 301 when permanently changing a URL (e.g., migrating a website, retiring an old endpoint). Use 302 for temporary redirects (e.g., A/B testing, maintenance pages, login redirects after authentication).</p>
+   </div>
+  </div>
+ </div>
+
+ <h3 style="margin-top:2rem;margin-bottom:0.8rem;color:var(--topic-color)">TCP &amp; UDP Questions</h3>
+ <div class="qa-list">
+  <div class="qa-item">
+   <button class="qa-question">What is the key difference between TCP and UDP? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p><strong>TCP (Transmission Control Protocol)</strong> is connection-oriented. It establishes a reliable connection before sending data and ensures packets arrive in the correct order and without loss. Slower but reliable.</p>
+    <p><strong>UDP (User Datagram Protocol)</strong> is connectionless. It sends data without establishing a connection and does not guarantee delivery, order, or error correction. Faster but unreliable.</p>
+    <p>Summary: TCP prioritizes reliability; UDP prioritizes speed.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">When should you use TCP over UDP? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p>Use TCP when data integrity is critical and transmission reliability is required:</p>
+    <p><strong>Web Browsing (HTTP, HTTPS)</strong> — Ensures all webpage data is received without corruption.</p>
+    <p><strong>File Transfers (FTP, SFTP)</strong> — Guarantees complete file downloads/uploads without missing chunks.</p>
+    <p><strong>Email (SMTP, IMAP, POP3)</strong> — Ensures emails are received in full without data loss.</p>
+    <p><strong>Database Queries</strong> — Prevents corruption of data when sending/receiving requests and responses.</p>
+    <p>TCP is essential whenever missing or corrupted data cannot be tolerated.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">When should you use UDP over TCP? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p>UDP is preferred when speed is more important than reliability and occasional data loss is acceptable:</p>
+    <p><strong>Video Streaming (YouTube, Netflix)</strong> — A few lost frames don't significantly affect the user experience.</p>
+    <p><strong>Online Gaming (Multiplayer)</strong> — Low latency is crucial for real-time interactions.</p>
+    <p><strong>VoIP Calls (Skype, Zoom)</strong> — Small packet losses are tolerable, but delays should be minimal.</p>
+    <p><strong>DNS Lookups</strong> — Quick responses are needed, and lost packets can be retried without noticeable delay.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">How does TCP ensure reliability? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p><strong>Three-Way Handshake</strong> — Establishes a connection (SYN → SYN-ACK → ACK) before data transmission.</p>
+    <p><strong>Acknowledgments (ACKs)</strong> — Confirms receipt of packets; sender knows data arrived.</p>
+    <p><strong>Retransmission of Lost Packets</strong> — If a packet is lost (no ACK received), TCP resends it.</p>
+    <p><strong>Error Checking</strong> — Uses checksums to detect corrupted packets.</p>
+    <p><strong>Ordered Data Delivery</strong> — Reassembles packets in the correct order before passing to the application.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">Why is UDP faster than TCP? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p>UDP is faster because: no connection establishment (no handshake), no acknowledgments (data sent without waiting for confirmation), no retransmission (lost packets are not resent), and lower overhead (8-byte header vs. TCP's 20-byte header). Since UDP doesn't waste time ensuring reliability, it delivers data as quickly as possible.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">Can TCP and UDP be used together? Give examples. <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p>Yes, some applications combine both protocols to optimize performance:</p>
+    <p><strong>Online Video Streaming (Netflix, YouTube)</strong> — UDP for fast video delivery, TCP for control messages (pause, seek).</p>
+    <p><strong>Online Games</strong> — UDP for real-time actions (player movement), TCP for non-time-sensitive data (chat, game stats).</p>
+    <p><strong>VoIP (Skype, Zoom)</strong> — UDP for low-latency voice data, TCP for connection setup.</p>
+    <p>By using both protocols strategically, applications balance speed and reliability.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">Which protocol does DNS use — TCP or UDP? Why? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p>DNS primarily uses <strong>UDP</strong> because: speed is crucial (DNS queries must resolve quickly), and DNS requests/responses are small enough to fit within UDP's packet size limits. However, DNS can use <strong>TCP</strong> for larger responses, such as when retrieving a full DNS zone transfer.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">How do applications handle reliability when using UDP? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p>Since UDP doesn't ensure reliable delivery, applications must implement their own mechanisms:</p>
+    <p><strong>Sequence Numbers</strong> — Ensures packets arrive in the correct order at the application level.</p>
+    <p><strong>Custom Acknowledgments</strong> — Applications can request ACKs for important data.</p>
+    <p><strong>Forward Error Correction (FEC)</strong> — Adds extra data to allow recovery of lost packets without retransmission.</p>
+    <p><strong>Application-Level Retransmission</strong> — If a critical packet is lost, the application requests it again.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">What are the main disadvantages of TCP and UDP? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p><strong>TCP Disadvantages:</strong> Slower performance due to reliability mechanisms; higher resource consumption (CPU and memory); not suitable for real-time applications (e.g., VoIP, live streaming) where latency matters more than perfect delivery.</p>
+    <p><strong>UDP Disadvantages:</strong> No guarantee of delivery (some packets may be lost); no built-in error correction (applications must handle errors manually); unordered delivery (packets may arrive out of sequence).</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">How do firewalls handle TCP vs. UDP traffic? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p>TCP traffic is easier to monitor since it has a clear connection setup (handshake) and termination — firewalls can track state reliably.</p>
+    <p>UDP traffic is harder to track because it's connectionless, making it more vulnerable to abuse (e.g., UDP-based DDoS attacks). To secure UDP traffic, firewalls use rate limiting, deep packet inspection, and UDP filtering.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">What is the TCP Three-Way Handshake, and why is it needed? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p>The Three-Way Handshake is TCP's connection establishment process. It synchronizes both sides before any data is sent, ensuring both client and server are ready to communicate:</p>
+    <p><strong>Step 1 — SYN (Synchronize):</strong> The client sends a SYN packet to the server to request a connection and share its initial sequence number.</p>
+    <p><strong>Step 2 — SYN-ACK (Synchronize-Acknowledge):</strong> The server responds with a SYN-ACK, acknowledging the client's SYN and sharing its own sequence number.</p>
+    <p><strong>Step 3 — ACK (Acknowledge):</strong> The client sends an ACK back to the server, confirming the connection is established. Data transfer begins.</p>
+    <p><strong>Why it's needed:</strong> It ensures both sides agree on initial sequence numbers (for ordering packets), confirms both sides are reachable and ready, and establishes the connection state before data is sent. UDP skips this handshake entirely — which makes UDP faster but unreliable.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">How does TCP handle congestion control? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p>TCP uses congestion control algorithms to dynamically adjust its transmission rate based on network conditions, preventing it from overwhelming the network:</p>
+    <p><strong>Slow Start</strong> — When a new connection is established, TCP starts with a small congestion window and doubles the number of segments sent per round-trip time until a threshold or packet loss is detected.</p>
+    <p><strong>Congestion Avoidance</strong> — After the slow-start threshold is reached, TCP increases the window size linearly (one segment per RTT) to probe for more available bandwidth without causing congestion.</p>
+    <p><strong>Fast Retransmit</strong> — If TCP receives 3 duplicate ACKs for the same packet, it infers a packet was lost and retransmits it immediately without waiting for a timeout.</p>
+    <p><strong>Fast Recovery</strong> — After fast retransmit, TCP halves the congestion window (instead of resetting to 1) and resumes congestion avoidance to recover quickly.</p>
+    <p>UDP has no congestion control — it fires packets at a fixed rate regardless of network conditions, which is why UDP applications (games, streaming) must implement their own flow control if needed.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">Which protocol would you use for a real-time multiplayer game, and why? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p><strong>UDP</strong> is the standard choice for real-time multiplayer games, because low latency matters more than guaranteed delivery.</p>
+    <p><strong>Why not TCP?</strong> TCP's retransmission and ordering guarantees introduce head-of-line blocking — if one packet is lost, TCP stalls all subsequent packets waiting for the retransmit. In a game, a stale position update is worse than a missed one because the game state has already moved on.</p>
+    <p><strong>Why UDP works:</strong> If a player's position packet is dropped, the next position update (milliseconds later) makes the old one irrelevant anyway. Games discard late/out-of-order packets rather than waiting for retransmission.</p>
+    <p><strong>What games add on top of UDP:</strong> Custom reliability layers for critical events (hits, kills, game state changes) that must not be lost. Sequence numbering to detect and discard out-of-order packets. Delta compression to minimize payload size. Examples: Fortnite, Call of Duty, Valorant all use UDP with custom reliability built on top.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">If a video streaming service is buffering too much, would switching from TCP to UDP help? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p>It depends on the root cause of the buffering, but in many cases switching to UDP (or a UDP-based protocol) can reduce buffering:</p>
+    <p><strong>Why TCP may cause buffering:</strong> TCP's retransmission of lost packets causes head-of-line blocking — the decoder stalls waiting for retransmitted packets even though the stream has moved past that point. TCP's congestion control can also throttle throughput aggressively when packet loss occurs.</p>
+    <p><strong>Why UDP helps streaming:</strong> UDP skips retransmission. If a frame is lost, the decoder interpolates or drops it and keeps playing. This eliminates the stall-and-wait pattern. Modern streaming protocols like QUIC (used by YouTube, Google), WebRTC (video calls), and HLS over UDP-based transport exploit this.</p>
+    <p><strong>Caveats:</strong> Simply switching to raw UDP is not enough — you still need a buffer, forward error correction (FEC), and adaptive bitrate logic. The real improvement comes from using adaptive streaming protocols (HLS, DASH) plus QUIC rather than raw UDP. If buffering is caused by low bandwidth (not protocol overhead), switching protocols won't help.</p>
+   </div>
+  </div>
+ </div>
+
+ <h3 style="margin-top:2rem;margin-bottom:0.8rem;color:var(--topic-color)">REST &amp; RESTful API Design Questions</h3>
+ <div class="qa-list">
+  <div class="qa-item">
+   <button class="qa-question">What is REST, and how does it differ from SOAP? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p>REST (Representational State Transfer) is an architectural style that defines constraints for designing web services using standard HTTP methods. SOAP (Simple Object Access Protocol) is a strict protocol.</p>
+    <p><strong>Protocol:</strong> REST is an architectural style; SOAP is a strict protocol.</p>
+    <p><strong>Data Format:</strong> REST uses JSON (or XML/HTML); SOAP uses XML only.</p>
+    <p><strong>Performance:</strong> REST is lightweight and faster; SOAP has higher overhead due to XML formatting and WS-Security.</p>
+    <p><strong>Statefulness:</strong> REST is stateless; SOAP can be stateful.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">What are the six constraints of REST architecture? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p><strong>1. Client-Server Architecture</strong> — Client and server are independent, allowing better scalability.</p>
+    <p><strong>2. Statelessness</strong> — Each request contains all necessary information; the server doesn't store session data.</p>
+    <p><strong>3. Cacheability</strong> — Responses can be cached to improve performance and reduce server load.</p>
+    <p><strong>4. Layered System</strong> — An API can be designed in layers (authentication, load balancing, security) without affecting clients.</p>
+    <p><strong>5. Uniform Interface</strong> — Standardized communication using HTTP verbs (GET, POST, PUT, DELETE).</p>
+    <p><strong>6. Code on Demand (Optional)</strong> — The server can send executable code (e.g., JavaScript) to the client.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">What is the difference between a REST API and a RESTful API? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p><strong>REST API:</strong> Any API that follows some REST principles but may not strictly adhere to all six constraints.</p>
+    <p><strong>RESTful API:</strong> An API that fully follows all REST constraints and principles — truly stateless, proper HTTP verbs, uniform interface, etc.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">What are the best practices for designing RESTful APIs? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p>Use plural nouns for resource names (<code>/users</code>, not <code>/user</code>).</p>
+    <p>Implement proper HTTP status codes for all responses.</p>
+    <p>Support versioning (<code>/v1/resources</code>) to maintain backward compatibility.</p>
+    <p>Use pagination for large datasets (<code>?page=2&amp;limit=20</code>).</p>
+    <p>Implement rate limiting to prevent API abuse.</p>
+    <p>Use OAuth 2.0 or JWT for authentication.</p>
+    <p>Use HTTPS for all endpoints.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">What is HATEOAS in REST? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p>HATEOAS (Hypermedia as the Engine of Application State) is a REST principle where API responses include links to relevant actions the client can take next. This makes the API self-discoverable.</p>
+    <p>Example: A response for a user includes links like <code>"self": "/users/1"</code> and <code>"orders": "/users/1/orders"</code>, so clients can navigate without hardcoding URLs.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">How does versioning work in REST APIs? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p><strong>URI-based:</strong> <code>/v1/resource</code> — Most common and explicit approach.</p>
+    <p><strong>Header-based:</strong> <code>Accept-Version: v1</code> — Keeps URLs clean but less visible.</p>
+    <p><strong>Query-based:</strong> <code>?version=1</code> — Easy to use but can conflict with other query params.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">Explain the differences between REST, GraphQL, and gRPC. <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p><strong>REST</strong> — JSON/XML, fixed endpoints, medium performance. Best for general APIs and CRUD operations.</p>
+    <p><strong>GraphQL</strong> — JSON, custom queries (client specifies exactly what data it needs), high performance for complex data fetching. Best when clients need flexible data shapes.</p>
+    <p><strong>gRPC</strong> — Protocol Buffers (binary), strict method definitions, very high performance and low latency. Best for internal microservice communication and low-latency services.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">How do you implement pagination in REST APIs? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p>Use query parameters: <code>GET /users?page=2&amp;limit=10</code></p>
+    <p>Return pagination metadata in the response: total count, current page, next/previous links. Always paginate large collections to avoid performance issues and excessive payload sizes.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">How does authentication and authorization work in REST APIs? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p><strong>OAuth 2.0</strong> — Used for user authentication and delegated access (e.g., "Login with Google").</p>
+    <p><strong>JWT (JSON Web Token)</strong> — Used for stateless session management. Token contains encoded user info and is verified on each request without server-side session storage.</p>
+    <p><strong>API Keys</strong> — Simple tokens for third-party access, typically used for server-to-server communication.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">How would you improve the performance of a REST API? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p>Enable caching using HTTP Cache-Control headers and CDNs. Use gzip/Brotli compression. Implement asynchronous processing for long-running tasks. Use database indexing and read replicas. Implement pagination to avoid large payloads. Use connection pooling. Consider moving to gRPC for internal high-frequency calls.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">How does REST handle security vulnerabilities? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p>Prevent SQL injection by using parameterized queries (never interpolate user input into SQL). Use CSRF tokens to prevent cross-site request forgery. Implement HTTPS for all secure communication. Validate all input at API boundaries. Rate-limit endpoints to prevent brute force and DDoS. Use CORS policies to restrict cross-origin access.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">How do you design a RESTful API for a blogging platform? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p>A blogging platform has three main resources — users, posts, and comments — and the API should be structured around them:</p>
+    <p><strong>Users:</strong> <code>GET /users/{id}</code> — Get user profile. <code>POST /users</code> — Register a new user. <code>PUT /users/{id}</code> — Update profile. <code>DELETE /users/{id}</code> — Delete account.</p>
+    <p><strong>Posts:</strong> <code>GET /posts</code> — List all posts (with pagination: <code>?page=1&amp;limit=20</code>). <code>GET /posts/{id}</code> — Get a specific post. <code>POST /posts</code> — Create a new post (requires auth). <code>PUT /posts/{id}</code> — Update a post. <code>DELETE /posts/{id}</code> — Delete a post.</p>
+    <p><strong>Comments (nested under posts):</strong> <code>GET /posts/{id}/comments</code> — Get all comments for a post. <code>POST /posts/{id}/comments</code> — Add a comment. <code>DELETE /posts/{post_id}/comments/{comment_id}</code> — Delete a comment.</p>
+    <p><strong>Best practices applied:</strong> Use plural nouns for collections. Nest child resources under parents when tightly coupled. Use query params for filtering/sorting (<code>GET /posts?author=alice&amp;sort=created_at</code>). Return appropriate status codes (201 Created, 204 No Content for DELETE). Version the API: <code>/v1/posts</code>. Authenticate with JWT/OAuth for write operations.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">What are API rate limiting and throttling, and why are they important? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p><strong>Rate Limiting</strong> caps the number of requests a client can make in a given time window (e.g., 1000 requests per hour per API key). Once the limit is exceeded, the server returns 429 Too Many Requests.</p>
+    <p><strong>Throttling</strong> is a related concept that slows down rather than blocks requests when a threshold is reached — the server still processes them but deliberately delays responses.</p>
+    <p><strong>Why they matter:</strong></p>
+    <p><strong>Protect availability</strong> — Prevent a single client (or bot) from consuming all server resources and degrading service for others. Essential protection against DDoS-style abuse.</p>
+    <p><strong>Fair resource allocation</strong> — Ensures equitable access across thousands of API consumers (free vs. paid tiers can have different limits).</p>
+    <p><strong>Cost control</strong> — APIs backed by expensive operations (ML inference, database queries) use rate limits to bound compute costs.</p>
+    <p><strong>Implementation:</strong> Rate limits are typically tracked in Redis (fast in-memory counters per key). Common algorithms: Token Bucket (allows burst traffic up to a limit), Leaky Bucket (smooths out requests), and Fixed Window (simple per-time-period counter).</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">How do you ensure backward compatibility when updating a REST API? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p>Backward compatibility means existing clients continue to work without changes after the API is updated. Key strategies:</p>
+    <p><strong>API Versioning</strong> — Introduce a new version URL (<code>/v2/users</code>) when making breaking changes. Maintain the old version for a deprecation period so existing clients can migrate gradually.</p>
+    <p><strong>Never remove or rename fields</strong> — Only add new optional fields to response bodies. Removing or renaming fields is a breaking change for clients that parse those fields.</p>
+    <p><strong>Never change field types</strong> — If a field was a string, keep it a string. Type changes break client-side parsing.</p>
+    <p><strong>Expand, don't contract</strong> — Add new endpoints alongside old ones rather than replacing them. Keep old endpoints functional until they are formally deprecated and removed after adequate notice.</p>
+    <p><strong>Deprecation headers</strong> — Use <code>Deprecation</code> and <code>Sunset</code> HTTP headers to signal that an endpoint will be removed and when clients should migrate.</p>
+    <p><strong>Semantic versioning for clients</strong> — Communicate changes clearly in a changelog. Provide migration guides for major version changes.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">What is the difference between JSON and XML in REST APIs? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p>Both JSON and XML can be used as data formats in REST APIs, but JSON has become the dominant choice for modern web APIs:</p>
+    <p><strong>JSON (JavaScript Object Notation):</strong> Lightweight and compact — less verbosity means smaller payloads. Native to JavaScript, parsed natively by browsers. Human-readable and easier to debug. Fast parsing in most languages. Supports arrays, objects, strings, numbers, booleans, and null natively.</p>
+    <p><strong>XML (eXtensible Markup Language):</strong> More verbose due to opening and closing tags — larger payload sizes. Supports attributes and namespaces, useful for complex document structures. Built-in schema validation with XSD (XML Schema Definition). Better suited for document-centric data (e.g., contracts, invoices). Required by some enterprise/legacy systems (SOAP APIs always use XML).</p>
+    <p><strong>When to use XML in REST:</strong> Integrating with legacy enterprise systems that require XML. When you need strict schema validation. When the data is inherently document-like (e.g., regulatory submissions). For modern consumer APIs, JSON is almost always the right choice.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">Can a REST API be stateful? Why or why not? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p>Technically yes, a REST API <em>can</em> be implemented statelessly — but doing so violates one of REST's core constraints (Statelessness) and is considered non-RESTful.</p>
+    <p><strong>What stateless means in REST:</strong> Each request must contain all information needed to process it — the server should not rely on stored session state between requests. Authentication tokens, user context, and request parameters should all be present in each request.</p>
+    <p><strong>Why REST mandates statelessness:</strong> Scalability — any server instance can handle any request without needing shared session state. Reliability — if a server crashes, another handles subsequent requests without state loss. Simplicity — debugging and monitoring are easier when each request is self-contained.</p>
+    <p><strong>How REST "handles" state:</strong> Client-side tokens (JWT, OAuth) carry identity/context on every request. Cookies maintain session IDs (though server-side sessions introduce statefulness). Short-lived resources (shopping carts, multi-step workflows) can be modeled as resources with their own endpoints.</p>
+    <p><strong>Bottom line:</strong> A truly RESTful API is stateless. If your API requires server-side session storage between requests, it deviates from REST principles and gains the drawbacks of stateful systems (sticky sessions, scaling complexity, session synchronization).</p>
+   </div>
+  </div>
+ </div>
+
+ <h3 style="margin-top:2rem;margin-bottom:0.8rem;color:var(--topic-color)">Real-Time Communication &amp; WebSockets Questions</h3>
+ <div class="qa-list">
+  <div class="qa-item">
+   <button class="qa-question">What is real-time communication, and why is it important? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p>Real-time communication (RTC) refers to instantaneous data exchange between systems with minimal latency. Unlike traditional request-response models where data retrieval happens on demand, RTC ensures continuous, live updates without requiring users to manually refresh or trigger requests.</p>
+    <p><strong>Why it matters:</strong> Low latency, seamless user experience, essential for critical applications like chat apps (WhatsApp), live stock market tickers (NASDAQ), multiplayer gaming (Fortnite), and live sports score updates.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">How does WebSockets work, and how does it differ from traditional HTTP? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p>WebSockets provide a <strong>persistent, full-duplex connection</strong> over a single TCP connection, allowing both client and server to send data at any time.</p>
+    <p><strong>How it works:</strong> (1) Client sends an HTTP upgrade request. (2) Server responds with 101 Switching Protocols. (3) A persistent connection is established. (4) Both sides exchange messages asynchronously without re-establishing the connection.</p>
+    <p><strong>vs. Traditional HTTP:</strong> HTTP closes the connection after each request/response cycle and is client-initiated only. WebSockets maintain a single persistent connection with bidirectional communication and minimal overhead.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">Explain the WebSocket handshake process. <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p>The WebSocket handshake is the initial request-response exchange that upgrades an HTTP connection to a persistent WebSocket connection:</p>
+    <p><strong>Step 1 — Client sends an HTTP Upgrade request:</strong> The client sends a standard HTTP GET with special headers: <code>Upgrade: websocket</code>, <code>Connection: Upgrade</code>, and a <code>Sec-WebSocket-Key</code> (a random base64 value used for validation).</p>
+    <p><strong>Step 2 — Server responds with 101 Switching Protocols:</strong> If the server supports WebSockets, it responds with HTTP 101 and a <code>Sec-WebSocket-Accept</code> header (the server's hash of the client's key), confirming the upgrade.</p>
+    <p><strong>Step 3 — Persistent connection established:</strong> After the handshake, the connection is no longer HTTP — both sides use the WebSocket framing protocol to exchange messages bidirectionally at any time. Either party can close the connection by sending a close frame.</p>
+    <p><strong>Why the key exchange matters:</strong> The <code>Sec-WebSocket-Key</code> / <code>Sec-WebSocket-Accept</code> mechanism prevents caching proxies from incorrectly treating a WebSocket connection as a regular HTTP response.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">What are the advantages of WebSockets over long polling? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p><strong>Persistent Connection</strong> — WebSockets keep a single connection open for the entire session, eliminating the overhead of repeatedly creating and closing HTTP connections.</p>
+    <p><strong>Low Latency</strong> — Data is pushed to the client the instant it's available, without the client needing to make a new request. Long polling always has the round-trip latency of a new HTTP request between updates.</p>
+    <p><strong>Lower Overhead</strong> — WebSocket frames have minimal headers (as small as 2 bytes) compared to full HTTP headers sent on every long poll request. This dramatically reduces bandwidth usage at scale.</p>
+    <p><strong>Bidirectional Communication</strong> — Both client and server can send messages at any time independently. Long polling is still client-initiated — the server can only respond, not push proactively.</p>
+    <p><strong>When WebSockets clearly win:</strong> Live chat (Slack, WhatsApp), stock market real-time feeds (NASDAQ), multiplayer games (Fortnite), collaborative editing (Google Docs). Long polling remains useful for simpler setups where WebSocket infrastructure isn't available.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">What is long polling, and how does it differ from WebSockets? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p><strong>Long Polling:</strong> The client sends an HTTP request, and the server holds it open until new data is available (instead of responding immediately). Once data arrives, the server responds and the client immediately sends a new request. Example: Gmail uses long polling for new email alerts.</p>
+    <p><strong>vs. WebSockets:</strong> WebSockets use a single persistent connection with low overhead and low latency, ideal for high-frequency updates. Long polling uses multiple HTTP requests with higher overhead and higher latency, better for less frequent updates or environments where WebSockets aren't supported.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">In what scenarios would you prefer long polling over WebSockets? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p>Use long polling when: WebSockets are not supported (e.g., older browsers, firewalls blocking WebSockets), limited real-time needs (notifications don't require instant updates), RESTful API integration (long polling works with standard HTTP), or simpler backend infrastructure is preferred (no WebSocket server needed). Examples: social media feed updates (Facebook), email notifications (Gmail).</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">How does WebSockets handle connection failures or network interruptions? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p><strong>Automatic Reconnection</strong> — Most WebSocket clients implement reconnection logic in case of failure.</p>
+    <p><strong>Heartbeat Mechanism</strong> — WebSockets use ping/pong messages to detect connectivity issues and keep connections alive.</p>
+    <p><strong>Backoff Strategies</strong> — Clients retry connections with increasing time intervals (exponential backoff) to avoid overwhelming the server during recovery.</p>
+    <p>Example: Slack automatically reconnects WebSocket connections when users switch between Wi-Fi and mobile data.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">Can you use WebSockets with load balancers? If yes, how? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p>Yes, but WebSockets require <strong>sticky sessions</strong> (session affinity) or connection-aware load balancing to maintain state, since a WebSocket connection must stay with the same backend server for its lifetime.</p>
+    <p><strong>Sticky Sessions</strong> — Ensures a WebSocket connection always routes to the same server.</p>
+    <p><strong>Reverse Proxy (Nginx/HAProxy)</strong> — Supports WebSocket proxying by forwarding the Upgrade header.</p>
+    <p><strong>WebSocket Gateways</strong> — AWS API Gateway manages WebSocket connections at scale.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">What are some challenges of scaling WebSockets in a distributed system? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p><strong>Maintaining state across servers</strong> — Requires sticky sessions or session persistence.</p>
+    <p><strong>Handling large concurrent connections</strong> — Millions of open connections consume significant memory.</p>
+    <p><strong>Load balancing issues</strong> — WebSockets require intelligent routing (sticky sessions).</p>
+    <p><strong>Connection failures</strong> — Requires reconnection logic and backoff strategies.</p>
+    <p><strong>Solutions:</strong> Use Redis Pub/Sub or Kafka for message broadcasting across multiple WebSocket servers. Implement sticky sessions in load balancers. Use WebSocket gateways like AWS API Gateway.</p>
+   </div>
+  </div>
+ </div>
+
+ <h3 style="margin-top:2rem;margin-bottom:0.8rem;color:var(--topic-color)">API Gateway Questions</h3>
+ <div class="qa-list">
+  <div class="qa-item">
+   <button class="qa-question">What is an API Gateway, and why is it used? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p>An API Gateway is a server that acts as an intermediary between clients and backend services. It handles request routing, authentication, rate limiting, caching, and response transformation. It is used to manage API traffic efficiently, improve security, reduce backend load, and ensure scalability.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">How does an API Gateway differ from a Load Balancer? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p>An API Gateway provides additional features beyond load balancing: authentication, rate limiting, caching, and API composition. A Load Balancer simply distributes network traffic among multiple backend servers. Load Balancers operate at Layer 4/7 (network/transport), while API Gateways operate at Layer 7 (application layer) enabling more advanced request handling.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">What are the key benefits of using an API Gateway? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p><strong>Security</strong> — Enforces authentication and authorization for all backend services.</p>
+    <p><strong>Rate Limiting &amp; Throttling</strong> — Controls traffic to prevent abuse and maintain stability.</p>
+    <p><strong>Load Balancing</strong> — Distributes requests across multiple services.</p>
+    <p><strong>Caching</strong> — Reduces backend load and speeds up response times.</p>
+    <p><strong>Request Transformation</strong> — Converts between formats (e.g., REST to gRPC, JSON to XML).</p>
+    <p><strong>Monitoring &amp; Logging</strong> — Tracks API performance, usage, and security threats in one place.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">How does an API Gateway handle authentication and authorization? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p>API Gateways enforce security by verifying credentials/tokens before forwarding requests to backend services. If authentication fails, the request is denied at the gateway before it reaches any backend service.</p>
+    <p><strong>API Keys</strong> — Unique identifiers required for API access.</p>
+    <p><strong>OAuth 2.0 &amp; JWT</strong> — Used for secure access management and stateless authentication.</p>
+    <p><strong>mTLS (Mutual TLS)</strong> — Ensures encrypted communication between clients and APIs.</p>
+    <p><strong>LDAP &amp; SAML</strong> — Used for enterprise authentication.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">Explain rate limiting and throttling in API Gateways. <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p><strong>Rate Limiting</strong> — Restricts the number of API calls per user/IP per second, minute, or hour. Example: a user can make only 100 requests per minute.</p>
+    <p><strong>Throttling</strong> — Allows excess requests but slows down response times instead of immediately rejecting them. Useful for handling traffic spikes gracefully.</p>
+    <p><strong>Burst Limits</strong> — Temporary high limits that adjust dynamically based on usage patterns.</p>
+    <p><strong>Common algorithms:</strong> Token Bucket (tokens consumed per request, replenished periodically), Leaky Bucket (processes requests at a fixed rate), Fixed Window and Sliding Window Counters (limit requests per time window).</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">When should you use an API Gateway in a microservices architecture? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p>An API Gateway is especially useful in microservices when: multiple services need a unified entry point, security and authentication must be enforced centrally, rate limiting and caching are necessary for stability, request transformation between formats (REST, GraphQL, gRPC) is needed, and API monitoring and analytics are important. Example: In an e-commerce system, an API Gateway routes requests to separate microservices for authentication, product catalog, and payments.</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">What challenges might arise when implementing an API Gateway, and how would you address them? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p><strong>Single Point of Failure</strong> — API Gateway failure disrupts all traffic. Solution: Deploy multiple instances with failover support.</p>
+    <p><strong>Increased Latency</strong> — Extra processing (auth, transformation, logging) slows requests. Solution: Enable caching, optimize configurations, minimize unnecessary processing.</p>
+    <p><strong>Complexity in Microservices</strong> — Managing many API routes and policies is challenging. Solution: Use an API Gateway management platform (Kong, Apigee, AWS API Gateway).</p>
+    <p><strong>Scalability Issues</strong> — Poorly designed gateway can become a bottleneck. Solution: Use horizontal scaling with distributed API Gateway nodes.</p>
+    <p><strong>Versioning &amp; Backward Compatibility</strong> — Managing API versions is complex. Solution: Implement versioning strategies (e.g., <code>/v1/resource</code>, <code>/v2/resource</code>).</p>
+   </div>
+  </div>
+  <div class="qa-item">
+   <button class="qa-question">How would you design an API Gateway for a large-scale system with millions of users? <span class="qa-chevron">▾</span></button>
+   <div class="qa-answer">
+    <p><strong>Distributed Architecture</strong> — Multiple API Gateway instances behind a Load Balancer to handle traffic spikes.</p>
+    <p><strong>Auto-Scaling</strong> — Dynamically adjust resources based on demand (e.g., Kubernetes-based deployment).</p>
+    <p><strong>Rate Limiting &amp; Throttling</strong> — Prevent excessive API calls from overloading the system.</p>
+    <p><strong>Caching</strong> — Reduce backend workload by caching frequently requested responses.</p>
+    <p><strong>High Availability</strong> — Multi-region deployment with failover mechanisms.</p>
+    <p><strong>Monitoring</strong> — Track errors, response times, and security threats with observability tools.</p>
+    <p>Example: A global video streaming service like Netflix uses a CDN-enabled API Gateway to route requests to the nearest data center, improving latency.</p>
+   </div>
+  </div>
+ </div>
+ </section>
+
+ <!-- ============ GRPC & GRAPHQL INTERVIEW QUESTIONS ============ -->
+ <section class="section-block reveal">
+  <div class="section-badge">Interview Prep</div>
+  <h2>Modern API Protocols Interview Questions</h2>
+  <p>Key interview questions covering gRPC, GraphQL, and how they compare to REST in system design scenarios.</p>
+
+  <h3 style="margin-top:1.6rem;margin-bottom:0.8rem;color:var(--topic-color)">gRPC &amp; GraphQL Questions</h3>
+  <div class="qa-list">
+
+   <div class="qa-item">
+    <button class="qa-question">How would you compare REST, gRPC, and GraphQL? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>REST</strong> uses standard HTTP methods (GET, POST, PUT, DELETE) with stateless, resource-based URLs. Simple and widely supported but can suffer from over-fetching and under-fetching.</p>
+     <p><strong>gRPC</strong> (Google Remote Procedure Call) uses HTTP/2 and Protocol Buffers (binary serialization). It is fast, strongly typed, and supports bidirectional streaming — ideal for microservices and internal service communication where performance matters.</p>
+     <p><strong>GraphQL</strong> exposes a single endpoint where clients specify exactly the data they need via a query language. This eliminates over-fetching and under-fetching and is ideal for complex frontends with varying data requirements.</p>
+     <p><strong>When to choose:</strong> Use REST for simplicity and broad compatibility. Use gRPC for high-performance, low-latency internal APIs. Use GraphQL when clients need flexible, precise data queries.</p>
+    </div>
+   </div>
+
+   <div class="qa-item">
+    <button class="qa-question">When would you use gRPC over REST? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>Choose gRPC when:</p>
+     <p><strong>Performance is critical</strong> — gRPC uses Protocol Buffers (binary format) instead of JSON, making serialization/deserialization significantly faster and payloads smaller.</p>
+     <p><strong>Bidirectional streaming is needed</strong> — gRPC supports full-duplex streaming over a single HTTP/2 connection, unlike REST which is request-response only.</p>
+     <p><strong>Microservices communicate internally</strong> — gRPC is excellent for internal service-to-service calls where type safety and efficiency outweigh human-readability.</p>
+     <p><strong>Multi-language environments</strong> — gRPC auto-generates client stubs from `.proto` schema files across many languages, reducing integration effort.</p>
+     <p><strong>Real-time &amp; IoT systems</strong> — Low latency and streaming capabilities make gRPC a natural fit for real-time data pipelines and IoT device communication.</p>
+    </div>
+   </div>
+
+   <div class="qa-item">
+    <button class="qa-question">What are the trade-offs of using GraphQL in a large-scale system? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>Advantages:</strong></p>
+     <p>Clients fetch exactly the data they need — no over-fetching or under-fetching. A single endpoint reduces the API surface area. Strong schema enables auto-generated documentation and type-safe client code. Enables rapid frontend iteration without requiring backend API changes.</p>
+     <p><strong>Trade-offs:</strong></p>
+     <p><strong>Complex queries can be expensive</strong> — deeply nested queries may hammer the database. Mitigate with query depth limiting and query complexity analysis.</p>
+     <p><strong>N+1 query problem</strong> — resolving nested fields can trigger multiple database calls. Solve using DataLoader (batching) patterns.</p>
+     <p><strong>Caching is harder</strong> — REST benefits from HTTP-level caching by URL, but GraphQL POST requests have dynamic bodies, making CDN/proxy caching more complex.</p>
+     <p><strong>Security surface</strong> — flexible queries mean clients can ask for more data than intended; requires field-level authorization and rate limiting.</p>
+    </div>
+   </div>
+
+   <div class="qa-item">
+    <button class="qa-question">How does gRPC handle authentication and security? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>gRPC supports multiple authentication mechanisms built into its transport layer:</p>
+     <p><strong>TLS/SSL</strong> — gRPC runs over HTTP/2 and uses TLS by default to encrypt all communication between services.</p>
+     <p><strong>Token-Based Auth (JWT/OAuth2)</strong> — Clients pass tokens via gRPC metadata headers (similar to HTTP headers). The server validates the token on every call.</p>
+     <p><strong>mTLS (Mutual TLS)</strong> — Both client and server present certificates, ensuring both sides of the connection are authenticated. Common in service mesh architectures (e.g., Istio).</p>
+     <p><strong>Interceptors</strong> — gRPC supports server-side and client-side interceptors (middleware) to centralize auth logic, logging, and retry policies without modifying individual service code.</p>
+    </div>
+   </div>
+
+   <div class="qa-item">
+    <button class="qa-question">How do you scale GraphQL APIs efficiently? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p><strong>DataLoader / Batching</strong> — Group multiple database lookups triggered by nested resolvers into a single batched query to avoid the N+1 problem.</p>
+     <p><strong>Persisted Queries</strong> — Clients send a hash instead of the full query string; the server maps hashes to pre-approved queries. This reduces payload size and enables CDN caching.</p>
+     <p><strong>Schema Stitching / Federation</strong> — Split the schema across multiple microservices (Apollo Federation). Each service owns its part of the schema; a gateway merges them for clients.</p>
+     <p><strong>Query Complexity Limits</strong> — Assign a cost to each field and reject queries that exceed a total complexity budget, preventing expensive queries from overloading servers.</p>
+     <p><strong>Response Caching</strong> — Cache resolver results at the field level (e.g., using Redis) for data that doesn't change frequently.</p>
+     <p><strong>Rate Limiting</strong> — Apply per-client rate limits at the GraphQL layer or API Gateway to prevent abuse by any single consumer.</p>
+    </div>
+   </div>
+
+   <div class="qa-item">
+    <button class="qa-question">What is Protocol Buffers (Protobuf) and why does gRPC use it? <span class="qa-chevron">▾</span></button>
+    <div class="qa-answer">
+     <p>Protocol Buffers (Protobuf) is Google's binary serialization format used as gRPC's default data encoding instead of JSON.</p>
+     <p><strong>Why Protobuf over JSON?</strong></p>
+     <p><strong>Size</strong> — Protobuf messages are 3–10× smaller than equivalent JSON because field names are replaced with small integer tags and data is encoded in binary.</p>
+     <p><strong>Speed</strong> — Binary parsing is significantly faster than text parsing; benchmarks show Protobuf serialization is 5–10× faster than JSON.</p>
+     <p><strong>Type Safety</strong> — Schemas are defined in `.proto` files and compiled to strongly-typed code in multiple languages, eliminating whole classes of runtime type errors.</p>
+     <p><strong>Schema Evolution</strong> — Fields are identified by number, so new fields can be added without breaking existing clients (forward &amp; backward compatibility).</p>
+     <p>The trade-off: Protobuf messages are not human-readable, making debugging harder — tools like `grpcurl` or Protobuf reflection are needed to inspect messages.</p>
+    </div>
+   </div>
+
+  </div>
+ </section>
+
  <section class="section-block reveal">
  <h2>Further Reading</h2>
  <div class="reading-links">
